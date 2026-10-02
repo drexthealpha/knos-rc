@@ -4,6 +4,7 @@ is what the test build of knos-oidc writes, and the npm tarball holds the client
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -62,7 +63,8 @@ def test_it_is_the_version_of_the_python_package():
 
 
 def test_the_npm_tarball_holds_the_client_and_nothing_else():
-    npm = shutil.which("npm")
+    # on Windows the npm on PATH is a .cmd; the extensionless `npm` beside it is a shell script CreateProcess cannot run
+    npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
     if not npm:
         pytest.skip("needs npm")
     r = subprocess.run([npm, "pack", "--dry-run", "--json"], cwd=str(SDK), capture_output=True, text=True, check=False)
