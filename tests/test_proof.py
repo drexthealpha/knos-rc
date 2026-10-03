@@ -292,6 +292,33 @@ def test_init_removes_what_older_versions_installed(knos_home, _isolated, knos_s
     assert {h for h, _ in rep["mcp"]} == {"claude", "codex"}
 
 
+def test_init_removes_an_older_knos_server_registered_for_one_project(knos_home, _isolated, knos_script):
+    """Claude Code keeps a server added for one project (`claude mcp add`, its default local scope) under
+    projects.<path>.mcpServers in ~/.claude.json, and there it wins over the one knos registers for the user: an older
+    install's entry, or one whose interpreter is gone, kept failing to start (spawn C:/python.exe ENOENT) after
+    `knos init`. Such entries go; a project's own working knos server and every other server stay."""
+    from knos import init
+    home = _isolated
+    (home / ".claude").mkdir()
+    working = {"type": "stdio", "command": str(knos_script), "args": ["mcp"]}
+    projects = {"C:\\Users\\me\\Desktop": {"mcpServers": {"knos": {"command": "C:/python.exe", "args": ["-m", "knos.mcp"]},
+                                                          "other": {"command": "x"}}, "allowedTools": []},
+                "/home/me/gone": {"mcpServers": {"knos": {"type": "stdio", "command": "C:/python.exe", "args": ["-m", "knos", "mcp"]}}},
+                "/home/me/fine": {"mcpServers": {"knos": working}},
+                "/home/me/none": {"mcpServers": {}}, "/home/me/odd": {"mcpServers": "not a table"}}
+    (home / ".claude.json").write_text(json.dumps({"projects": projects, "numStartups": 3}), "utf-8")
+    rep = init.install()
+    assert sorted(x for x in rep["removed"] if "project" in x) == [
+        f"the knos MCP server of the project /home/me/gone in {home / '.claude.json'}",
+        f"the knos MCP server of the project C:\\Users\\me\\Desktop in {home / '.claude.json'}"]
+    data = json.loads((home / ".claude.json").read_text())
+    assert data["numStartups"] == 3 and data["mcpServers"]["knos"]["args"] == ["mcp"]
+    assert data["projects"] == {"C:\\Users\\me\\Desktop": {"mcpServers": {"other": {"command": "x"}}, "allowedTools": []},
+                                "/home/me/gone": {"mcpServers": {}}, "/home/me/fine": {"mcpServers": {"knos": working}},
+                                "/home/me/none": {"mcpServers": {}}, "/home/me/odd": {"mcpServers": "not a table"}}
+    assert init.install()["removed"] == []                             # nothing older is left
+
+
 def test_init_registers_the_mcp_server_with_every_host_that_is_here_and_undo_puts_the_files_back(knos_home, _isolated, knos_script):
     from knos import init
     home = _isolated
