@@ -79,7 +79,7 @@ def init(undo: bool = typer.Option(False, "--undo", help="remove what knos init 
     picked = [h.strip() for h in hosts.split(",") if h.strip()] if hosts else None
     rep = setup.undo(picked) if undo else setup.install(picked)
     for what in rep["removed"]:
-        out.print(f"  removed {what} (it moved to knos-labs in 0.3.10)", markup=False)
+        out.print(f"  removed {what} (an older Knos's, or one whose command is gone)", markup=False)
     for host, where in rep["done"]:
         out.print(f"  {'removed from' if undo else 'Stop hook for'} {host}: {where}", markup=False)
     for host, where in rep["mcp"]:
