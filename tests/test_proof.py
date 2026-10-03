@@ -292,7 +292,7 @@ def test_init_removes_what_older_versions_installed(knos_home, _isolated, knos_s
     assert {h for h, _ in rep["mcp"]} == {"claude", "codex"}
 
 
-def test_init_removes_an_older_knos_server_registered_for_one_project(knos_home, _isolated, knos_script):
+def test_init_removes_an_older_knos_server_registered_for_one_project(knos_home, _isolated, knos_script, capsys):
     """Claude Code keeps a server added for one project (`claude mcp add`, its default local scope) under
     projects.<path>.mcpServers in ~/.claude.json, and there it wins over the one knos registers for the user: an older
     install's entry, or one whose interpreter is gone, kept failing to start (spawn C:/python.exe ENOENT) after
@@ -317,6 +317,14 @@ def test_init_removes_an_older_knos_server_registered_for_one_project(knos_home,
                                 "/home/me/gone": {"mcpServers": {}}, "/home/me/fine": {"mcpServers": {"knos": working}},
                                 "/home/me/none": {"mcpServers": {}}, "/home/me/odd": {"mcpServers": "not a table"}}
     assert init.install()["removed"] == []                             # nothing older is left
+    # and `knos init` says what it took out as what it was: a server whose command is gone did not move to knos-labs
+    data["projects"]["/home/me/gone"]["mcpServers"]["knos"] = {"command": "C:/python.exe", "args": ["-m", "knos", "mcp"]}
+    (home / ".claude.json").write_text(json.dumps(data), "utf-8")
+    from knos.cli import main
+    assert main(["init", "--hosts", "claude"]) == 0
+    said = capsys.readouterr().out.replace("\n", "")
+    assert f"removed the knos MCP server of the project /home/me/gone in {home / '.claude.json'} (an older Knos's, or one whose command is gone)" in said
+    assert "knos-labs" not in said
 
 
 def test_init_registers_the_mcp_server_with_every_host_that_is_here_and_undo_puts_the_files_back(knos_home, _isolated, knos_script):
