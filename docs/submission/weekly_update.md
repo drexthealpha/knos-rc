@@ -17,7 +17,7 @@ merge.
 
 *On screen: the site's Numbers page.*
 
-From merge to paid on devnet: [[stat: seconds_from_merge_to_paid]] seconds at the median.
+From merge to paid on devnet: 110 seconds at the median.
 
 ## The hardest problem, and the decision (0:30)
 

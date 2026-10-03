@@ -223,6 +223,96 @@
    "say": [],
    "what": "a whole bounty has been paid on the first deployment",
    "live": "run"
+  },
+  {
+   "say": [
+    "6"
+   ],
+   "what": "tasks paid on the second deployment, on devnet (the site's stats.json of 2026-10-03 16:04 UTC)",
+   "json": "docs/bench.json",
+   "path": "devnet.stats.by_deployment.second.completed",
+   "equals": 6
+  },
+  {
+   "say": [
+    "0"
+   ],
+   "what": "tasks, on both deployments, that someone other than Knos funded with their own tokens and that were paid to someone other than the funder (the site's stats.json of 2026-10-03 16:04 UTC)",
+   "json": "docs/bench.json",
+   "path": "devnet.stats.outside.completed",
+   "equals": 0
+  },
+  {
+   "say": [
+    "0"
+   ],
+   "what": "the funders of those tasks (the site's stats.json of 2026-10-03 16:04 UTC)",
+   "json": "docs/bench.json",
+   "path": "devnet.stats.outside.funders",
+   "equals": 0
+  },
+  {
+   "say": [
+    "0"
+   ],
+   "what": "of those funders, the ones who funded another task after one of theirs was paid (the site's stats.json of 2026-10-03 16:04 UTC)",
+   "json": "docs/bench.json",
+   "path": "devnet.stats.outside.repeat_funders",
+   "equals": 0
+  },
+  {
+   "say": [
+    "2"
+   ],
+   "what": "the payments that median is over (the site's stats.json of 2026-10-03 16:04 UTC)",
+   "json": "docs/bench.json",
+   "path": "devnet.stats.latency.merge_to_paid.count",
+   "equals": 2
+  },
+  {
+   "say": [
+    "110"
+   ],
+   "what": "seconds from the merge to the payment, the median over the public relay's log (the site's stats.json of 2026-10-03 16:04 UTC)",
+   "json": "docs/bench.json",
+   "path": "devnet.stats.latency.merge_to_paid.median",
+   "equals": 110
+  },
+  {
+   "say": [
+    "909"
+   ],
+   "what": "tests that passed in the release's own run of the suite (`pytest -q` on the release commit). Measured: pytest -q on the release tree, ubuntu-latest Python 3.12 in tests.yml: 909 passed, 7 skipped (drexthealpha/knos-rc run 37134734073, the same tree as the release commit apart from these documents)",
+   "json": "docs/bench.json",
+   "path": "release.tests_passing.value",
+   "equals": 909
+  },
+  {
+   "say": [
+    "3"
+   ],
+   "what": "of the pull requests #32, #33 and #34 by jaystay-bot, the ones that were merged and paid on devnet when the release ran. Measured: Knos #32, #33 and #34 by jaystay-bot, merged 2026-10-03 14:53 UTC, paid by the first deployment after its one-hour hold: transactions 4sgn69Gd4AqsVqaJBVYoKGpNXNnX4VRMPgqv6frLwuMh62cvXzELsmbMq1pjfZYJ3owTcoLZh5shP6ZNoVJk6j5R, 66EKe3z1q3w8UgCYSnr8eEjApBHHyEvATMJivJ9ZBMtHB9nenb2KzxwyQ9oaSvrKYCL1NeXM5NcXqbmioooDA18C, 5CAQquCMfrxgpK6EyHGGwudcbSakWk9VEoGHdREZCicVVmqW4Y6BfjaqLm1w53a6WeNrPnLB7PeaJnLuZGGRFji3",
+   "json": "docs/bench.json",
+   "path": "release.outside_prs_merged_and_paid.value",
+   "equals": 3
+  },
+  {
+   "say": [
+    "3"
+   ],
+   "what": "payments on devnet, both deployments, whose payee is another GitHub account than the one that funded the task: the `knos:paid` and `knos2:paid` lines of the escrows' logs whose payee is not the task's funder. Measured: the paid lines of both escrows' logs on devnet (scripts/network_stats.py jobs_of over every transaction of both knos_pay programs, 2026-10-03 16:04 UTC): 15 payments, 3 of them to another GitHub account (254283079) than the funder (142920951)",
+   "json": "docs/bench.json",
+   "path": "release.payments_between_unrelated_accounts.value",
+   "equals": 3
+  },
+  {
+   "say": [
+    "32"
+   ],
+   "what": "days, from 1 Sep 2026 to the release, on which drexthealpha made a commit in the public repository (the automatic commits of a workflow are left out): `git log --author=drexthealpha --format=%ad --date=short | sort -u | wc -l`. Measured: git log --author=drexthealpha --format=%ad --date=short | sort -u | wc -l on drexthealpha/Knos from 2026-09-01 to the release commit of 2026-10-03",
+   "json": "docs/bench.json",
+   "path": "release.days_of_shipping.value",
+   "equals": 32
   }
  ]
 }

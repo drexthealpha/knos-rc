@@ -9,7 +9,7 @@ nothing is recorded until they are filled.
 ## Who (0:00)
 
 I'm drexthealpha. That is a pseudonym, and I say so plainly. I work alone and ship in public, with coding agents:
-[[stat: days_of_shipping]] days with a commit of mine in the public repository since the first of September.
+32 days with a commit of mine in the public repository since the first of September.
 
 ## The problem (0:15)
 
@@ -36,10 +36,10 @@ program checks the signature, and the author is paid. No veto afterwards, no cla
 
 ## Evidence (1:39)
 
-It runs end to end on Solana devnet, in test money. [[stat: payments_between_unrelated_accounts]] payments have
-gone from one account to another, and [[stat: outside_prs_merged_and_paid]] of them paid an outside contributor
-for a merged pull request. The median from merge to paid is [[stat: seconds_from_merge_to_paid]] seconds.
-[[stat: tests_passing]] tests pass. There has been no outside review yet, and no outside buyer.
+It runs end to end on Solana devnet, in test money. 3 payments have
+gone from one account to another, and 3 of them paid an outside contributor
+for a merged pull request. The median from merge to paid is 110 seconds.
+909 tests pass. There has been no outside review yet, and no outside buyer.
 
 ## Why now (2:03)
 

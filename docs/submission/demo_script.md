@@ -38,7 +38,7 @@ the repository, the issue, the payee, the head commit and the hash of the terms.
 
 **Narration.** This one passes. She merges it, and that is the last thing anyone does. Her repository's workflow
 reads GitHub's record of the merged commit and asks GitHub to sign what it found. A Solana program checks that
-signature and pays the author's wallet: [[stat: seconds_from_merge_to_paid]] seconds from merge to paid, at the
+signature and pays the author's wallet: 110 seconds from merge to paid, at the
 median. This is the token. GitHub signed which repository it ran in, which workflow file at which commit, and what
 it asked for. The program checked each of those against the bounty.
 

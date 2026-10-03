@@ -639,6 +639,48 @@
    "outside_prs": "issues #29, #30 and #31 of this repository, 25, 10 and 15 test USDC; pull requests #32, #33 and #34"
   },
   "second": "neither program id of the second deployment held an account on devnet when the cluster was read on 3 Oct 2026.",
-  "stats": {}
+  "stats": {
+   "updated": "2026-10-03 16:04 UTC",
+   "by_deployment": {
+    "second": {
+     "funded": 10,
+     "completed": 6
+    }
+   },
+   "outside": {
+    "funded": 0,
+    "completed": 0,
+    "funders": 0,
+    "repeat_funders": 0
+   },
+   "latency": {
+    "merge_to_paid": {
+     "count": 2,
+     "median": 110,
+     "p90": 164
+    },
+    "comment_to_funded": {
+     "median": 260
+    }
+   }
+  }
+ },
+ "release": {
+  "tests_passing": {
+   "value": 909,
+   "source": "pytest -q on the release tree, ubuntu-latest Python 3.12 in tests.yml: 909 passed, 7 skipped (drexthealpha/knos-rc run 37134734073, the same tree as the release commit apart from these documents)"
+  },
+  "outside_prs_merged_and_paid": {
+   "value": 3,
+   "source": "Knos #32, #33 and #34 by jaystay-bot, merged 2026-10-03 14:53 UTC, paid by the first deployment after its one-hour hold: transactions 4sgn69Gd4AqsVqaJBVYoKGpNXNnX4VRMPgqv6frLwuMh62cvXzELsmbMq1pjfZYJ3owTcoLZh5shP6ZNoVJk6j5R, 66EKe3z1q3w8UgCYSnr8eEjApBHHyEvATMJivJ9ZBMtHB9nenb2KzxwyQ9oaSvrKYCL1NeXM5NcXqbmioooDA18C, 5CAQquCMfrxgpK6EyHGGwudcbSakWk9VEoGHdREZCicVVmqW4Y6BfjaqLm1w53a6WeNrPnLB7PeaJnLuZGGRFji3"
+  },
+  "payments_between_unrelated_accounts": {
+   "value": 3,
+   "source": "the paid lines of both escrows' logs on devnet (scripts/network_stats.py jobs_of over every transaction of both knos_pay programs, 2026-10-03 16:04 UTC): 15 payments, 3 of them to another GitHub account (254283079) than the funder (142920951)"
+  },
+  "days_of_shipping": {
+   "value": 32,
+   "source": "git log --author=drexthealpha --format=%ad --date=short | sort -u | wc -l on drexthealpha/Knos from 2026-09-01 to the release commit of 2026-10-03"
+  }
  }
 }

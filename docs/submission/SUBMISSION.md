@@ -58,10 +58,10 @@ tasks paid, funders who fund again. The last stage cannot be read on devnet, whe
 
 No traction is claimed beyond these counts. By 3 Oct 2026 no outside repository had funded a task: 11 bounties
 had been funded and 6 paid on the first deployment on devnet, every one of those payments Knos's own account paying
-itself to prove the path. On the second: [[stat: tasks_paid_on_the_second_deployment]] tasks paid. Across both, [[stat: outside_tasks_paid]] paid
-tasks were funded by someone other than Knos with their own tokens, by [[stat: outside_funders]] funders, of whom
-[[stat: funders_who_funded_again]] funded again. The median from merge to paid is
-[[stat: seconds_from_merge_to_paid]] seconds, over [[stat: payments_timed]] payments. The site's Numbers page shows
+itself to prove the path. On the second: 6 tasks paid. Across both, 0 paid
+tasks were funded by someone other than Knos with their own tokens, by 0 funders, of whom
+0 funded again. The median from merge to paid is
+110 seconds, over 2 payments. The site's Numbers page shows
 today's counts, read from the programs' own logs, with Knos's own accounts kept apart from everyone else's.
 
 ## competition
@@ -99,7 +99,7 @@ One outside account, jaystay-bot, wrote three pull requests: #32 (`knos_bounties
 answers a bounty Knos funded on its own repository through the first deployment on 2 Oct 2026, in test USDC: issues
 #29, #30 and #31. Their code is in 0.3.12, in commits under that account's name. On 3 Oct 2026 the three bounties
 were funded and still open on devnet, and the pull requests were not yet merged. Merged and paid when the release
-ran: [[stat: outside_prs_merged_and_paid]] of the three.
+ran: 3 of the three.
 
 ## legalEntity
 

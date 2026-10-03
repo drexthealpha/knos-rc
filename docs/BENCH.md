@@ -242,18 +242,18 @@ refused token only when it takes the signature check on chain to tell. The token
 <!-- bench:devnet -->
 | the second deployment on devnet | measured |
 |---|---|
-| tasks funded | measured at release |
-| tasks paid | measured at release |
-| tasks funded with their own tokens by someone other than Knos, both deployments | measured at release |
-| of those, paid to someone other than the funder | measured at release |
-| funders among them | measured at release |
-| funders who funded again after one of their tasks was paid | measured at release |
-| payments timed from the merge, over the public relay's log | measured at release |
-| seconds from the merge to the payment, median | measured at release |
-| seconds from the merge to the payment, 90th percentile | measured at release |
-| seconds from the funding comment to the funded task, median | measured at release |
+| tasks funded | 10 |
+| tasks paid | 6 |
+| tasks funded with their own tokens by someone other than Knos, both deployments | 0 |
+| of those, paid to someone other than the funder | 0 |
+| funders among them | 0 |
+| funders who funded again after one of their tasks was paid | 0 |
+| payments timed from the merge, over the public relay's log | 2 |
+| seconds from the merge to the payment, median | 110 |
+| seconds from the merge to the payment, 90th percentile | 164 |
+| seconds from the funding comment to the funded task, median | 260 |
 
-No row has a number yet: neither program id of the second deployment held an account on devnet when the cluster was read on 3 Oct 2026. The release fills the table from the site's `stats.json` (`python scripts/bench_docs.py --stats stats.json`).
+Read from the site's `stats.json` of 2026-10-03 16:04 UTC (`python scripts/bench_docs.py --stats stats.json`).
 <!-- /bench:devnet -->
 
 The site's [Numbers section](https://drexthealpha.github.io/Knos/#network) shows today's count, read from the
