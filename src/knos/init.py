@@ -158,7 +158,7 @@ def _set(host: str, install: bool) -> Path | None:
     if install:
         entry = {"type": "command", "command": hook_cmd(host), "timeout": 600}
         if host == "codex":
-            entry["statusMessage"] = "Knos: proving what you said is done"
+            entry["statusMessage"] = "Knos: checking what you said is done"
         hooks.setdefault("Stop", []).append({"hooks": [entry]})
     if hooks:
         data["hooks"] = hooks

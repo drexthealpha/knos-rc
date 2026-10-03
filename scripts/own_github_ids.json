@@ -1,6 +1,7 @@
 {
- "note": "GitHub account ids that are Knos's own (the maintainer and the accounts its live tests run as). scripts/network_stats.py never counts their activity as outside use.",
+ "note": "What is Knos's own: GitHub account ids (the maintainer and the accounts its live tests run as) and wallets (a wallet has no GitHub id). scripts/network_stats.py never counts their activity as outside use.",
  "ids": [
   142920951
- ]
+ ],
+ "wallets": []
 }
