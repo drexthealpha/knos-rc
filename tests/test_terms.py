@@ -457,9 +457,9 @@ def test_a_list_of_changed_paths_is_read_as_git_writes_it(tmp_path):
     if not shutil.which("git"):
         pytest.skip("no git here")
 
-    def git(*args: str) -> str:
+    def git(*args: str, stdin: str = "") -> str:     # bytes both ways: git writes names in UTF-8, as the workflow's file is read
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@x", "-c", "commit.gpgsign=false", *args], cwd=tmp_path,
-                              check=True, capture_output=True, text=True).stdout
+                              check=True, capture_output=True, input=stdin.encode("utf-8")).stdout.decode("utf-8")
     git("init", "-q", ".")
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "core.py").write_text("a = 1\n" * 20, encoding="utf-8")
@@ -468,10 +468,11 @@ def test_a_list_of_changed_paths_is_read_as_git_writes_it(tmp_path):
     names = ["docs/\u00e9.md", "tab\tname.txt", 'quo"te.txt', "back\\slash.txt", " lead.txt", "plain name.txt", "docs/core.py"]
     (tmp_path / "docs").mkdir()
     git("mv", "src/core.py", "docs/core.py")
-    for name in names[:-1]:
-        (tmp_path / name).write_text("x\n", encoding="utf-8")
-    git("add", "-A")
-    git("commit", "-q", "-m", "pr")
+    # The new files go into the commit through git's index, not this file system: a commit made anywhere can name a file
+    # tab<TAB>name.txt or quo"te.txt, and Windows cannot hold one (nor, by default, will git there take the name).
+    blob = git("hash-object", "-w", "--stdin", stdin="x\n").strip()
+    git("-c", "core.protectNTFS=false", "update-index", "-z", "--index-info", stdin="".join(f"100644 {blob}\t{n}\0" for n in names[:-1]))
+    git("update-ref", "HEAD", git("commit-tree", git("write-tree").strip(), "-p", "HEAD", "-m", "pr").strip())
     for quoting in ("true", "false"):
         out = git("-c", f"core.quotePath={quoting}", "diff", "--name-only", "--no-renames", "HEAD~1", "HEAD")
         assert sorted(terms.listed(out)) == sorted([*names, "src/core.py"]), quoting

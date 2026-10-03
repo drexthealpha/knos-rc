@@ -919,7 +919,7 @@ def _rust(box: Box, issue: str, test_dirs, timeout: float, cfg: dict) -> Run:
     return Run(got, accept, _by_name(got, f"sentinel_{tok}"), _by_name(got, f"canary_{tok}"), out[-2000:])
 
 
-_RUBY_LINE = re.compile(r"^(\S+#\S+) = [\d.]+ s = ([.FESB])$", re.M)
+_RUBY_LINE = re.compile(r"^(\S+#\S+) = [\d.]+ s = ([.FESB])\r?$", re.M)   # ruby on Windows ends each line with \r\n
 
 
 def _ruby(box: Box, issue: str, test_dirs, timeout: float, cfg: dict) -> Run:

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -142,6 +143,25 @@ def test_ruby(tmp_path):
     edits = judge.judge(v["base"], v["edits"], CFG, cache=cache)
     assert edits["reasons"] == ["touches protected path test/test_add.rb"]
     assert judge.judge(v["base"], v["rake"], CFG, cache=cache)["reasons"] == ["touches protected path Rakefile"]
+
+
+def test_ruby_reads_a_report_written_with_windows_line_endings(tmp_path, monkeypatch):
+    """ruby on Windows writes its report with CRLF line endings: every result is read all the same, the sentinel and
+    the canary too."""
+    box = judge.Box(tmp_path / "box", sandboxed=False)
+    tree(box.work, {"test/test_add.rb": "\n", ".knos/acceptance/7/mul_test.rb": "\n"})
+
+    def run(argv, timeout=600, **kw):
+        tok = re.search(r"class KnosProbe(\w+)", argv[4]).group(1)
+        lines = [("MulTest#test_mul" if argv[5].endswith("mul_test.rb") else "AddTest#test_add", "."),
+                 (f"KnosProbe{tok}#test_sentinel", "."), (f"KnosProbe{tok}#test_canary", "F")]
+        return 1, "".join(f"{test} = 0.00 s = {mark}\r\n" for test, mark in lines)
+    monkeypatch.setattr(box, "run", run)
+    got = judge._ruby(box, "7", ("test",), 60, {})
+    assert {k: v for k, v in got.results.items() if k not in (got.sentinel, got.canary)} == {
+        ".knos/acceptance/7/mul_test.rb::MulTest#test_mul": "passed", "test/test_add.rb::AddTest#test_add": "passed"}
+    assert got.accept == {".knos/acceptance/7/mul_test.rb::MulTest#test_mul"}
+    assert got.results[got.sentinel] == "passed" and got.results[got.canary] == "failed"
 
 
 def test_ruby_is_chosen_by_the_gemfile_or_a_gemspec_or_by_name(tmp_path):
