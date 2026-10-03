@@ -291,7 +291,7 @@
    "say": [
     "3"
    ],
-   "what": "of the pull requests #32, #33 and #34 by jaystay-bot, the ones that were merged and paid on devnet when the release ran. Measured: Knos #32, #33 and #34 by jaystay-bot, merged 2026-10-03 14:53 UTC, paid by the first deployment after its one-hour hold: transactions 4sgn69Gd4AqsVqaJBVYoKGpNXNnX4VRMPgqv6frLwuMh62cvXzELsmbMq1pjfZYJ3owTcoLZh5shP6ZNoVJk6j5R, 66EKe3z1q3w8UgCYSnr8eEjApBHHyEvATMJivJ9ZBMtHB9nenb2KzxwyQ9oaSvrKYCL1NeXM5NcXqbmioooDA18C, 5CAQquCMfrxgpK6EyHGGwudcbSakWk9VEoGHdREZCicVVmqW4Y6BfjaqLm1w53a6WeNrPnLB7PeaJnLuZGGRFji3",
+   "what": "of the pull requests #32, #33 and #34 by jaystay-bot, the ones that were merged and paid on devnet when the release ran. Measured: Knos #32, #33 and #34 by jaystay-bot, merged 2026-10-03 14:53 UTC and paid by the first deployment's knos_pay after its one-hour hold: knos due jaystay-bot read 'Paid for 3 pull request(s) in 1 repository: 48.75 in all' at 15:56 UTC; the payments are the knos:paid lines of issues #29, #30 and #31 in knos_pay's log on devnet",
    "json": "docs/bench.json",
    "path": "release.outside_prs_merged_and_paid.value",
    "equals": 3
