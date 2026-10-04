@@ -76,6 +76,7 @@ from knos.settle.v2 import passkey_fund
 passkey_fund.fund_challenge, passkey_fund.rent_ixs, passkey_fund.intent_comment, passkey_fund.read_intent, receipt_.upgrade
 # Which account of each token-taking instruction is the token's: tests/test_double_pay.py and tests/_pay2.py walk it.
 settle_pay2.TOKEN_AT
-# scripts/upgrade_feed.py writes `hash_from` into the feed's JSON for its reader; `replays` is a local of scripts/load.py
-# that is assigned and never read (its owner may delete it).
-_.hash_from, _.replays
+# scripts/upgrade_feed.py writes `hash_from` into the feed's JSON for its reader.
+_.hash_from
+# Typer registers these inside knos.agentkey's `register` and calls them when a person types the command.
+_._init, _._rotate              # knos agent init | rotate

@@ -344,12 +344,13 @@ def meter_count() -> Recorder:
 
 # == knos_passkey ========================================================================================================
 class Passkey(_pk.Passkey):
-    """The stand-in authenticator, signing with RFC 6979 nonces: the same assertion in every run."""
+    """The stand-in authenticator, signing with RFC 6979 nonces: the same assertion in every run. The low s unless
+    high_s is True (the base class's `high_s` forces one of the two valid s values; None means the low one here)."""
     def sign(self, message: bytes, high_s: bool | None = None) -> bytes:
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.asymmetric import ec, utils
         r_, s = utils.decode_dss_signature(self.sk.sign(message, ec.ECDSA(hashes.SHA256(), deterministic_signing=True)))
-        return utils.encode_dss_signature(r_, pk.N - s if s > pk.N // 2 else s)
+        return utils.encode_dss_signature(r_, pk.N - s if (s > pk.N // 2) != bool(high_s) else s)
 
 
 def passkey_wallet() -> Recorder:
