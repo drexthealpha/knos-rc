@@ -56,7 +56,6 @@ from .settle.v2 import meter
 from .settle.v2 import pay as pay2
 
 PROGRAMS = {str(pay.PAY_ID): 1, str(pay2.PAY_ID): 2}      # the escrow of each deployment
-PREFIX = {1: "knos", 2: "knos2"}
 METER = str(meter.METER_ID)         # knos_meter: no escrow, a count of evaluations (its events are of deployment 2)
 # What each program's lines are called as events: {log prefix: what goes in front of the line's own word}. An escrow
 # of the second deployment prints jobs (knos2) and work orders (knos3); the meter prints knosm.
@@ -886,9 +885,10 @@ def siem_events(events: list[dict], names: Names | None = None, first: str = "",
         at = ev["at"] or 0
         if (first and at and _day(at) < first) or (last and at and _day(at) > last):
             continue
-        item = {"time": _stamp(at) if at else None, "unix": at or None, "actor": actor_of(ev), "action": ev["event"], "deployment": ev["v"],
-                "repository": (names.repo(ev["repo"]).get("full_name") or None) if names and ev.get("repo") else None,
-                "repository_id": ev.get("repo"), "issue": ev.get("issue"), "amount": ev.get("amount"), "fee": ev.get("fee"), "transaction": ev.get("tx")}
+        fixed = {"time": _stamp(at) if at else None, "unix": at or None, "actor": actor_of(ev), "action": ev["event"], "deployment": ev["v"],
+                 "repository": (names.repo(ev["repo"]).get("full_name") or None) if names and ev.get("repo") else None,
+                 "repository_id": ev.get("repo"), "issue": ev.get("issue"), "amount": ev.get("amount"), "fee": ev.get("fee"), "transaction": ev.get("tx")}
+        item = {k: fixed[k] for k in SIEM_FIELDS}      # every line has these keys, in this order, whatever else it has
         item.update({k: ev[k] for k in _SIEM_EXTRA if k in ev})
         if ev["event"] in ("funded", "order_funded"):
             funder[ev.get("tx")] = item["actor"]

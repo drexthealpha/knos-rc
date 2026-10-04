@@ -82,7 +82,7 @@ the new paths carry audiences that start `knos3:`, so a token of one generation 
 - **Your own issuer.** A wallet registers the key of a server no public runner can reach, such as GitHub
   Enterprise Server. Its tokens pay only private orders funded from that wallet's own Balance.
 - **`.knos/policy.yml`:** who may fund, a cap per order, a monthly budget, allowed payees and vendors, default
-  checks, labels that fund, standing offers, warranty defaults. A fund comment it refuses is told the line.
+  checks, standing offers, warranty defaults. A fund comment it refuses is told the line.
 - **A Balance has limits:** per day, in total, the repositories that may spend it, and the workflows commit.
 - **Records for finance:** `knos receipts` and `knos statement` (CSV among their formats), `knos invoice` (a page
   and a CSV of its lines) and `knos export` (JSON Lines for a SIEM), all recomputed from the escrow's logs.

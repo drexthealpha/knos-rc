@@ -7,8 +7,6 @@
     payees: [carol, dave]             # who may be paid (absent: anyone)
     vendors: [acme-agents]            # which vendors may be paid by a standing offer
     checks: [test, lint]              # the checks an order names when its funder names none
-    labels:                           # a label on an issue funds it with that amount: `bounty-50` funds 50
-      bounty-50: 50                   # (a list, `labels: [bounty-50, bounty-100]`, takes the amount from the trailing number)
     offers:                           # standing offers: each merged change of a vendor that meets `checks` pays `rate`
       - vendor: acme-agents
         rate: 20
@@ -51,7 +49,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 
 PATH = ".knos/policy.yml"
-RULES = ("version", "who_may_fund", "cap_per_order", "monthly_budget", "payees", "vendors", "checks", "labels", "offers",
+RULES = ("version", "who_may_fund", "cap_per_order", "monthly_budget", "payees", "vendors", "checks", "offers",
          "warranty_days", "holdback_percent", "arbiter", "private", "attestor", "targets")
 OFFER_KEYS = ("vendor", "rate", "budget", "checks")
 MAX_WARRANTY_DAYS, MAX_HOLDBACK_PERCENT = 90, 50        # knos-pay's limits: warranty_days <= 90, holdback_bps <= 5000
@@ -80,7 +78,6 @@ class Policy:
     payees: tuple[str, ...] | None = None
     vendors: tuple[str, ...] | None = None
     checks: tuple[str, ...] | None = None
-    labels: tuple[tuple[str, Decimal], ...] = ()
     offers: tuple[Offer, ...] = ()
     warranty_days: int | None = None
     holdback_bps: int | None = None
@@ -88,7 +85,7 @@ class Policy:
     private: bool = False
     attestor: str | None = None                 # owner/name, lower case: where a private order is funded and paid
     targets: tuple[str, ...] = ()               # owner/name, lower case: the repositories the attestor does that for
-    lines: dict = field(default_factory=dict, compare=False, repr=False)       # rule (or "offers.0.rate", "labels.bounty-50") -> its line
+    lines: dict = field(default_factory=dict, compare=False, repr=False)       # rule (or "offers.0.rate") -> its line
 
 
 # ---- the YAML subset -------------------------------------------------------------------------------------------------
@@ -408,25 +405,6 @@ def _repos(value, lines: dict, path: str) -> tuple[str, ...]:
     return tuple(out)
 
 
-def _labels(value, lines: dict) -> tuple[tuple[str, Decimal], ...]:
-    out: dict[str, Decimal] = {}
-    if isinstance(value, dict):
-        for label, amount in value.items():
-            out[str(label)] = _number(amount, lines, f"labels.{label}")
-    elif isinstance(value, list) and value:
-        for i, label in enumerate(value):
-            m = re.fullmatch(r"(.*?)-?([0-9]+(?:\.[0-9]+)?)", str(label))
-            if not isinstance(label, str) or not m:
-                raise Refused(f"{_where(lines, f'labels.{i}')}: the label `{label}` ends in no amount; write `{label}-50` or give `{label}: 50`.")
-            out[label] = _number(m.group(2), lines, f"labels.{i}")
-    else:
-        raise Refused(f"{_where(lines, 'labels')}: labels is a list like [bounty-50] or a mapping like `bounty-50: 50`.")
-    for label in out:
-        if not label or len(label) > 50 or "," in label or "\n" in label:
-            raise Refused(f"{_where(lines, 'labels')}: `{label}` is not a label name (up to 50 characters, no commas).")
-    return tuple(sorted(out.items()))
-
-
 def _offers(value, lines: dict, vendors: tuple[str, ...] | None) -> tuple[Offer, ...]:
     if not isinstance(value, list) or not value:
         raise Refused(f"{_where(lines, 'offers')}: offers is a list; each item has a vendor and a rate.")
@@ -460,6 +438,9 @@ def load(text: str) -> Policy:
     """The policy in `.knos/policy.yml`'s text. Raises Refused, with the line, for anything that is not one."""
     doc, lines = _parse(text)
     for key in doc:
+        if key == "labels":         # no workflow funds an issue from its labels: a rule that promised it would fund nothing, silently
+            raise Refused(f"{_where(lines, 'labels')}: `labels` is not a rule: a label on an issue funds nothing. A person who may fund "
+                          "comments `/knos fund <amount>` on the issue.")
         if key not in RULES:
             near = difflib.get_close_matches(str(key), RULES, 1)
             raise Refused(f"{_where(lines, str(key))}: `{key}` is not a rule" + (f"; did you mean `{near[0]}`?" if near else f". The rules are: {', '.join(RULES)}."))
@@ -498,7 +479,6 @@ def load(text: str) -> Policy:
         cap_per_order=cap, monthly_budget=budget,
         payees=_names(doc["payees"], lines, "payees") if given("payees") else None, vendors=vendors,
         checks=_names(doc["checks"], lines, "checks", logins=False) if given("checks") else None,
-        labels=_labels(doc["labels"], lines) if given("labels") else (),
         offers=_offers(doc["offers"], lines, vendors) if given("offers") else (),
         warranty_days=days, holdback_bps=holdback, arbiter=_login(doc["arbiter"], lines, "arbiter") if given("arbiter") else None,
         private=bool(doc.get("private")), attestor=attestor, targets=targets, lines=lines)
@@ -552,16 +532,6 @@ def offer_for(policy: Policy, vendor, login: str = "") -> Offer | None:
     return next((o for o in policy.offers if _listed((o.vendor,), vendor, login)), None)
 
 
-def label_amount(policy: Policy, labels) -> tuple[Decimal | None, str]:
-    """(the amount an issue's labels fund, why not). One funding label gives its amount; none gives (None, ""); two or more
-    is an answer nobody chose, so (None, a reason naming the lines)."""
-    table = dict(policy.labels)
-    hit = sorted({str(x) for x in labels if str(x) in table})
-    if len(hit) > 1:
-        return None, f"{_at(policy, 'labels')}: the issue has {len(hit)} funding labels ({', '.join(hit)}); keep one."
-    return (table[hit[0]], "") if hit else (None, "")
-
-
 def canonical(policy: Policy) -> bytes:
     """The policy as canonical JSON: only what it says (no comments, no line numbers, no order a person happened to write
     sets in), keys sorted, no spaces, amounts as plain decimals."""
@@ -572,8 +542,6 @@ def canonical(policy: Policy) -> bytes:
     for key in ("cap_per_order", "monthly_budget"):
         if getattr(policy, key) is not None:
             doc[key] = _plain(getattr(policy, key))
-    if policy.labels:
-        doc["labels"] = {label: _plain(amount) for label, amount in policy.labels}
     if policy.offers:
         doc["offers"] = [{"vendor": o.vendor, "rate": _plain(o.rate), **({"budget": _plain(o.budget)} if o.budget is not None else {}),
                           **({"checks": sorted(o.checks)} if o.checks is not None else {})} for o in sorted(policy.offers, key=lambda o: o.vendor)]

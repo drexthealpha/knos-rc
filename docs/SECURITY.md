@@ -166,7 +166,7 @@ state. What a pull request's description says never changes what is required
 ([`tests/test_terms.py`](../tests/test_terms.py)).
 
 **The policy file.** `.knos/policy.yml` on the default branch says who may fund, the cap per order, a monthly
-budget, the payees and vendors allowed, default checks, labels that fund, standing offers, and warranty defaults
+budget, the payees and vendors allowed, default checks, standing offers, and warranty defaults
 ([`src/knos/policy.py`](../src/knos/policy.py)). The workflow reads it at funding and at payout and refuses with
 the line of the rule. A policy that cannot be read is a refusal, never a permissive policy
 (`test_a_refusal_never_becomes_a_permissive_policy`). It is enforced by the workflow, not by the chain: it binds the

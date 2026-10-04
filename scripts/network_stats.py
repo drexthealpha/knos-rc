@@ -74,7 +74,7 @@ from knos.settle import oidc, pay  # noqa: E402
 from knos.settle.v2 import oidc as oidc2  # noqa: E402
 from knos.settle.v2 import pay as pay2  # noqa: E402
 from knos.settle.v2 import meter  # noqa: E402
-from knos.records import PREFIX, PROGRAMS, events_of, history, jobs_of, meter_months, orders_of, work_of  # noqa: E402,F401 - the readers live in knos.records
+from knos.records import PROGRAMS, events_of, history, jobs_of, meter_months, orders_of, work_of  # noqa: E402,F401 - the readers live in knos.records
 
 # What is Knos's own: GitHub account ids (ids, not logins: a login can be renamed) and wallets. Activity that touches
 # any of these is "own", never "outside".

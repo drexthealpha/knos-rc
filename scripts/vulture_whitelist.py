@@ -57,12 +57,3 @@ settle_relay2.register_missing, ghrelay.post_token
 
 # http.server calls these on the request handler of scripts/acceptance_examples.py (the black-box service it stands up).
 _.do_POST, _.log_message
-
-# Public names read outside src/knos: scripts/network_stats.py imports records.PREFIX; records.SIEM_FIELDS is the field
-# list of `knos export --siem` (tests/test_records.py holds every line to it); meter.FEE_MINTS mirrors the program's
-# constant (tests/test_meter_chain.py compares the two); policy.label_amount reads the policy file's `labels` rule
-# (tests/test_policy.py).
-from knos import policy, records
-from knos.settle.v2 import meter as settle_meter2
-
-records.PREFIX, records.SIEM_FIELDS, settle_meter2.FEE_MINTS, policy.label_amount

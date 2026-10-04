@@ -39,14 +39,12 @@ from solders.instruction import AccountMeta, Instruction
 from solders.pubkey import Pubkey
 
 from . import load_ids
-from .pay import ATA_PROGRAM, SYSTEM, TOKEN, TOKEN_2022, USDC_DEVNET, ata, create_ata_ix, wf_repo_hash  # noqa: F401
+from .pay import ATA_PROGRAM, SYSTEM, TOKEN, TOKEN_2022, ata, create_ata_ix, wf_repo_hash  # noqa: F401
 
 IDS = load_ids()            # the pinned ids, or a staging deployment named by KNOS_PROGRAM_IDS
 METER_ID = Pubkey.from_string(IDS["knos_meter"])
 OIDC_ID = Pubkey.from_string(IDS["knos_oidc"])          # the verifier whose token accounts the meter accepts
 FEE_OWNER = Pubkey.from_string(IDS["fee_owner"])        # Knos's Squads vault: receives the fees and sets Plans, nothing else
-USDC_MAINNET = Pubkey.from_string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
-FEE_MINTS = (USDC_DEVNET, USDC_MAINNET)                 # the mints credits are opened in (a test build takes any)
 
 MICRO = 1_000_000                       # rates are in millionths of a whole unit of the mint
 FEE, PLAN_MIN, FREE_PER_MONTH = 50_000, 20_000, 10_000  # 0.05 per billable evaluation; 0.02 the lowest Plan rate; free per owner per month

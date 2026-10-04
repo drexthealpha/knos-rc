@@ -20,9 +20,6 @@ payees:
   - dave
 vendors: [acme-agents, "bolt-bots"]
 checks: [test, lint]
-labels:
-  bounty-50: 50
-  bounty-100: 100
 offers:
   - vendor: acme-agents
     rate: 20
@@ -41,20 +38,29 @@ def test_a_full_policy_loads_with_the_line_of_every_rule():
     p = policy.load(FULL)
     assert p.who_may_fund == ("alice", "1234567") and p.cap_per_order == D(100) and p.monthly_budget == D("1000.50")
     assert p.payees == ("carol", "dave") and p.vendors == ("acme-agents", "bolt-bots") and p.checks == ("test", "lint")
-    assert p.labels == (("bounty-100", D(100)), ("bounty-50", D(50)))
     assert p.offers == (policy.Offer("acme-agents", D(20), D(400), ("test",)), policy.Offer("bolt-bots", D("5.5")))
     assert (p.warranty_days, p.holdback_bps, p.arbiter, p.private) == (14, 1250, "erin", True)
-    assert [p.lines[k] for k in ("who_may_fund", "cap_per_order", "monthly_budget", "payees", "labels.bounty-100", "offers.1", "offers.1.rate", "arbiter")] == [3, 4, 5, 6, 13, 19, 20, 23]
+    assert [p.lines[k] for k in ("who_may_fund", "cap_per_order", "monthly_budget", "payees", "checks", "offers.1", "offers.1.rate", "arbiter")] == [3, 4, 5, 6, 10, 16, 17, 20]
     assert policy.load("").who_may_fund is None and policy.load("# nothing\n") == policy.Policy()      # no rules is a policy that adds none
     assert policy.load("---\ncap_per_order: 5\n").cap_per_order == D(5)
 
 
-def test_a_list_of_labels_takes_the_amount_from_the_number_and_json_is_read_as_json():
-    p = policy.load("labels: [bounty-50, bounty-100, size_5]\n")
-    assert dict(p.labels) == {"bounty-50": D(50), "bounty-100": D(100), "size_5": D(5)}
-    j = policy.load('{\n "cap_per_order": 25,\n "labels": {"bounty-5": 5},\n "private": true\n}')
-    assert (j.cap_per_order, j.labels, j.private, j.lines["cap_per_order"]) == (D(25), (("bounty-5", D(5)),), True, 2)
-    assert policy.digest(j) == policy.digest(policy.load("cap_per_order: 25\nlabels: {bounty-5: 5}\nprivate: true\n"))
+def test_json_is_read_as_json():
+    j = policy.load('{\n "cap_per_order": 25,\n "checks": ["test"],\n "private": true\n}')
+    assert (j.cap_per_order, j.checks, j.private, j.lines["cap_per_order"]) == (D(25), ("test",), True, 2)
+    assert policy.digest(j) == policy.digest(policy.load("cap_per_order: 25\nchecks: [test]\nprivate: true\n"))
+
+
+def test_a_labels_rule_is_refused_since_no_label_funds_an_issue():
+    """Nothing in Knos funds an issue from its labels. A policy that says `bounty-50: 50` would load, be hashed into
+    every order's terms, and fund nothing without a word; it is refused with its line instead, as a rule Knos does
+    not keep."""
+    for text in ("labels:\n  bounty-50: 50\n", "labels: [bounty-50, bounty-100]\ncap_per_order: 100\n", '{"labels": {"bounty-5": 5}}'):
+        with pytest.raises(policy.Refused) as stop:
+            policy.load(text)
+        assert str(stop.value) == (".knos/policy.yml line 1: `labels` is not a rule: a label on an issue funds nothing. A person who may "
+                                   "fund comments `/knos fund <amount>` on the issue."), text
+    assert "labels" not in policy.RULES and not hasattr(policy.Policy(), "labels")
 
 
 # ---- who may fund, how much, how much a month: and the line that says no -----------------------------------------------------
@@ -78,14 +84,11 @@ def test_allows_names_the_line_of_the_rule_that_refuses():
     assert policy.allows(p, 1234567, 100, 0.0)[0]                                       # floats and ints are amounts too
 
 
-def test_payees_vendors_labels_and_standing_offers():
+def test_payees_vendors_and_standing_offers():
     p = policy.load(FULL)
     assert policy.payee_allowed(p, 5, "Carol") == (True, "") and policy.payee_allowed(p, 5, "x")[1] == ".knos/policy.yml line 6: only carol, dave may be paid; x is not one of them."
     assert policy.payee_allowed(policy.Policy(), 1) == (True, "")
     assert policy.offer_for(p, 7, "Acme-Agents").rate == D(20) and policy.offer_for(p, "bolt-bots").budget is None and policy.offer_for(p, "other") is None
-    assert policy.label_amount(p, ["bug", "bounty-50"]) == (D(50), "") and policy.label_amount(p, ["bug"]) == (None, "")
-    amount, why = policy.label_amount(p, ["bounty-50", "bounty-100"])
-    assert amount is None and why == ".knos/policy.yml line 11: the issue has 2 funding labels (bounty-100, bounty-50); keep one."
 
 
 def test_order_opts_are_the_defaults_a_funding_takes_and_a_vendors_offer_makes_it_standing():
@@ -106,7 +109,7 @@ def test_order_opts_are_the_defaults_a_funding_takes_and_a_vendors_offer_makes_i
 def test_the_digest_is_the_sha256_of_canonical_json_and_ignores_what_does_not_change_the_meaning():
     p = policy.load(FULL)
     want = {"version": 1, "private": True, "who_may_fund": ["1234567", "alice"], "payees": ["carol", "dave"], "vendors": ["acme-agents", "bolt-bots"],
-            "checks": ["lint", "test"], "cap_per_order": "100", "monthly_budget": "1000.5", "labels": {"bounty-100": "100", "bounty-50": "50"},
+            "checks": ["lint", "test"], "cap_per_order": "100", "monthly_budget": "1000.5",
             "offers": [{"vendor": "acme-agents", "rate": "20", "budget": "400", "checks": ["test"]}, {"vendor": "bolt-bots", "rate": "5.5"}],
             "warranty_days": 14, "holdback_bps": 1250, "arbiter": "erin"}
     raw = json.dumps(want, sort_keys=True, separators=(",", ":")).encode()
@@ -122,7 +125,6 @@ offers:
   checks: [test]
   budget: 400.0
   rate: 20.0
-labels: {bounty-100: 100, bounty-50: 50.0}
 checks: [lint, test]
 vendors: ["bolt-bots", acme-agents]
 payees: [dave, carol]
@@ -133,7 +135,7 @@ who_may_fund: [1234567, alice]
     assert policy.digest(policy.load(shuffled)) == policy.digest(p)
     # any rule that changes the meaning changes the digest
     for old, new in (("cap_per_order: 100", "cap_per_order: 101"), ("private: true", "private: false"), ("[test, lint]", "[test]"), ("holdback_percent: 12.5", "holdback_percent: 12"),
-                     ("arbiter: Erin", "arbiter: frank"), ("rate: 20", "rate: 21"), ("bounty-50: 50", "bounty-50: 51")):
+                     ("arbiter: Erin", "arbiter: frank"), ("rate: 20", "rate: 21")):
         assert policy.digest(policy.load(FULL.replace(old, new))) != policy.digest(p), old
     assert policy.digest(policy.Policy()) == hashlib.sha256(b'{"private":false,"version":1}').hexdigest()
 
@@ -156,9 +158,7 @@ BAD = [
     ("who_may_fund: [alice, ALICE]\n", "line 1: who_may_fund names alice twice."),
     ("payees: [-x]\n", "line 1: `-x` in payees is not a GitHub login or id."),
     ("checks:\n  - test\n  - ''\n", "`` in checks is not a name"),
-    ("labels: [bounty]\n", "line 1: the label `bounty` ends in no amount"),
-    ("labels:\n  bounty-5: free\n", "line 2: bounty-5 must be a number, not `free`."),
-    ("labels: 5\n", "line 1: labels is a list like [bounty-50]"),
+    ("cap_per_order: 5\nlabels:\n  bounty-5: 5\n", "line 2: `labels` is not a rule: a label on an issue funds nothing."),
     ("offers: []\n", "line 1: offers is a list; each item has a vendor and a rate."),
     ("offers:\n  - rate: 5\n", "line 2: an offer needs a vendor."),
     ("offers:\n  - vendor: acme\n", "line 2: an offer needs a rate."),

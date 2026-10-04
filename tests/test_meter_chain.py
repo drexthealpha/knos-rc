@@ -21,6 +21,7 @@ from _meter import BUYER, ORDER, PLAN_SETTER, POLICY, SELLER, Meter  # noqa: E40
 from _pay2 import WF_REPO, WF_SHA  # noqa: E402
 
 from knos.settle.v2 import meter, oidc  # noqa: E402
+from knos.settle.v2 import pay as pay2  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 USDC, DAY, FREE = 1_000_000, 86_400, meter.FREE_PER_MONTH
@@ -504,7 +505,7 @@ def test_the_idl_is_the_program():
     lib = SRC["lib.rs"]
     pins = dict(re.findall(r'pub const (\w+): Pubkey = pubkey!\("(\w+)"\);', lib))
     assert pins == {"OIDC_ID": ids["knos_oidc"], "FEE_OWNER": ids["fee_owner"]}
-    assert set(re.findall(r'pubkey!\("(\w+)"\)', re.search(r"pub const FEE_MINTS: \[Pubkey; 2\] = \[(.+?)\];", lib).group(1))) == {str(m) for m in meter.FEE_MINTS}
+    assert set(re.findall(r'pubkey!\("(\w+)"\)', re.search(r"pub const FEE_MINTS: \[Pubkey; 2\] = \[(.+?)\];", lib).group(1))) == {str(pay2.USDC_DEVNET), str(pay2.USDC_MAINNET)}     # credits open in Circle's USDC only (a test build takes any)
     # every instruction the header lists, by its number, with the accounts it lists, as the dispatch and the handlers take them
     listed = {m.group(2): (int(m.group(1)), m.group(3).split()) for m in re.finditer(r"^//!   (\d+) (\w+) +(.+)$", lib, re.M)}
     arms = dict((int(n), f) for n, f in re.findall(r"^        (\d+) => meter::(\w+)\(", lib, re.M))

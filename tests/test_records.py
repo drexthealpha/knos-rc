@@ -268,6 +268,15 @@ def test_the_siem_export_is_one_json_object_per_event_with_the_same_keys(scenari
     assert [x["action"] for x in got if x["transaction"] == f["transaction"]] == ["funded", "terms"]
 
 
+def test_the_siem_export_writes_the_fields_siem_fields_names_in_its_order(scenario, monkeypatch):
+    """SIEM_FIELDS is what `knos export --siem` writes first on every line, not a copy of it: the export takes its
+    keys and their order from it."""
+    monkeypatch.setattr(records, "SIEM_FIELDS", tuple(reversed(records.SIEM_FIELDS)))
+    got = records.siem_events(scenario)
+    assert got and all(tuple(x)[:len(records.SIEM_FIELDS)] == records.SIEM_FIELDS for x in got)
+    assert tuple(got[0])[0] == "transaction"
+
+
 def test_the_siem_export_names_repositories_and_keeps_to_the_days_asked(scenario):
     named = [json.loads(x) for x in records.siem_lines(scenario, records.Names(lambda p: {"full_name": f"octo/r{p.split('/')[-1]}"})).splitlines()]
     assert next(x for x in named if x["action"] == "paid")["repository"] == "octo/r7001" and next(x for x in named if x["action"] == "balance")["repository"] is None
