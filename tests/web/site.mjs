@@ -391,6 +391,20 @@ await reset();
   served.front = (code) => code;
 }
 
+// ---- what the first form counts as a claim: the words of scripts/agent_pr_ci.py and `knos check` ----------------------------
+{
+  const { findClaim } = await import(pathToFileURL(join(root, "front.js")).href);
+  const said = (body) => findClaim(body)?.phrase ?? null;
+  const boxes = ["- [ ] All tests pass", "* [ ] CI is green", "+ [ ] 801 passed", "1. [ ] tests pass", "2) [ ] all checks pass",
+    "> - [ ] tests pass", "  1. - [ ] tests pass"];
+  check("claims: an unticked box of any list marker claims nothing, and the same box ticked is a claim",
+    boxes.every((b) => said(b) === null && said(b.replace("[ ]", "[x]")) !== null), boxes.map((b) => [b, said(b), said(b.replace("[ ]", "[x]"))]));
+  const hedged = ["All tests should pass.", "Please make sure CI is green.", "TODO: make tests pass", "Tests must pass before merging.",
+    "The tests do not pass.", "Tests don't pass yet."];
+  check("  a hedged, negated or instructional sentence claims nothing", hedged.every((b) => said(b) === null), hedged.map(said));
+  check("  the false example's ticked box is a claim", said("- [x] My PR passes all CI/CD checks (e.g., lint, format, unit tests)") === "passes all CI");
+}
+
 // ---- protect a repository: the files, and the gate on the commit they name ---------------------------------------------------
 {
   const page = await plain.newPage();

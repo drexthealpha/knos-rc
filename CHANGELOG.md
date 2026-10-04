@@ -124,8 +124,9 @@ Also:
 - The claim parser has unit tests and a fuzz target that compares it with `serde_json`; a nightly job runs it.
 - `knos check`, the free check and `knos_check_pr` read a pull request's checklist as the site does: a ticked
   "My PR passes all CI/CD checks" is the author's claim and is held to GitHub's record, and an unticked box, an
-  HTML comment or an agent's quoted prompt claims nothing. A description of any shape is read in time linear in
-  its length.
+  HTML comment or an agent's quoted prompt claims nothing. Nor does a sentence that hedges, negates or instructs
+  ("tests should pass", "make sure CI is green"), in the Agent PR Index's words, and the site and the index skip
+  an unticked box of any list marker. A description of any shape is read in time linear in its length.
 - A proposed upgrade is refused by the proposing script unless GitHub signed that Knos's own workflow built those
   bytes from a commit, and `knos status` says whether a pending upgrade has that record.
 - The MCP server marks third-party text as untrusted and can be restricted to named repositories.

@@ -14,9 +14,13 @@ A claim is only what the message asserts; whether it is true is the checks' job.
 description are not asserted by its author, and claim nothing: an HTML comment (GitHub does not show it; a template's
 instructions live there), the original prompt an agent quotes in a <details> block, and an unticked box of a task list
 ("- [ ] My PR passes all CI/CD checks": the author left it unticked). A ticked box ("- [x] My PR passes all CI/CD
-checks") is the author asserting its words, and is read like any other line. The Agent PR Index
-(scripts/agent_pr_ci.py) and the site's check (web/front.js) also read a ticked box as a claim, and skip "- [ ]",
-HTML comments and the quoted prompt.
+checks") is the author asserting its words, and is read like any other line. A sentence that hedges, negates or
+instructs does not claim tests pass or CI is green ("tests should pass", "please make sure CI is green", "TODO: make
+tests pass", "tests don't pass yet"), nor does one that names a failure beside it ("tests pass except the flaky
+one"): its words are the Agent PR Index's (`_HEDGE`, `_BOILER`). The Agent PR Index (scripts/agent_pr_ci.py) and the
+site's check (web/front.js) read a description the same way, with one difference: they set aside a whole line when
+any of it hedges, and this reads each sentence, so "All tests pass. I did not touch the docs." is a claim here.
+tests/test_agent_pr_index.py holds the three to the same words.
 """
 
 from __future__ import annotations
@@ -42,7 +46,19 @@ _DONE = re.compile(
 _URL = re.compile(r"https?://[^\s)>\]\"'`]+")
 _DELETED = re.compile(r"\b(?:deleted|removed)\s+[`'\"]?([\w./\\-]+\.\w+|[\w./\\-]+/)[`'\"]?", re.I)
 _VERSION = re.compile(r"\b(?:v|version\s+)?(\d+\.\d+\.\d+)\b")
-_UNTICKED = re.compile(r"^[ \t]*(?:>[ \t]*)*(?:[-*+]|\d{1,9}[.)])[ \t]+\[ \](?:[ \t][^\n]*)?$", re.M)
+# an unticked box of a task list: any list marker (-, *, +, 1., 1)), nested or quoted
+_BOX = r"^[ \t]*(?:>[ \t]*)*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)+\[ \]"
+_UNTICKED = re.compile(_BOX + r"(?:[ \t][^\n]*)?$", re.M)
+# a sentence with one of these words does not claim tests pass or CI is green (the Agent PR Index's NONCLAIM_RE, less
+# its box), once _BOILER's phrases are taken out of it
+_HEDGE = re.compile(r"\b(ensure|make sure|verify that|should|would|will|to confirm|until|"
+                    r"once|if|before|whether|need|needs|must|expect|expected|todo|not|"
+                    r"fail|fails|failing|failed|failure|failures|errors?|except|unless|pending|flaky|skip|"
+                    r"red|broken)\b|n't\b", re.I)
+_BOILER = re.compile(r"\*\*Your PR cannot be merged unless tests pass\*\*|"
+                     r"\bfail[- ](?:closed|safe|fast|open)\b|\b0 failed\b", re.I)
+_SENTENCE = re.compile(r"(?<=[.!?])\s+|\n")
+_HEDGED = ("tests", "ci")
 _SPACE = re.compile(r"\s+")
 _PROMPT = re.compile(r"<details>\s*<summary>[^<]*(?:original prompt|original issue)[^<]*</summary>", re.I)
 
@@ -91,8 +107,12 @@ def read(text: str) -> Claim:
     words = said(text)
     low = words.lower()
     c = Claim(text=text or "")
+    sentences = _SENTENCE.split(low)
     for kind, pat in _PATTERNS.items():
-        if re.search(pat, low):
+        if kind in _HEDGED:
+            if any(re.search(pat, s) and not _HEDGE.search(_BOILER.sub(" ", s)) for s in sentences):
+                c.kinds.add(kind)
+        elif re.search(pat, low):
             c.kinds.add(kind)
     # _DONE starts a sentence after any whitespace: read against a run of N blank lines it would try N starts of N
     # each. A run read as one character (a newline when it holds one) says the same, in one pass.

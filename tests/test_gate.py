@@ -70,6 +70,27 @@ def test_a_ticked_template_box_is_held_to_the_record_and_an_unticked_one_is_not(
         assert judge.claim_check(silent, failing, strict=True) == [], silent
 
 
+def test_a_hedged_sentence_never_causes_a_refusal():
+    """A sentence that hedges, negates or instructs claims nothing, so with every check failed it is never refused,
+    before a merge or at it, and the report says nothing was claimed. The same words asserted are refused."""
+    failing = [run("tests", "failure"), run("lint", "failure")]
+    hedged = ["Fixes #7. All tests should pass.", "Fixes #7. Please make sure CI is green.", "Fixes #7. Please ensure the tests pass.",
+              "Fixes #7. The tests do not pass yet.", "Fixes #7. Tests don't pass on Windows.", "TODO: make tests pass",
+              "Fixes #7. Tests must pass before merging.", "Fixes #7. CI will be green once the cache is warm.",
+              "Fixes #7. Unit tests pass, except the flaky e2e job.", "Fixes #7.\n- [ ] All tests pass\n* [ ] CI is green"]
+    words = ("ensure", "make sure", "verify that", "should", "would", "will", "to confirm", "until", "once", "if", "before", "whether",
+             "need", "needs", "must", "expect", "expected", "todo", "not", "can't", "fail", "fails", "failing", "failed", "failure",
+             "failures", "error", "errors", "except", "unless", "pending", "flaky", "skip", "red", "broken")
+    hedged += [f"Fixes #7. All tests pass and CI is green ({word})." for word in words]
+    for body in hedged:
+        for strict in (False, True):
+            assert judge.claim_check(body, failing, strict) == [], (body, strict)
+        report = judge.claim_report(body, failing, strict=True)
+        assert report["said"] == "" and report["state"] == "none" and report["facts"] == ["checks failing: lint, tests"], body
+    assert judge.claim_check("Fixes #7. All tests pass and CI is green.", failing) == \
+        ["claim: the description says CI is green and tests pass, but these checks failed at the head commit: lint, tests"]
+
+
 def test_the_sites_examples_are_judged_here_as_the_site_shows_them():
     """The first screen's two claims (web/config.js) are pull requests of docs/agent_pr_ci.json, recorded with the line
     the site quotes and the checks that failed in tests/web/recorded/example_prs.json. "A claim that is false" is

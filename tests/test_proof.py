@@ -43,7 +43,8 @@ def test_a_ticked_box_is_a_claim_and_words_the_author_did_not_assert_are_not():
                          ("All checks passed.", {"ci"}), ("all CI checks have passed", {"ci"}), ("It bypasses all checks.", set())):
         assert claims.read(words).kinds == kinds, words
     for box in ("- [ ] All tests pass", "* [ ] CI is green", "+ [ ] 801 passed", "1. [ ] the suite is green", "> - [ ] every job passes",
-                "  - [ ] Deployed to https://knos.dev/x", "- [ ] passes all CI/CD checks\r"):
+                "  - [ ] Deployed to https://knos.dev/x", "- [ ] passes all CI/CD checks\r", "2) [ ] all checks passed",
+                "1. - [ ] tests pass"):
         assert claims.read(box).kinds == set() and not claims.read(box).urls, box
         assert claims.read(box.replace("[ ]", "[x]")).kinds, box                  # ticked, the same words are a claim
     assert claims.read("Fixes #7.\n<details>\n<summary>Original prompt</summary>\n\n> Make sure all tests pass.\n</details>").kinds == set()
@@ -51,6 +52,35 @@ def test_a_ticked_box_is_a_claim_and_words_the_author_did_not_assert_are_not():
     assert claims.read("<!-- a template's words -->\nAll tests pass.\n<!-- -->").kinds == {"tests"}
     assert claims.read("Removed a stray `<!--` from README.md. All tests pass.").kinds >= {"tests"}         # left open: hides nothing
     assert claims.said("a<!-- b\nc -->d\n- [ ] e\nf") == "a \nd\n\nf"                                   # lines stay lines
+
+
+def test_a_hedged_negated_or_instructional_sentence_claims_nothing():
+    """The gate refuses a claim a failed check contradicts, so what is not a claim must not be read as one: "tests
+    should pass" is a hope, "make sure CI is green" an instruction, "tests don't pass yet" the opposite. The words are
+    the Agent PR Index's. Each pair is one sentence, asserted and not."""
+    pairs = (("All tests pass.", "All tests should pass."),
+             ("CI is green.", "Please make sure CI is green."),
+             ("The tests pass.", "Please ensure the tests pass."),
+             ("The tests pass.", "The tests do not pass."),
+             ("Tests pass.", "Tests don't pass yet."),
+             ("Tests pass.", "TODO: make tests pass."),
+             ("Tests pass.", "Tests must pass before merging."),
+             ("CI passes.", "CI will pass once the cache is warm."),
+             ("801 passed.", "If 801 passed, merge it."),
+             ("All checks passed.", "Verify that all checks passed."),
+             ("My PR passes all CI/CD checks.", "My PR would pass all CI/CD checks."),
+             ("Unit tests pass.", "Unit tests pass, except the flaky e2e job that fails on main too."))
+    for asserted, hedged in pairs:
+        assert claims.read(asserted).kinds & {"tests", "ci"}, asserted
+        assert not claims.read(hedged).kinds & {"tests", "ci"}, hedged
+    # a hedge is read in its own sentence: the claim beside it stands, on one line or on two
+    assert claims.read("All tests pass. I did not touch the docs.").kinds == {"tests"}
+    assert claims.read("Tests should pass.\nCI is green.").kinds == {"ci"}
+    # a template's own words are not a hedge (as in the index): ticked, the box is still the claim
+    assert claims.read("- [x] Local tests pass. **Your PR cannot be merged unless tests pass**").kinds == {"tests"}
+    assert claims.read("801 passed, 0 failed.").kinds == {"tests"}
+    # the other kinds are not read this way: a bare "done" still sends the stop hook to the tests
+    assert claims.read("Done. The tests should pass.").kinds == {"done"}
 
 
 def test_any_description_is_read_in_time_linear_in_its_length():
