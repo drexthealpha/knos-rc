@@ -322,7 +322,8 @@ orders whose deadline falls inside it.
 The upgrade keeps every 2.0 instruction's bytes and behaviour, except four fixes that take effect for 2.0 bounties
 too when it executes: whole-unit limits, the extension list, the Balance's side account, and single-use pay tokens.
 Audiences of the new paths start `knos3:`, so no token of one generation is good for the other. `knos-meter` and
-`knos-passkey` are new programs at their own addresses, live once the release run has deployed them.
+`knos-passkey` are new programs at their own addresses, live once the release run has deployed them. Neither calls
+the escrow, so the relay carries their evaluations and withdrawals from then, before the upgrade executes.
 
 Mainnet will be different program ids and Circle's mint. Nothing is deployed there.
 
@@ -489,7 +490,10 @@ A payee with no wallet app can be paid at an address derived from a WebAuthn pas
 ([`programs-v2/knos_passkey`](../programs-v2/knos_passkey)). Money leaves it only on an assertion of that passkey
 that names the mint, the destination, the amount and a number used once. Solana's own secp256r1 instruction checks
 the signature; the program checks what was signed. Nobody signs the transaction but its fee payer, so a relay can
-carry it. No key of Knos's is named in the program.
+carry it. No key of Knos's is named in the program. The program never calls the escrow, so the public relay carries
+a withdrawal from the moment `knos-passkey` is deployed, whatever the escrow's version, and refuses one only on a
+cluster where the program is not deployed (`test_a_passkey_withdrawal_request_is_simulated_then_sent_at_the_relays_cost`).
+On devnet the site shows and withdraws Circle's USDC and the faucet's test USDC, which a bounty funded by comment pays.
 
 What is trusted:
 
@@ -508,9 +512,22 @@ Use it for small amounts paid out soon, and bind a wallet you hold the key to fo
 `knos-meter` moves no customer money. It counts evaluations that GitHub signed and takes its own fee from credits
 somebody prepaid ([`programs-v2/knos_meter`](../programs-v2/knos_meter)).
 
-- An evaluation is a run of the pinned `attest.yml` or `prove.yml` in a repository of the **buyer**. So the count
-  says what the buyer's own run found. A buyer whose repository never runs it is not counted, and the seller then
-  has GitHub's public record and no count.
+- An evaluation is a run of the pinned `attest.yml` or `prove.yml` in a repository of the **buyer**: the
+  workflow file and the commit the buyer's credits pin (OpenCredits), first attempt, GitHub-hosted runner. So the
+  count says what the buyer's own run found. A buyer whose repository never runs it is not counted, and the seller
+  then has GitHub's public record and no count.
+- The published path is `attest.yml` with the kind `eval` (`knos attest --kind eval`; the caller is
+  [`examples/knos-attest.yml`](../examples/knos-attest.yml)), started in a repository of the buyer for a pull request
+  in a repository of that same owner. The verdict is GitHub's record of what the buyer did with it: merged is
+  accepted, closed unmerged is rejected, an open one is not evaluated. The seller is its author, the artifact its
+  head commit, the policy the hash of that one rule (`EVAL_POLICY` in [`src/knos/flow.py`](../src/knos/flow.py)).
+  The work order, the milestone and the rate are the buyer's inputs. The token is posted as `knos-eval:` on the
+  "knos tokens" issue of the run's repository, where the relay finds it
+  (`test_attest_eval_signs_one_evaluation_for_the_meter_from_the_buyers_own_record_and_posts_it_as_knos_eval`).
+  `prove.yml` signs no evaluation in this release: the program accepts it, and nothing published asks it to.
+- The relay carries an evaluation from the moment `knos-meter` is deployed. The meter never calls the escrow, so it
+  does not wait for the escrow's upgrade (`test_an_evaluation_is_recorded_by_the_meter_once_and_what_it_would_refuse_costs_nothing`).
+  It reads tokens verified by the verifier at the address in its own source, the deployed one.
 - A billable evaluation is one work order, artifact, policy and milestone. A retry or a duplicate is free. A
   rejection is billed (`test_an_evaluation_is_billed_and_counted_once_and_a_retry_is_free`,
   `test_a_rejection_is_billed`).

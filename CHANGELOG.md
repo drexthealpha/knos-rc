@@ -55,7 +55,10 @@ the new paths carry audiences that start `knos3:`, so a token of one generation 
   that was not funded with `neutral off`; the funding reply says which it is.
 - **You receive the full posted amount.**
 - **No wallet app needed.** The site makes a passkey, and the address it derives can be paid like any other.
-  Withdrawing needs only the passkey. Read [SECURITY.md](docs/SECURITY.md), section 17, before keeping money there.
+  Withdrawing needs only the passkey. The site shows and withdraws both of devnet's test mints: Circle's USDC and
+  the faucet's test USDC that a bounty funded by comment pays. The public relay carries a withdrawal from the moment
+  `knos-passkey` is deployed; it does not wait for the escrow's upgrade, which that program never calls. Read
+  [SECURITY.md](docs/SECURITY.md), section 17, before keeping money there.
 - **An organisation can be paid.** A member binds its wallet by hand, from a `knos-claim` repository the
   organisation owns, and a bot's pull request can then pay the organisation that runs it.
 - **You can assign a payment.** The bound wallet of a payee signs one order's payment over to another wallet, so
@@ -68,7 +71,10 @@ the new paths carry audiences that start `knos3:`, so a token of one generation 
 
 - **A count without an escrow.** `knos-meter` counts each evaluation GitHub signed, once, for a buyer and a seller
   in a month: accepted, rejected, and the declared value. It moves no customer money. 0.05 per billable evaluation
-  from prepaid credits, 0.02 at volume, and the first 10,000 of a month free. `statement` in `knos.settle.v2.meter`
+  from prepaid credits, 0.02 at volume, and the first 10,000 of a month free. An evaluation is a run of the
+  published `attest.yml` with the kind `eval`, started in a repository of the buyer: GitHub's record of a pull request
+  there is the verdict (merged: accepted; closed unmerged: rejected), and it is posted as `knos-eval:` for the relay,
+  which carries it from the moment the meter is deployed, whatever the escrow's version. `statement` in `knos.settle.v2.meter`
   recomputes a month from the program's logs; the command line has no command for it yet.
 - **Private orders.** Funded from your organisation's Balance by a comment in a judge repository you choose. The
   chain shows the amounts, the payees and that repository, and no name, issue number, check name or path of the

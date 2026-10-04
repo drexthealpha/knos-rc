@@ -110,7 +110,7 @@ or fix the time deadlines are judged by.
 |---|---|
 | `knos.v2.client(ids)` | Orders: `fundOrderWalletIx`, `fundOrderBalanceIx`, `payOrderIx`, `settleOrderIx`, `refundOrderIx`, `topUpIx`; balances and their limits (`openBalanceIx`, `setBalanceXIx`); the addresses of everything (`orderPda`, `rep`, `baltok`, ...); `explain(ix)`, which reads an instruction back in words before anyone signs it. |
 | `knos.v2` | The pure functions: `orderFee`, `termsJson`, `termsHash`, the audiences (`orderFundAudience`, `orderPayAudience`), the readers (`readOrder`, `readBalance`, `readRep`, ...) and every constant. |
-| `knos.meter` | The meter: `client(id)` builds `openCreditsIx`, `depositIx`, `withdrawCreditsIx` and the addresses; `evalAudience`, `readCredits`, `quote` and `statement` read and recompute. |
+| `knos.meter` | The meter: `client(id)` builds `openCreditsIx`, `depositIx`, `withdrawCreditsIx` and the addresses; `evalAudience`, `readCredits`, `quote` and `statement` read and recompute. The token an evaluation needs comes from a run of the published `attest.yml` with the kind `eval` in a repository of the buyer (`knos attest --kind eval`), posted as `knos-eval:` for the relay; pin that workflow's repository and commit when you open the credits. |
 | `knos.verifier(id)` | The verifier: a token into its account, the squarings, the key accounts of GitHub, GitLab and any other issuer named by its URL. |
 | `serializeTx`, `serializeTxV1` | An unsigned transaction for a wallet: legacy (up to 1,232 bytes) or version 1 (SIMD-0385: up to 4,096 bytes, 64 accounts). |
 | `rpc`, `account`, `programAccounts`, `confirmed` | The few RPC calls the rest needs, with `fetch`. |
