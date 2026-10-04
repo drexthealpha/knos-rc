@@ -849,7 +849,11 @@ def audit_files(events: list[dict], partial: bool = False) -> dict[str, str]:
     """audit/<owner id>.json for every account whose Balance funded a work order (scripts/audit_statements.py `files`):
     the months, and for each the scope and the lines that `knos audit export --owner <id>` writes for that month, so
     the page's export is that command's bytes. Named by id: the chain holds ids, and a file needs no name from GitHub.
-    `partial`: the history was not read whole, and every scope then says so."""
+    `partial`: the history was not read whole, and every scope then says so. No history, no statement: and then nothing
+    of knos is imported, so the empty build (`--empty`, which tests.yml's sdk job runs with no Python package installed)
+    needs none."""
+    if not events:
+        return {}
     spec = importlib.util.spec_from_file_location("audit_statements", ROOT / "scripts" / "audit_statements.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)            # (it puts src/ on the path, as scripts/network_stats.py does)
