@@ -42,6 +42,7 @@ import random
 import sys
 import threading
 import time
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -55,7 +56,7 @@ from solders.keypair import Keypair  # noqa: E402
 from solders.pubkey import Pubkey  # noqa: E402
 from solders.system_program import CreateAccountParams, create_account  # noqa: E402
 
-from knos import chain  # noqa: E402
+from knos import chain, terms  # noqa: E402
 from knos.settle.v2 import oidc, pay  # noqa: E402
 
 JSON, DOC = ROOT / "docs" / "load.json", ROOT / "docs" / "LOAD.md"
@@ -270,7 +271,15 @@ class Rpc:
         self.url = url
 
     def call(self, method: str, params: list):
-        return chain.call(self.url, method, params, timeout=30.0)
+        """A public endpoint's rate limit (HTTP 429) that outlasts chain.call's own backoff is waited out here too: K
+        senders polling one endpoint meet it, and it says nothing about the transactions, so it must not end the run."""
+        for wait in (5, 10, 20, 30, None):
+            try:
+                return chain.call(self.url, method, params, timeout=30.0)
+            except urllib.error.HTTPError as e:
+                if e.code != 429 or wait is None:
+                    raise
+                time.sleep(wait)
 
 
 @dataclass
@@ -386,7 +395,9 @@ NOT_EXERCISED = {
 }
 ISSUER_URL = "https://issuer.invalid/knos-load"    # names nothing real: a private key's URL is the registrant's own word
 WF_REPO, WF_SHA = "drexthealpha/Knos", "c" * 40    # what the orders pin; nothing in this run is ever judged by it
-TERMS = pay.terms_json({"accept": "", "checks": [{"app": 15368, "name": "test"}], "mode": "merge", "v": 2})
+# what the orders are funded with: terms in the canonical form knos.terms.parse reads, as a judge must read them to pay
+TERMS = terms.canonical({"accept": "", "checks": [{"app": 15368, "name": "test"}], "deny": [".github/**", ".knos/**"], "mode": "merge", "paths": [],
+                         "reserve": 0, "v": 1})
 
 
 def issuer_token(key, url: str, now: int, i: int, run: str) -> str:

@@ -30,7 +30,7 @@ export function chainOf(url, seconds = 60) {
       const sigs = await rpc(url, "getSignaturesForAddress", [address, { limit: 100, commitment: "confirmed" }]);
       const out = [];
       for (const s of (sigs || []).filter((x) => !x.err).reverse()) {
-        const tx = await rpc(url, "getTransaction", [s.signature, { encoding: "json", commitment: "confirmed", maxSupportedTransactionVersion: 0 }]);
+        const tx = await rpc(url, "getTransaction", [s.signature, { encoding: "json", commitment: "confirmed", maxSupportedTransactionVersion: 1 }]);
         out.push(...said(tx?.meta?.logMessages));
       }
       return out;

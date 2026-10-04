@@ -810,6 +810,18 @@ same("no window, no wallets", knos.wallets(undefined), []);
     same("a transaction nobody saw", await knos.confirmed("rpc", "pending", 3, async () => {}), null);
     await throws("an RPC error is an error", () => knos.rpc("rpc", "nope", []));
     same("each call went to the endpoint", [asked.length > 6, asked.every(([url]) => url === "rpc")], [true, true]);
+    // a public endpoint's rate limit says nothing about the request: HTTP 429 (its body not even JSON), then an error of
+    // code 429 in a body, are waited out (1 s, then 2 s) and the call is asked again; a limit that never ends is an error
+    const served = globalThis.fetch, limits = [{ status: 429, json: async () => { throw new SyntaxError("not JSON"); } },
+      { status: 200, json: async () => ({ jsonrpc: "2.0", id: 1, error: { code: 429, message: "Too many requests for a specific RPC call" } }) }];
+    let tries = 0;
+    const t0 = Date.now();
+    globalThis.fetch = async (url, init) => (tries++ < limits.length ? limits[tries - 1] : served(url, init));
+    same("a rate limit is waited out and the call asked again", [await knos.rpc("rpc", "getSlot", []), tries, Date.now() - t0 >= 2900], [500, 3, true]);
+    tries = 0;
+    globalThis.fetch = async () => { tries++; return { status: 429, json: async () => ({ jsonrpc: "2.0", id: 1, error: { code: 429, message: "Too Many Requests" } }) }; };
+    await throws("a rate limit that does not end is an error, after five tries", () => knos.rpc("rpc", "getSlot", []));
+    same("  five tries", tries, 5);
   } finally { globalThis.fetch = real; }
 }
 

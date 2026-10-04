@@ -52,11 +52,22 @@ def test_the_example_runs_a_server_and_a_client():
     assert done.returncode == 0 and re.search(r"^# pass 4$", done.stdout, re.M) and re.search(r"^# fail 0$", done.stdout, re.M), done.stdout[-3000:]
 
 
+def test_the_offer_a_seller_copies_and_the_pages_messages_carry_terms_a_judge_can_read():
+    # rehearsed on devnet (0.3.14): offer.devnet.json carried terms knos.terms.parse refuses, so the judge could never
+    # pass an order funded with them and it could only go back at its deadline
+    from knos import terms
+    offer = json.loads((HERE / "offer.devnet.json").read_text(encoding="utf-8"))
+    assert terms.parse(offer["terms"]) == json.loads(offer["terms"])
+    fx = json.loads((HERE / "fixtures.json").read_text(encoding="utf-8"))
+    req = json.loads((HERE / "messages.json").read_text(encoding="utf-8"))["paymentRequired"]["accepts"][0]
+    assert fx["terms"] == req["extra"]["terms"] == offer["terms"] and req["extra"]["termsHash"] == terms.terms_hash(offer["terms"].encode())
+
+
 # ---- the live path: the same server and client over an RPC URL, here LiteSVM behind tests/_rpc_shim.py -----------------
 def _live(tmp_path, issue: int):
     """A chain, an RPC endpoint in front of it, a buyer with 100 test USDC, and an offer for `issue`. Returns what a test needs."""
     sys.path.insert(0, str(ROOT / "tests"))
-    from _order import REPO, TERMS, OrderChain
+    from _order import REPO, OrderChain
     from _pay2 import WF_REPO, WF_SHA
     from _rpc_shim import RpcShim
     from solders.keypair import Keypair
@@ -69,7 +80,7 @@ def _live(tmp_path, issue: int):
     shim = RpcShim(c)
     (tmp_path / "buyer.json").write_text(json.dumps(list(bytes(buyer))), encoding="utf-8")
     offer = {"url": f"https://seller.example/work/{issue}", "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", "program": str(pay.PAY_ID), "mint": str(c.usdc),
-             "amount": 20_000_000, "workSeconds": 7 * 86_400, "repoId": str(REPO), "issue": str(issue), "seq": 0, "mode": pay.MERGE, "terms": TERMS.decode(),
+             "amount": 20_000_000, "workSeconds": 7 * 86_400, "repoId": str(REPO), "issue": str(issue), "seq": 0, "mode": pay.MERGE, "terms": json.loads((HERE / "offer.devnet.json").read_text(encoding="utf-8"))["terms"],
              "wfRepo": WF_REPO, "wfSha": WF_SHA, "seller": {"githubId": "5550123", "wallet": str(seller.pubkey())}, "delivery": "https://github.com/octo/widgets/pull/12"}
     (tmp_path / "offer.json").write_text(json.dumps(offer), encoding="utf-8")
 
@@ -99,6 +110,7 @@ def test_live_the_client_funds_a_real_order_over_rpc_is_served_and_the_seller_is
         assert got["settlement"]["extensions"]["knos-order"]["info"]["state"] == "escrowed" and got["settlement"]["payer"] == str(buyer.pubkey())
         # the acceptance: a token GitHub would sign from the order's pinned workflow pays the seller the amount whole
         c.warp(3600)
+        shim.harness_version = 1            # a relay carries PayOrder in a version 1 transaction: the status reads it as one
         assert c.pay(order, [(5550123, 10_000, seller.pubkey())], pr=12), c.err
         assert c.balance(pay.ata(seller.pubkey(), c.usdc)) == offer["amount"] and c.order(order) is None
         assert live("status", "--order", got["order"], "--program", offer["program"]) == {

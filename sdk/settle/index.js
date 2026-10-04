@@ -1682,11 +1682,17 @@ export function wallets(win = globalThis.window) {
 
 // ---- JSON-RPC ------------------------------------------------------------------------------------------------------
 export async function rpc(url, method, params) {
-  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.message || "RPC error");
-  return j.result;
+  // A public endpoint rate-limits: HTTP 429, or an error of code 429 in the body. That says nothing about the request
+  // (it was not served), so it is waited out and asked again, as the Python client's chain.call does; anything else is
+  // the answer. Without this a client that has just sent a transaction can stop before it knows the transaction landed.
+  for (const wait of [1000, 2000, 4000, 8000, null]) {
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
+    const j = r.status === 429 ? await r.json().catch(() => ({ error: { code: 429, message: "Too Many Requests" } })) : await r.json();
+    if ((r.status === 429 || j?.error?.code === 429) && wait !== null) { await new Promise((ok) => setTimeout(ok, wait)); continue; }
+    if (j.error) throw new Error(j.error.message || "RPC error");
+    return j.result;
+  }
 }
 
 const fromB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));

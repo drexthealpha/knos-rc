@@ -22,12 +22,15 @@ class RpcShim:
         self.txs: dict[str, list[str]] = {}            # signature -> its log
         self.named: dict[str, list[str]] = {}          # address -> signatures of the transactions that named it, oldest first
         self.calls: list[str] = []
+        self.versions: dict[str, int | str] = {}      # signature -> its transaction's version: "legacy", 0 or 1
+        # the version the harness's own transactions are recorded with: a relay carries PayOrder in a version 1 transaction
+        self.harness_version: int | str = "legacy"
         send = chain.send
 
         def recorded(ixs, payer=None, signers=(), tag=None):          # what the harness itself sends is history too
             ok = send(ixs, payer, signers, tag)
             if ok:
-                self._record(f"harness{len(self.txs)}", {str(a.pubkey) for ix in ixs for a in ix.accounts})
+                self._record(f"harness{len(self.txs)}", {str(a.pubkey) for ix in ixs for a in ix.accounts}, self.harness_version)
             return ok
         chain.send = recorded
         shim = self
@@ -54,8 +57,9 @@ class RpcShim:
         self.httpd.timeout = 0.05
         self.url = f"http://127.0.0.1:{self.httpd.server_address[1]}"
 
-    def _record(self, signature: str, keys: set[str]) -> None:
+    def _record(self, signature: str, keys: set[str], version: int | str = "legacy") -> None:
         self.txs[signature] = list(self.chain.logs)
+        self.versions[signature] = version
         for k in keys:
             self.named.setdefault(k, []).append(signature)
 
@@ -76,7 +80,8 @@ class RpcShim:
             if "Failed" in type(r).__name__:
                 raise RuntimeError(f"Transaction simulation failed: {r.err()}")
             self.chain.logs = list(r.logs())
-            self._record(str(tx.signatures[0]), {str(k) for k in tx.message.account_keys})
+            first = bytes(tx.message)[0]                # a versioned message starts with 0x80 | its version
+            self._record(str(tx.signatures[0]), {str(k) for k in tx.message.account_keys}, first & 0x7F if first & 0x80 else "legacy")
             return str(tx.signatures[0])
         if method == "getSignatureStatuses":
             return {"context": ctx, "value": [{"slot": ctx["slot"], "err": None, "confirmationStatus": "confirmed"} if s in self.txs else None for s in params[0]]}
@@ -87,7 +92,15 @@ class RpcShim:
         if method == "getSignaturesForAddress":
             return [{"signature": s, "err": None} for s in reversed(self.named.get(params[0], []))]      # newest first, as a cluster
         if method == "getTransaction":
-            return {"slot": ctx["slot"], "blockTime": self.chain.now(), "meta": {"err": None, "logMessages": self.txs[params[0]]}} if params[0] in self.txs else None
+            if params[0] not in self.txs:
+                return None
+            # as a cluster: a versioned transaction only to a reader whose maxSupportedTransactionVersion is at least its
+            # version (a reader that names none takes legacy transactions only; a cluster answers -32015)
+            version, most = self.versions[params[0]], (params[1] if len(params) > 1 else {}).get("maxSupportedTransactionVersion")
+            if version != "legacy" and (most is None or most < version):
+                raise RuntimeError(f"Transaction version ({version}) is not supported by the requesting client. Please try the request again with "
+                                   f'the following configuration parameter: "maxSupportedTransactionVersion": {version}')
+            return {"slot": ctx["slot"], "blockTime": self.chain.now(), "version": version, "meta": {"err": None, "logMessages": self.txs[params[0]]}}
         raise RuntimeError(f"Method not found: {method}")
 
     def run(self, cmd: list[str], cwd=None, timeout: float = 120) -> subprocess.CompletedProcess:

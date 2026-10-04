@@ -58,6 +58,40 @@ def test_every_stage_is_measured_and_fits_a_transaction(fifty):
     assert any("Balance" in w for w in s["fund"]["written_by_every_tx"]) and len(s["verify"]["written_by_every_tx"]) == 1
 
 
+def test_the_orders_terms_are_the_canonical_form_a_judge_reads():
+    from knos import terms
+    assert terms.parse(load.TERMS) == {"accept": "", "checks": [{"app": 15368, "name": "test"}], "deny": [".github/**", ".knos/**"], "mode": "merge",
+                                       "paths": [], "reserve": 0, "v": 1}
+
+
+def test_a_sustained_rate_limit_is_waited_out_for_about_a_minute_and_then_is_the_error(monkeypatch):
+    # rehearsed on devnet (0.3.14): K senders polling the public endpoint met HTTP 429 past chain.call's own backoff, and
+    # the run ended there though nothing was wrong with its transactions
+    import urllib.error
+    slept, left = [], [4]
+
+    def call(url, method, params, timeout=30.0):
+        if left[0]:
+            left[0] -= 1
+            raise urllib.error.HTTPError(url, 429, "Too Many Requests", {}, None)
+        return {"method": method}
+    monkeypatch.setattr(load.chain, "call", call)
+    monkeypatch.setattr(load.time, "sleep", slept.append)
+    assert load.Rpc("https://rpc.invalid").call("getSlot", []) == {"method": "getSlot"} and sum(slept) == 65
+    left[0], slept[:] = 9, []
+    with pytest.raises(urllib.error.HTTPError):
+        load.Rpc("https://rpc.invalid").call("getSlot", [])
+    assert sum(slept) == 65
+
+    def refused(url, method, params, timeout=30.0):
+        raise urllib.error.HTTPError(url, 500, "Internal Server Error", {}, None)
+    monkeypatch.setattr(load.chain, "call", refused)
+    slept[:] = []
+    with pytest.raises(urllib.error.HTTPError):
+        load.Rpc("https://rpc.invalid").call("getSlot", [])
+    assert slept == []                  # any other error is the answer at once
+
+
 def test_cluster_time_is_the_slowest_ceiling():
     stages = {"verify": {"cu_per_order": {"mean": 3_000_000}}, "fund": {"cu_per_order": {"mean": 120_000}}, "pay": {"cu_per_order": {"mean": 240_000}}}
     d = load.derive(stages, orders=1000, block_cu=100_000_000)

@@ -11,7 +11,7 @@
  "issue": "",
  "seq": 0,
  "mode": 0,
- "terms": "{\"accept\":\"\",\"checks\":[{\"app\":15368,\"name\":\"test\"}],\"mode\":\"merge\",\"v\":2}",
+ "terms": "{\"accept\":\"\",\"checks\":[{\"app\":15368,\"name\":\"test\"}],\"deny\":[\".github/**\",\".knos/**\"],\"mode\":\"merge\",\"paths\":[],\"reserve\":0,\"v\":1}",
  "wfRepo": "drexthealpha/knos-workflows",
  "wfSha": "",
  "seller": { "githubId": "", "wallet": "" },
