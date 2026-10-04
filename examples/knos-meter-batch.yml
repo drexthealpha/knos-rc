@@ -57,7 +57,7 @@ jobs:
       contents: read          # the ledger file, read through GitHub's API (there is no checkout)
       issues: write           # the signed statement is posted on this repository's "knos tokens" issue, where a relayer finds it
       id-token: write
-    uses: drexthealpha/knos-workflows/.github/workflows/attest.yml@bbaf6e1c850bcc1a12954ffe252b100ef67f16b8
+    uses: drexthealpha/knos-workflows/.github/workflows/attest.yml@c319984edd726d3d779f0c5497a52c57044d59fb
     with:
       repository: ${{ github.repository }}
       pull: 0                 # a batch names no pull request
@@ -70,7 +70,7 @@ jobs:
       contents: read
       issues: write
       id-token: write
-    uses: drexthealpha/knos-workflows/.github/workflows/attest.yml@bbaf6e1c850bcc1a12954ffe252b100ef67f16b8
+    uses: drexthealpha/knos-workflows/.github/workflows/attest.yml@c319984edd726d3d779f0c5497a52c57044d59fb
     with:
       repository: ${{ github.repository }}
       pull: 0
