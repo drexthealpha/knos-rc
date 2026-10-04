@@ -94,12 +94,14 @@ jobs:
       (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.pull_request)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    # A push does not say which pull requests it merged, so merges (and runs started by hand) wait in one line for
-    # the whole repository, each in its turn (GitHub keeps up to 100 waiting). A comment waits in its own pull
-    # request's line instead: anyone can write comments, and they must not be able to fill the line the merges wait
-    # in. Should two runs prove the same pull request, the chain pays it once.
+    # A push does not say which pull requests it merged, so a merge waits in the line of the commit it pushed: two
+    # merges never wait for each other (a run holds its line until the relay has carried its token, so a merge that
+    # waited for the one before it was paid that much later), and two runs of one commit run in turn. Runs started by
+    # hand share one line, each in its turn (GitHub keeps up to 100 waiting). A comment waits in its own pull
+    # request's line: anyone can write comments, and they must not be able to fill a line merges wait in. Should
+    # two runs prove the same pull request, the chain pays it once.
     concurrency:
-      group: ${{ github.event_name == 'issue_comment' && format('knos-settle-{0}', github.event.issue.number) || 'knos-settle' }}
+      group: ${{ github.event_name == 'issue_comment' && format('knos-settle-{0}', github.event.issue.number) || github.event_name == 'push' && format('knos-settle-push-{0}', github.sha) || 'knos-settle' }}
       queue: max
     cache-mode: read
     permissions:

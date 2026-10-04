@@ -693,13 +693,19 @@ def test_runs_for_one_issue_or_pull_request_wait_for_each_other_and_none_is_drop
     fund, prove, check = _jobs("fund.yml"), _jobs("prove.yml"), _jobs("check.yml")
     # commands on one issue or pull request run one at a time, each in its turn: every comment is answered
     assert fund["command"]["concurrency"] == {"group": "knos-command-${{ github.event.issue.number }}", "queue": "max"}
-    # a push does not say which pull requests it merged: merges share one line, and no run is dropped. A comment, which
-    # anyone can write, waits in its pull request's own line: comments cannot fill the line the merges wait in.
+    # a push does not say which pull requests it merged: each merge waits in the line of the commit it pushed, so one
+    # merge never waits for another's relay, two runs of one commit run in turn, and no run is dropped. Runs started
+    # by hand share one line. A comment, which anyone can write, waits in its pull request's own line: comments
+    # cannot fill a line merges wait in.
     line = prove["settle"]["concurrency"]
     assert line["queue"] == "max" and prove["attest"]["concurrency"] == {"group": "knos-settle", "queue": "max"}
     group = line["group"][3:-2].strip()
-    assert value(group, _push()) == value(group, _event("workflow_dispatch", {"inputs": {"pull": "7"}})) == "knos-settle"
+    one, two = (_push() for _ in range(2))
+    one["github"]["sha"], two["github"]["sha"] = "a" * 40, "b" * 40
+    assert value(group, one) == "knos-settle-push-" + "a" * 40 and value(group, two) == "knos-settle-push-" + "b" * 40
+    assert value(group, _event("workflow_dispatch", {"inputs": {"pull": "7"}})) == "knos-settle"
     assert value(group, _comment("/knos settle", pull=True)) == "knos-settle-7"
+    assert value(group, _comment("/knos settle", pull=True)) not in (value(group, one), value(group, two), "knos-settle")
     who = "${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}"
     assert prove["review"]["concurrency"] == {"group": f"knos-review-{who}"}       # the newest waiting review replaces an older one
     assert prove["judge"]["concurrency"] == {"group": f"knos-judge-{who}"}
