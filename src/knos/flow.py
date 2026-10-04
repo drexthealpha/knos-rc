@@ -2654,7 +2654,7 @@ def attest(run: Run, order: str, kind: str, pull: int | None = None, payees: str
         if not pull_.get("merged_at"):
             return no(f"Pull request #{number} of {run.repo} is not merged. A work order is paid, and a warranty judged, after the merge.")
         if kind == "revert":
-            aud, said, why = *_reverted(run, rp, pull_, address, o), ""
+            aud, said = _reverted(run, rp, pull_, address, o)
             if not aud:
                 return no(said)
         else:
