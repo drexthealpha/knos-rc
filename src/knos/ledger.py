@@ -585,13 +585,14 @@ def onchain(net, buyer: int, seller: int, month: int) -> tuple[Totals, Totals]:
     and ClaimBatch write, read through `net.account(address)` (a knos.chain.Ledger). One with no batch yet is zeros."""
     from .settle.v2 import meter
     both = (meter.book(net, buyer, seller, month, claim) for claim in (False, True))
-    return tuple(Totals(b.next_seq, b.evaluations, b.accepted, b.value, b.chain) for b in both)
+    count, claimed = (Totals(b.next_seq, b.evaluations, b.accepted, b.value, b.chain) for b in both)
+    return count, claimed
 
 
 def verify_onchain(ledger: list[Stored], net, claim: bool = False) -> tuple[list[str], dict[int, tuple[Totals, Totals]]]:
     """`verify`, with every month of the file held to the chain's account for it: the buyer's count, or with `claim`
     the seller's. Returns (what is wrong, {month: (the buyer's count, the seller's claim)} as read)."""
-    bad, seen = verify(ledger), {}
+    bad, seen = verify(ledger), dict[int, tuple[Totals, Totals]]()
     if bad or not ledger:
         return bad, seen
     buyer, seller = ledger[0].declared["buyer"], ledger[0].declared["seller"]

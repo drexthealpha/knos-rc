@@ -85,7 +85,12 @@ def read(blob: bytes) -> dict[str, bytes]:
             members = tar.getmembers()
             if any(not m.isfile() for m in members) or len({m.name for m in members}) != len(members):
                 raise ValueError("the bundle holds something that is not a plain file, or a name twice")
-            files = {m.name: tar.extractfile(m).read() for m in members}
+            files = {}
+            for m in members:
+                f = tar.extractfile(m)
+                if f is None:
+                    raise ValueError(f"the bundle's {m.name} cannot be read as a file")
+                files[m.name] = f.read()
     except tarfile.TarError as e:
         raise ValueError(f"this is not a bundle (not a tar: {e})") from None
     try:
@@ -356,7 +361,10 @@ def gather(call, events: list[dict], target: str, get) -> tuple[dict, dict[str, 
     if not key_info:
         raise Unavailable(f"the cluster no longer has the key account {spent[2]}")
     kdata = base64.b64decode(key_info["data"][0])
-    size = oidc.read_key(kdata).bits // 8
+    key = oidc.read_key(kdata)
+    if key is None:
+        raise ValueError(f"the account {spent[2]} is not a key account of the verifier")
+    size = key.bits // 8
     limbs, issuer = kdata[oidc.K_HDR:oidc.K_HDR + size], _issuer_number(claims["iss"])
     n = next((v for v in (int.from_bytes(limbs, "big"), int.from_bytes(limbs, "little")) if str(oidc.key_pda(issuer, v)) == spent[2]), None)
     if n is None:
@@ -424,7 +432,8 @@ def register(app, help_lines: list | None = None) -> None:
     """Add `knos bundle make|verify`, and put `knos receipt` (check a file, `mirror`, `verify`) in place of the
     command that only checked a file: `knos receipt <file>` does what it did, and prints the four parts first.
     `help_lines`: the CLI's (name, panel, summary) list; `bundle` gets its line after `receipt`, in the same panel."""
-    at = next((i for i, row in enumerate(help_lines or []) if row[0] == "receipt"), None)
+    help_lines = help_lines if help_lines is not None else []
+    at = next((i for i, row in enumerate(help_lines) if row[0] == "receipt"), None)
     if at is not None:
         help_lines[at] = ("receipt", help_lines[at][1], "Check an acceptance receipt and print its four parts; `mirror` and `verify` keep and read copies off chain.")
         help_lines.insert(at + 1, ("bundle", help_lines[at][1], "The evidence bundle of a payment: make it, and re-derive the verdict from it offline."))
@@ -499,9 +508,9 @@ def register(app, help_lines: list | None = None) -> None:
             doc = json.loads(sys.stdin.read() if what == "-" else open(what, encoding="utf-8").read())
         except (OSError, ValueError) as e:
             stop(f"not a receipt: {e}", 2)
-        why = rc.check(doc)
-        if why:
-            stop(f"not a valid receipt: {why}")
+        wrong = rc.check(doc)
+        if wrong:
+            stop(f"not a valid receipt: {wrong}")
         _show(doc, typer.echo)
         typer.echo(f"valid. digest sha256:{rc.digest(doc)}")
 

@@ -141,10 +141,11 @@ def read_intent(text: str | dict) -> Intent:
     """An intent read back from its object, its base64url text or the whole comment. ValueError says what is wrong.
     Nothing here says the assertion is good: the chain does, when the two instructions are simulated or sent."""
     try:
-        if not isinstance(text, dict):
+        if isinstance(text, dict):
+            o = text
+        else:
             m = LINE.search(str(text))
-            text = json.loads(_unb64(m.group(1) if m else str(text).strip()))
-        o = text
+            o = json.loads(_unb64(m.group(1) if m else str(text).strip()))
         if o.get("v") != 1 or o.get("program") != str(pk.PASSKEY_ID) or o.get("pay") != str(pay.PAY_ID):
             raise ValueError("it is for another version or another deployment")
         i = Intent(key=pk.compressed(bytes.fromhex(o["key"])), mint=Pubkey.from_string(o["mint"]), token_program=Pubkey.from_string(o["tokenProgram"]),

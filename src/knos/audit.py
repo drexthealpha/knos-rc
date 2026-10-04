@@ -91,7 +91,7 @@ def _facts(events: list[dict]) -> dict[tuple, dict]:
     """What `records.orders_of` does not keep, per order (address, funding transaction): the judge of each paying
     transaction, what each payment left held, and the transactions of a refund, a revert, a cancellation and a hold."""
     out: dict[tuple, dict] = {}
-    live: dict[str, str] = {}
+    live: dict[str, str | None] = {}
     for ev in events:
         name = ev["event"]
         if not name.startswith("order_"):
@@ -164,7 +164,8 @@ def _order_lines(o: dict, f: dict) -> list[dict]:
         by_tx.setdefault((p["tx"], p["kind"]), []).append(p)
     for (tx, kind), rows in by_tx.items():
         judge = f["judge"].get(tx, 9)
-        exc, res = (), ()
+        exc: tuple[str, ...] = ()
+        res: tuple[str, ...] = ()
         if judge == 3:
             exc, res = ("arbiter ruling",), ("rule: the arbiter the order named at funding",)
         if kind == "kill":

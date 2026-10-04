@@ -896,7 +896,7 @@ MINTED = 2
 
 def spent(marker: bytes | None) -> bool:
     """Whether a token is used up, from the data of its marker (used_pda): no funding, and nothing else, takes it again."""
-    return bool(marker) and marker[0] != MINTED
+    return marker is not None and len(marker) > 0 and marker[0] != MINTED
 
 
 def hb_pda(order: Pubkey, program: Pubkey = PAY_ID) -> Pubkey:
