@@ -7,9 +7,10 @@ name: always-on worker
 # where the token says, and anyone can run the same command (`knos relay`).
 #
 # A run relays for about 4.5 minutes, a pass every 3 seconds (`knos relay --serve`: a pass that finds nothing new
-# costs GitHub one conditional request per repository it knows). Thirty seconds before it stops it saves its notes,
-# starts the next run and relays on, so the next one installs while this one still relays, restores the notes this
-# run just saved, and takes over without a gap. (The next run used to wait for this one to end and only then install:
+# costs GitHub one conditional request per repository it knows). Thirty seconds before it stops it pauses for the 2 to
+# 5 s it takes to save its notes, then starts the next run and relays on, so the next one installs while this one still
+# relays, restores the notes this run just saved, and takes over with no gap of its own: the one pause at a handover is
+# that save, before the next run is started. (The next run used to wait for this one to end and only then install:
 # the relay was down 12 to 22 s between two runs, and a token posted then waited that long.)
 # For those few seconds two runs relay with the same key, which pays nobody twice: the chain takes a token once, the
 # loser of a race tries again on its next pass and finds it done, and a run logs nothing for a token whose verdict the
@@ -33,7 +34,7 @@ on:
         required: false
         default: ""
 
-# No concurrency group: one would hold the next run until this one ends, which is the gap this file closes. The first
+# No concurrency group: one would hold the next run until this one ends, which is the 12 to 22 s gap this file closes. The first
 # step keeps it to one chain of runs, and ends a second chain at its next handover.
 permissions:
   contents: read
