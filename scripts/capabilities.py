@@ -245,7 +245,7 @@ def render(root: Path = ROOT, check: bool = False) -> list[str]:
         old = doc.read_text(encoding="utf-8")
         new = rendered(old, summary(data) if doc.parent == root else table(data, "../"))
         if new != old:
-            changed.append(str(doc.relative_to(root)))
+            changed.append(doc.relative_to(root).as_posix())
             if not check:
                 doc.write_text(new, encoding="utf-8")
     return changed
