@@ -1420,12 +1420,14 @@ def _plan_eval(a: _Ask) -> _Plan:
     if owner != e.buyer_id:
         raise _no(kind, "the run was not in a repository of the buyer its audience names")
     mark = meter.mark_pda(e.buyer_id, e.key)
-    got = _read(ledger, [mark, meter.plan_pda(e.buyer_id)])
+    got = _read(ledger, [mark, meter.plan_pda(e.buyer_id), meter.METER_ID])
     result = dict(kind=kind, buyer_id=e.buyer_id, seller_id=e.seller_id, order=e.order.hex(), artifact=e.artifact, milestone=e.milestone)
     before = meter.read_mark(_data(got, mark))
     if before is not None:      # counted already (by this token or by another run): the first verdict stands, and a retry is free
         raise _Stop({"ok": True, **result, "sigs": _last(ledger, mark), "already": True, "accepted": before.accepted, "rate": before.rate, "fee": before.fee,
                      "month": before.month})
+    if _data(got, meter.METER_ID) is None:      # what this needs is knos_meter (and the verifier it reads), never a version of the escrow
+        raise _no(kind, f"knos_meter ({meter.METER_ID}) is not deployed on this cluster, so no evaluation can be counted here")
     pinned = [(addr, cr, held) for addr, cr, held in credits_for(ledger, e.buyer_id) if (cr.wf_repo_hash, cr.wf_sha) == (wf_repo, wf_sha)]
     if not pinned:
         raise _no(kind, "the buyer has no credits opened for these workflows at this commit; a wallet opens them (knos_meter OpenCredits), and "
@@ -1514,7 +1516,7 @@ KINDS: dict[str, Kind] = {
     "knos3:cancel:": Kind("cancel", _plan_cancel, since=1),
     "knos3:revert:": Kind("revert", _plan_revert, since=1),
     "knos3:bind:": Kind("bind", _plan_org_bind, since=1),
-    "knosm:eval:": Kind("eval", _plan_eval, since=1),
+    "knosm:eval:": Kind("eval", _plan_eval),        # knos_meter is a program of its own and never calls the escrow: it needs no 2.1 escrow
     "gate:": Kind("gate", _plan_gate, github=False),       # upgrade_gate reads the verified token itself: it needs no 2.1 escrow, and asks its own claims
 }
 
@@ -1971,9 +1973,8 @@ def close_markers(ledger, payer: Keypair, now: int, per_tx: int = 8) -> list[str
 
 def close_marks(ledger, payer: Keypair, now: int, per_tx: int = 8) -> list[str]:
     """Takes back the rent of the meter's marks this relayer paid for (knos_meter CloseMark), once the month they
-    were counted in is over and no token of it can come again. Several to a transaction."""
-    if version(ledger, payer) < 1:
-        return []
+    were counted in is over and no token of it can come again. Several to a transaction. knos_meter's own instruction:
+    whatever version the escrow is (a cluster without the meter has no marks)."""
     me = payer.pubkey()
     ixs = [meter.close_mark_ix(me, mark) for mark in meter.closable(meter.marks_of(ledger, me), now)]
     return _each(ledger, payer, [ixs[k:k + per_tx] for k in range(0, len(ixs), per_tx)])
@@ -1994,9 +1995,9 @@ def withdraw(ledger, payer: Keypair, request: str | bytes) -> dict:
     try:
         me, w = payer.pubkey(), q.wallet
         result = dict(kind=kind, wallet=str(w), mint=str(q.mint), to=str(q.to), amount=q.amount, nonce=q.nonce)
-        if version(ledger, payer) < 1:
-            raise _no(kind, "passkey wallets come with the escrow's upgrade to 2.1, which is not live on this cluster yet")
-        got = _read(ledger, [w, q.mint, q.to])
+        got = _read(ledger, [w, q.mint, q.to, passkey.PASSKEY_ID])
+        if _data(got, passkey.PASSKEY_ID) is None:     # knos_passkey never calls the escrow: what a withdrawal needs is that program, whatever the escrow's version
+            raise _no(kind, f"knos_passkey ({passkey.PASSKEY_ID}) is not deployed on this cluster, so no passkey wallet can withdraw here")
         program = got[q.mint][0] if got.get(q.mint) else None
         if program not in (pay.TOKEN, pay.TOKEN_2022):
             raise _no(kind, "the mint this request names does not exist")

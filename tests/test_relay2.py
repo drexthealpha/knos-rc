@@ -415,10 +415,12 @@ def test_the_longest_terms_ride_with_the_last_step_in_a_v1_transaction_and_not_i
 
 # -- which escrow the cluster runs -----------------------------------------------------------------------------------------
 class Old:
-    """A ledger whose cluster runs the deployed 2.0 escrow: it refuses instruction 12, as that program does."""
+    """A ledger whose cluster runs the deployed 2.0 escrow: it refuses instruction 12, as that program does, and
+    simulates everything else as the cluster would (knos_meter and knos_passkey are programs of their own). With
+    `why`, a cluster that does not answer at all."""
 
     def __init__(self, net: Net, why: Exception | None = None):
-        self.net, self.url, self.asked = net, "a cluster of 2.0", 0
+        self.net, self.url, self.asked, self.down = net, "a cluster of 2.0", 0, why is not None
         self.why = why or chain.RpcError("transaction failed: TransactionErrorInstructionError((1, Fieldless(InvalidInstructionData)))")
 
     def __getattr__(self, name):
@@ -426,7 +428,9 @@ class Old:
 
     def simulate(self, ixs, payer, signers=None, v1=False):
         self.asked += 1
-        raise self.why
+        if self.down or pay.version_ix() in list(ixs):
+            raise self.why
+        return self.net.simulate(ixs, payer, signers, v1)
 
 
 def test_the_version_is_asked_by_simulation_once_and_what_is_new_is_used_only_on_2_1(env, monkeypatch):
@@ -2083,12 +2087,30 @@ def test_an_evaluation_is_recorded_by_the_meter_once_and_what_it_would_refuse_co
     c.mint_to(mint, meter.crtok_pda(empty), 50_000)
     r = go(env, short)
     assert r["ok"] and r["accepted"] is False and r["fee"] == 50_000 and c.held(empty) == 0, r
-    # once the month is over and no token of it can come again, the relayer takes back the rent of the marks it paid for
+    # knos_meter never calls the escrow: on a cluster whose escrow is still 2.0 (it refuses Version) an evaluation is
+    # counted all the same, in legacy transactions, from the day the meter is deployed
+    old = Old(net)
+    assert relay.version(old, c.payer) == 0
+    on_old = ev(c.aud("e" * 40, verdict=1, rate=3 * USDC))
+    r = relay.submit(old, c.payer, on_old, None, JWKS, now=c.now())
+    assert r["ok"] and r["kind"] == "eval" and r["accepted"] is True and r["rate"] == 3 * USDC and r["fee"] == 50_000, r
+    assert c.month().evaluations == 2 and c.held(credits) == 5 * USDC - 2 * 50_000
+    assert relay.submit(old, c.payer, on_old, None, JWKS, now=c.now())["already"]
+    # a cluster without knos_meter: said from a read, before any fee
+    class NoMeter(Old):
+        def infos(self, addresses):
+            return [None if a == meter.METER_ID else got for a, got in zip(addresses, net.infos(addresses))]
+    n0, sol = net.txs, lamports(c)
+    r = relay.submit(NoMeter(net), c.payer, ev(c.aud("f" * 40)), None, JWKS, now=c.now())
+    assert r == {"ok": False, "kind": "eval", "why": f"knos_meter ({meter.METER_ID}) is not deployed on this cluster, so no evaluation can be counted here"}, r
+    assert (net.txs, lamports(c)) == (n0, sol)
+    # once the month is over and no token of it can come again, the relayer takes back the rent of the marks it paid for:
+    # knos_meter's own instruction, sent whatever the escrow's version
     mine = meter.marks_of(net, c.payer.pubkey())
-    assert len(mine) == 2 and relay.close_marks(net, c.payer, c.now()) == []
+    assert len(mine) == 3 and relay.close_marks(net, c.payer, c.now()) == [] and relay.close_marks(old, c.payer, c.now()) == []
     c.warp(meter.close_after(c.now()) - c.now())
     before = lamports(c)
-    assert len(relay.close_marks(net, c.payer, c.now())) == 1 and meter.marks_of(net, c.payer.pubkey()) == [] and lamports(c) > before
+    assert len(relay.close_marks(old, c.payer, c.now())) == 1 and meter.marks_of(net, c.payer.pubkey()) == [] and lamports(c) > before
 
 
 def test_a_passkey_withdrawal_request_is_simulated_then_sent_at_the_relays_cost():
@@ -2129,17 +2151,26 @@ def test_a_passkey_withdrawal_request_is_simulated_then_sent_at_the_relays_cost(
         r = relay.withdraw(net, c.payer, request)
         assert not r["ok"] and r["kind"] == "withdraw" and want in r["why"], r
     assert (net.txs, lamports(c)) == (n0, sol)
-    # a ledger that cannot simulate sends nothing, and the 2.0 escrow's cluster has no passkey wallets yet
+    # a ledger that cannot simulate sends nothing
     from _pay2 import ChainLedger
     blind = ChainLedger(c)
     blind.simulate = None
-    relay._VERSION[(id(blind), pay.PAY_ID)] = 1
-    try:
-        assert relay.withdraw(blind, c.payer, ask(USDC, 3))["why"] == "this relay's ledger cannot simulate, and a withdrawal is never sent unchecked"
-    finally:
-        relay._VERSION.pop((id(blind), pay.PAY_ID))
-    assert "come with the escrow's upgrade to 2.1" in relay.withdraw(Old(net), c.payer, ask(USDC, 3))["why"] and net.txs == n0
-    assert relay.withdraw(net, c.payer, ask(USDC, 3))["ok"]
+    assert relay.withdraw(blind, c.payer, ask(USDC, 3))["why"] == "this relay's ledger cannot simulate, and a withdrawal is never sent unchecked"
+    # a cluster without knos_passkey: said from a read, before any fee and before any simulation
+    class NoPasskey(Old):
+        def infos(self, addresses):
+            return [None if a == pk.PASSKEY_ID else got for a, got in zip(addresses, net.infos(addresses))]
+    bare = NoPasskey(net)
+    r = relay.withdraw(bare, c.payer, ask(USDC, 3))
+    assert r["why"] == f"knos_passkey ({pk.PASSKEY_ID}) is not deployed on this cluster, so no passkey wallet can withdraw here" and bare.asked == 0
+    assert (net.txs, lamports(c)) == (n0, sol)
+    # knos_passkey never calls the escrow: on a cluster whose escrow is still 2.0 (it refuses Version) the withdrawal is
+    # simulated and sent the same way, the day the passkey program is deployed, not the day the escrow's upgrade executes
+    old = Old(net)
+    r = relay.withdraw(old, c.payer, ask(USDC, 3))
+    assert r["ok"] and r["nonce"] == 3 and c.balance(to) == 13 * USDC and pk.read_wallet(c.data(p.wallet)).nonce == 3, r
+    assert old.asked == 1 and relay.version(old, c.payer) == 0          # its one simulation was the withdrawal's own: the escrow's version is not asked
+    assert relay.withdraw(net, c.payer, ask(USDC, 4))["ok"] and c.balance(to) == 14 * USDC
 
 
 def test_program_ymls_gate_token_records_the_build_once_and_what_the_gate_would_refuse_costs_nothing(env):
@@ -2216,7 +2247,7 @@ def test_every_audience_goes_through_one_table():
     assert {prefix: (k.name, k.since) for prefix, k in relay.KINDS.items() if prefix != "gate:"} == {
         "knos2:fund:": ("fund", 0), "knos2:pay:": ("pay", 0), "knos2:bind:": ("bind", 0), "knos-oidc:key:": ("key", 0), "knos-oidc:ikey:": ("key", 1),
         "knos3:fund:": ("fund", 1), "knos3:pay:": ("pay", 1), "knos3:rule:": ("rule", 1), "knos3:take:": ("take", 1), "knos3:cancel:": ("cancel", 1),
-        "knos3:revert:": ("revert", 1), "knos3:bind:": ("bind", 1), "knosm:eval:": ("eval", 1)}
+        "knos3:revert:": ("revert", 1), "knos3:bind:": ("bind", 1), "knosm:eval:": ("eval", 0)}     # the meter is a program of its own: no 2.1 escrow
     assert relay.kind_of("knos3:pay:x") == "pay" and relay.kind_of("knos3:take:x") == "take" and relay.kind_of("knos:fund:1") is None
     assert [prefix for prefix, k in relay.KINDS.items() if k.first] == ["knos-oidc:key:"]         # the first deployment is handed GitHub's and GitLab's keys, nothing else
 
