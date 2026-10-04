@@ -15,7 +15,7 @@ import re
 import urllib.error
 
 import pytest
-from _flow import HUBOT, MONA, WALLET, GitHub, World, check, claims, sha, stamp
+from _flow import HUBOT, MONA, WALLET, GitHub, World, check, claims, program_digits, program_u64, sha, stamp
 from _hub import BOT, user
 from knos import flow, policy
 from knos.proof import ghrelay
@@ -385,3 +385,26 @@ def test_a_token_no_relayer_carried_in_time_is_said_on_the_private_issue_and_the
     w.chain.bind(MONA)
     merged(w)
     assert flow.settle(run(w, pub, SCHEDULE)) == 0 and w.chain.orders() == [] and w.hub.knos(PULL)[-1].startswith("Knos: paid. @mona received 20.00 test USDC")
+
+
+def test_the_hidden_pull_number_is_one_knos_pay_parses_and_a_receipt_holds_whatever_the_salt():
+    """A private order's pay audience names its pull request by `hidden_pull`; knos_pay reads that field with claims.rs
+    parse_u64 (its digit limit is read from the Rust source, not copied here), and a receipt carries it as a JSON number,
+    which holds only integers below 2^53 (docs/RECEIPT.md). Eight bytes of hash made 19 private orders in 20 unpayable."""
+    import random
+    digits = program_digits()
+    assert 15 <= digits <= 19                                        # the source was read, and it is still a u64 parser
+    rng = random.Random(20261004)
+    seen = set()
+    for i in range(20_000):
+        salt, number = rng.randbytes(32), rng.choice((1, 2, 41_123, 99_999, 2**31 - 1, rng.randrange(1, 2**63)))
+        hidden = flow.hidden_pull(salt, number)
+        assert program_u64(str(hidden)) == hidden and len(str(hidden)) <= digits and 0 <= hidden < 2**53, (salt.hex(), number, hidden)
+        assert flow.hidden_pull(salt, number) == hidden              # the same every time: a standing order pays each pull request once
+        seen.add(hidden)
+    assert len(seen) > 19_900                                        # and it still tells pull requests apart
+    # this file's own order: its 8-byte number had 20 digits, which the fake chain now refuses as the program does
+    old = int.from_bytes(hashlib.sha256(SALT + b"knos3:pull" + PULL.to_bytes(8, "little")).digest()[:8], "little")
+    assert len(str(old)) > digits and program_u64(str(old)) is None and program_u64(str(flow.hidden_pull(SALT, PULL))) is not None
+    # it says nothing of the pull request's number: the salt decides it
+    assert flow.hidden_pull(SALT, PULL) != flow.hidden_pull(bytes(32), PULL) and str(PULL) not in str(flow.hidden_pull(SALT, PULL))

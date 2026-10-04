@@ -4,6 +4,8 @@ organisation's wallet (BindOrg); and what a token under a key that is not GitHub
 tests/_order.py. Each rule has the payment it allows and, beside it, every way round it that is refused."""
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 
 pytest.importorskip("solders.litesvm")
@@ -13,6 +15,7 @@ from solders.pubkey import Pubkey  # noqa: E402
 
 from _order import AUTHOR, HEAD, MAINT, OWNER, REPO, TERMS, TH, USDC, OrderChain, code, issue, user  # noqa: E402
 
+from knos import flow  # noqa: E402
 from knos.settle.v2 import pay  # noqa: E402
 
 NEUTRAL = pay.opts(pay.F_NEUTRAL)
@@ -144,6 +147,25 @@ def test_a_balance_funds_a_private_order_from_its_judge_repository_and_nothing_o
     assert leaks(bytes(c.data(tok)), bytes(c.data(proof)), funded, "\n".join(c.logs).encode()) == []
     order2 = private_fund(c, bytes(32))
     assert c.send([order2[1]]) and leaks(bytes(c.data(order2[2]))) == []
+
+
+def test_a_private_order_is_paid_under_the_number_the_client_hides_its_pull_request_by():
+    """flow.hidden_pull is what a private order's pay audience names; knos_pay itself (not a fake) must take it. The
+    salt is one whose 8-byte number had 20 digits: that number is refused (87), the client's is paid."""
+    c = OrderChain()
+    salt = next(s for s in (hashlib.sha256(bytes([i])).digest() for i in range(256))
+                if len(str(int.from_bytes(hashlib.sha256(s + b"knos3:pull" + (41_123).to_bytes(8, "little")).digest()[:8], "little"))) == 20)
+    old = int.from_bytes(hashlib.sha256(salt + b"knos3:pull" + (41_123).to_bytes(8, "little")).digest()[:8], "little")
+    _, ix, order = private_fund(c, salt)
+    assert c.send([ix]), c.err
+    wallet = Keypair().pubkey()
+    payees = [(AUTHOR, 10_000, wallet)]
+    refused = c.pay_token(order, payees, pr=old, repository_id=JUDGE_REPO)
+    assert refused is None or (not c.send([c.pay_ix(order, refused, payees)]) and code(c) == 87)
+    c.warp(1)
+    proof = c.pay_token(order, payees, pr=flow.hidden_pull(salt, 41_123), repository_id=JUDGE_REPO)
+    assert proof is not None and c.send([c.pay_ix(order, proof, payees)], tag="pay_private_order_hidden_pull"), c.err
+    assert paid_to(c, wallet) == 20 * USDC
 
 
 def test_what_the_funding_of_a_private_order_cannot_do():

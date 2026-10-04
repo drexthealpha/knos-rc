@@ -19,6 +19,26 @@ from _hub import BOT, Hub, user
 from knos import closing, commands, flow
 from knos.settle.v2 import pay
 
+ROOT = __import__("pathlib").Path(__file__).resolve().parents[1]
+
+
+def program_digits() -> int:
+    """The most digits knos_oidc's claims.rs parse_u64 takes, read from the program's own source (knos_pay parses an
+    order's pay audience with it: gh.rs n()), so no test here can believe a number the chain refuses."""
+    src = (ROOT / "programs-v2" / "knos_oidc" / "src" / "claims.rs").read_text(encoding="utf-8")
+    body = re.search(r"pub fn parse_u64\(s: &\[u8\]\) -> Option<u64> \{(.*?)\n\}", src, re.S)
+    assert body, "claims.rs has no parse_u64 any more: read its limit again"
+    limit = re.search(r"s\.len\(\) > (\d+)", body.group(1))
+    assert limit, "parse_u64 no longer says how many digits it takes: read its limit again"
+    return int(limit.group(1))
+
+
+def program_u64(text: str) -> int | None:
+    """claims.rs parse_u64: digits only, no leading zero, at most `program_digits()` of them; else None (error 87)."""
+    if not text or len(text) > program_digits() or not text.isdigit() or (len(text) > 1 and text[0] == "0"):
+        return None
+    return int(text)
+
 REPO, REPO_ID = "o/r", 555
 HUBOT, MONA, EVE = user("hubot", 1), user("mona", 4242), user("eve", 666)       # hubot owns o/r; eve cannot write to it
 DEVIN = user("devin-ai-integration[bot]", 158243242, "Bot")
@@ -365,6 +385,8 @@ class Relay:
             ledger.accounts[address] = bytes(data)
             return {"ok": True, "kind": "take", "sigs": [self._sig(), self._sig()], "order": address}
         payees = pay.payees_of(c["aud"])
+        if program_u64(aud[6]) is None:                      # order_pay.rs: pr is claims.rs parse_u64's, or the audience does not match
+            return {"ok": False, "kind": "pay", "why": "the token's audience does not match (error 87)"}
         if o.flags & pay.F_PRIVATE and (int(c["repository_id"]) != o.judge_repo_id or int(c["iat"]) < o.not_before):
             return {"ok": False, "kind": "pay", "why": "not from a judge this order takes: a run in the order's judge repository"}      # judge c
         if o.terms.hex() != aud[4] or str(o.mode) != aud[5] or sum(bps for _i, bps, _a in payees) != 10_000 or not 1 <= len(payees) <= pay.MAX_PAYEES:
