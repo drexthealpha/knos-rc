@@ -795,7 +795,7 @@ class Server:
         """(address, order or job, whether it is a work order) for the open, unexpired, public work of the second
         deployment: every one, or (`only` one repository id and `issue`) one issue's. A private order names no
         repository and a standing one is one vendor's, so neither is work to find."""
-        from .settle.v2 import pay, relay
+        from .settle.v2 import pay
         if issue is not None:
             at = next(iter(only or {0})).to_bytes(8, "little") + issue.to_bytes(8, "little")
             orders = self._chain(lambda ledger: ledger.program_accounts(pay.PAY_ID, pay.ORDER_LEN, {8: at}))

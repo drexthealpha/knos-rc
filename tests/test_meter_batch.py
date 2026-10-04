@@ -11,7 +11,7 @@ import pytest
 
 pytest.importorskip("solders.litesvm")
 
-from _meter import (BUYER, E_BATCH, E_SEQ, LEDGER_LEN, MAX_BATCH, PLAN_SETTER, SELLER, VERSION, BatchLedger, Meter, batch_audience, chain_hash, ledger_pda,  # noqa: E402
+from _meter import (BUYER, E_BATCH, E_SEQ, LEDGER_LEN, MAX_BATCH, PLAN_SETTER, SELLER, VERSION, BatchLedger, Meter, chain_hash, ledger_pda,  # noqa: E402
                     merkle_root, version_ix)
 
 from knos.settle.v2 import meter  # noqa: E402

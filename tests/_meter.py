@@ -5,7 +5,6 @@ any mint that passes the mint rules, and SetPlan also takes the test key below).
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 
 from solders.account import Account
 from solders.compute_budget import set_compute_unit_limit

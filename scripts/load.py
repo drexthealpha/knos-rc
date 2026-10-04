@@ -194,7 +194,7 @@ def run_local(n: int, seed: int = SEED) -> dict:
         return not c.send([ix])
 
     # -- fund: n orders, n repositories, one Balance; every 10th fund token sent a second time at once ---------------
-    orders, replays, sent_twice, sent_late = [], [], 0, 0
+    orders, sent_twice, sent_late = [], 0, 0
     for i in range(n):
         meter.phase, meter.order = "fund", i
         repo, num, amount = REPO + 1 + i, issue(), (5 + rng.randrange(40)) * USDC
