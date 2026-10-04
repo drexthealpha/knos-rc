@@ -321,10 +321,18 @@ refused token only when it takes the signature check on chain to tell. The token
 | of those, paid to someone other than the funder | 0 |
 | funders among them | 0 |
 | funders who funded again after one of their tasks was paid | 0 |
-| payments timed from the merge, over the public relay's log | 36 |
-| seconds from the merge to the payment, median | 24 |
-| seconds from the merge to the payment, 90th percentile | 54 |
+| payments timed from the merge, over the public relay's log (n) | 36 |
+| seconds from the merge to the payment, median (p50) | 24 |
+| seconds from the merge to the payment, 95th percentile (p95) | 58 |
+| the day of the oldest of those payments (UTC) | 2026-10-02 |
+| the day of the newest | 2026-10-04 |
+| of those payments, made by the first deployment's escrow | measured at release |
+| of those payments, made by the second deployment's escrow | measured at release |
 | seconds from the funding comment to the funded task, median | 48 |
+
+Merge to paid is defined as: seconds from the merge (GitHub's merged_at of the pull request) to the block time of the Solana transaction that paid, one sample per successful pay line of the public relay log, over its newest 500 such lines, both deployments, all time. A line is left out when the chain's history that was read does not show its transaction or GitHub does not give the merge time; `not_timed` counts those. p50 is the median, p95 and p90 are by nearest rank. One function measures it (`measure` in `scripts/network_stats.py`); this table, `docs/facts.json`, the site's Numbers page (`stats.json`) and `latency.json` all state that function's output.
+
+The 95th percentile and the two days are from the site's `latency.json` of 2026-10-04 09:16 UTC, which timed 36 payments with the same median. Which deployment paid them was not written by that build; the release's `--stats` run fills those two rows.
 
 Read from the site's `stats.json` of 2026-10-04 07:51 UTC (`python scripts/bench_docs.py --stats stats.json`).
 <!-- /bench:devnet -->
