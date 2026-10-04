@@ -29,6 +29,43 @@ def test_claims_are_read_by_kind_not_phrasing():
     assert not claims.read("I looked at the parser; here is what I think we should do.").says_done
 
 
+def test_a_ticked_box_is_a_claim_and_words_the_author_did_not_assert_are_not():
+    """A pull request template's checklist is the author's to tick. BerriAI/litellm#34321, the site's false example,
+    ticked "My PR passes all CI/CD checks": 0.3.13 read that as no claim, because it read CI only before "passes",
+    while the site and the Agent PR Index read the claim it is. An unticked box, an HTML comment (where a template's
+    instructions live) and the original prompt an agent quotes are words the author did not assert."""
+    checklist = ("## Pre-Submission checklist\r\n\r\n<!-- Please make sure all tests pass before asking for a review -->\r\n"
+                 "- [x] I have added meaningful tests\r\n- [x] My PR passes all CI/CD checks (e.g., lint, format, unit tests)\r\n"
+                 "- [ ] I have received a Greptile **Confidence Score of at least 4/5** before requesting a maintainer review\r\n")
+    assert claims.read(checklist).kinds == {"ci"}
+    assert claims.read(checklist.replace("- [x] My PR", "- [ ] My PR")).kinds == set()
+    for words, kinds in (("- [X] My PR passes all unit tests", {"tests"}), ("It passed all required CI/CD checks.", {"ci"}),
+                         ("All checks passed.", {"ci"}), ("all CI checks have passed", {"ci"}), ("It bypasses all checks.", set())):
+        assert claims.read(words).kinds == kinds, words
+    for box in ("- [ ] All tests pass", "* [ ] CI is green", "+ [ ] 801 passed", "1. [ ] the suite is green", "> - [ ] every job passes",
+                "  - [ ] Deployed to https://knos.dev/x", "- [ ] passes all CI/CD checks\r"):
+        assert claims.read(box).kinds == set() and not claims.read(box).urls, box
+        assert claims.read(box.replace("[ ]", "[x]")).kinds, box                  # ticked, the same words are a claim
+    assert claims.read("Fixes #7.\n<details>\n<summary>Original prompt</summary>\n\n> Make sure all tests pass.\n</details>").kinds == set()
+    assert claims.read("<details><summary>pytest</summary>\n\n801 passed\n</details>").kinds == {"tests"}   # the author's own log
+    assert claims.read("<!-- a template's words -->\nAll tests pass.\n<!-- -->").kinds == {"tests"}
+    assert claims.read("Removed a stray `<!--` from README.md. All tests pass.").kinds >= {"tests"}         # left open: hides nothing
+    assert claims.said("a<!-- b\nc -->d\n- [ ] e\nf") == "a \nd\n\nf"                                   # lines stay lines
+
+
+def test_any_description_is_read_in_time_linear_in_its_length():
+    """A description is anyone's words, and the gate, `knos check` and the MCP tool read it. Blank lines were each a
+    place a bare "done" could start, read to the end of the run: 8,000 of them took over a minute. GitHub keeps a
+    description to 65,536 characters; none of these shapes may take seconds at that length."""
+    import time
+    for shape in ("\n", "\r\n", " ", ": ", ".\n", "- [ ] a\n", "<!--", "<details><summary>original prompt", "passes all ", "tests ",
+                  "1", "is ", "removed a", "http://a"):
+        body = (shape * (65_536 // len(shape) + 1))[:65_536]
+        start = time.perf_counter()
+        claims.read(body)
+        assert time.perf_counter() - start < 5, repr(shape)
+
+
 def test_replay_sibyl_blocks_031_and_032_and_null_store_passes_them(tmp_path, repo):
     data = json.loads(DATA.read_text(encoding="utf-8"))
     store = _sibyl(tmp_path)

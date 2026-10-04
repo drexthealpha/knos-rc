@@ -207,6 +207,8 @@ It installs the MCP server for the agent's sessions in that repository.
 
 The free check on every pull request of a repository: when a description says its tests pass or CI is green, Knos
 compares that with GitHub's own record of the head commit, and it applies the repository's `CONTRIBUTING.md` rules.
+A ticked box of a template's checklist (`- [x] My PR passes all CI/CD checks`) is the author's claim; an unticked
+box and the template's HTML comments are not.
 It runs none of the pull request's code, and it involves no bounty, no money and no chain.
 
 ```yaml

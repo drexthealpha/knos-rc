@@ -369,6 +369,20 @@ def test_knos_check_pr_holds_the_description_to_githubs_record():
     assert verdict("Fixes #7. Tests pass.", [_run("knos / gate", "failure")])[0] == "no checks"   # Knos's own check is not evidence
 
 
+def test_knos_check_pr_reads_a_ticked_template_box_as_the_authors_claim():
+    """`knos check BerriAI/litellm#34321` answered "The description does not say that tests pass or that CI is green."
+    for a description that ticked "My PR passes all CI/CD checks", while the site showed that claim false."""
+    ticked = ("## Pre-Submission checklist\r\n\r\n- [x] I have added meaningful tests\r\n"
+              "- [x] My PR passes all CI/CD checks (e.g., lint, format, unit tests)\r\n"
+              "- [ ] I have received a Greptile **Confidence Score of at least 4/5** before requesting a maintainer review\r\n")
+    runs = [_run("All Other Providers / Run tests", "failure"), _run("lint", "success")]
+    got = call("knos_check_pr", {"pr": "octo/widgets#12"}, None, _pull(ticked, runs))["structuredContent"]
+    assert (got["verdict"], got["claims"], got["untrusted"]["failed_checks"]) == ("false", ["CI is green"], ["All Other Providers / Run tests"])
+    assert got["said"] == "The description says CI is green, but 1 check failed at the head commit (their names are in `untrusted.failed_checks`)."
+    unticked = call("knos_check_pr", {"pr": "octo/widgets#12"}, None, _pull(ticked.replace("[x]", "[ ]"), runs))["structuredContent"]
+    assert (unticked["verdict"], unticked["claims"]) == ("no claim", [])
+
+
 def test_knos_check_pr_says_so_when_the_checks_cannot_be_read():
     github = GitHub({"repos/octo/widgets/pulls/12": {"number": 12, "body": "Tests pass.", "head": {"sha": "b" * 40}}})
     got = call("knos_check_pr", {"pr": "octo/widgets#12"}, None, github)
