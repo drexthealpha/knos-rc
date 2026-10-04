@@ -380,19 +380,23 @@ async function readAccount(ev) {
   say(out, "Reading GitHub and Solana…");
   try {
     const [user, k] = await Promise.all([gh(`/users/${login}`), client()]);
-    const [bindRaw, repRaw, jobs, firstDues] = await Promise.all([knos.account(RPC, await k.bind(user.id)), knos.account(RPC, await k.rep(user.id)),
-      knos.programAccounts(RPC, k.ids.knos_pay, knos.v2.JOB_LEN, 56, le(user.id)),
-      knos.programAccounts(RPC, FIRST_PAY, knos.DUE_LEN, 8, le(user.id))]);
+    // The first deployment is read on its own: when it cannot be read, that is said, and the second deployment's
+    // wallet, holds and record are still shown.
+    const firstRead = (FIRST_PAY ? knos.programAccounts(RPC, FIRST_PAY, knos.DUE_LEN, 8, le(user.id))
+      : Promise.reject(new Error("the page does not name its program"))).then((dues) => ({ dues }), (e) => ({ error: e }));
+    const [bindRaw, repRaw, jobs, first] = await Promise.all([knos.account(RPC, await k.bind(user.id)), knos.account(RPC, await k.rep(user.id)),
+      knos.programAccounts(RPC, k.ids.knos_pay, knos.v2.JOB_LEN, 56, le(user.id)), firstRead]);
     const bind = knos.v2.readBind(bindRaw), rep = knos.v2.readRep(repRaw);
     const held = jobs.map((f) => knos.v2.readJob(f.data)).filter((j) => j && j.state === "held" && j.payeeId === user.id);
-    const oldDues = firstDues.map((f) => knos.parseDue(f.data)).filter((d) => d && d.userId === user.id && d.amount > 0);
+    const oldDues = (first.dues || []).map((f) => knos.parseDue(f.data)).filter((d) => d && d.userId === user.id && d.amount > 0);
     const bound = bind ? `<p class="verdict ok" id="due-bound">Paid at ${esc(bind.wallet)}</p><p class="fine">Bound ${when(bind.iat)}. Every task now pays this wallet.</p>`
       : `<p class="status" id="due-bound">No wallet is bound for ${esc(user.login)}.</p>`;
     const holds = held.length ? held.map((j) => `<p class="verdict ok">${money(j.amount)} ${esc(moneyName(j.mint, j.faucet))} is held for ${esc(user.login)} until ${when(j.holdUntil)}.</p>
       <p class="fine">${bind ? "A wallet is bound, so it can be sent there now: comment <code>/knos settle</code> on the merged pull request." : "Bind a wallet before then and it can be sent there. After that date it goes back to the funder."}</p>`).join("")
-      : `<p class="status">Nothing is held for ${esc(user.login)} right now.</p>`;
+      : `<p class="status">Nothing is held for ${esc(user.login)} ${oldDues.length || first.error ? "on the second deployment" : "right now"}.</p>`;
     const firstHolds = oldDues.length ? `<section id="due-v1"><h4>First deployment (v1)</h4>${oldDues.map((d) => `<p class="verdict ok">${money(d.amount)} ${esc(moneyName(d.mint, false))} is still held for ${esc(user.login)} on the first deployment.</p>`).join("")}
-      <p class="fine">First authenticate GitHub CLI as ${esc(user.login)} with <code>gh auth login</code>, then send it to an address you choose with <code>knos claim --v1 &lt;address&gt;</code>.</p></section>` : "";
+      <p class="fine">First authenticate GitHub CLI as ${esc(user.login)} with <code>gh auth login</code>, then send it to an address you choose with <code>knos claim --v1 &lt;address&gt;</code>.</p></section>`
+      : first.error ? `<p class="status bad" id="due-v1-unread">Could not read the first deployment just now (${esc(first.error.message)}), so anything still held there is not shown. Try again in a moment.</p>` : "";
     const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
     out.innerHTML = `${bound}${holds}${firstHolds}<h4>The record on Solana</h4><dl class="facts" id="due-record">
       <dt>Paid by others</dt><dd><strong>${plural(rep.paid, "payment")}</strong> from <strong>${plural(rep.funders, "different funder")}</strong>, ${money(rep.total)} test USDC in all${rep.paid ? ` (${when(rep.first)} to ${when(rep.last)})` : ""}</dd>

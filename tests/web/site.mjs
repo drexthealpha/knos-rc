@@ -96,10 +96,10 @@ const server = createServer((req, res) => {
 const base = `http://127.0.0.1:${server.address().port}/`;
 
 // devnet: accounts by address, and a log of every call, the wallet's included
-const chain = { accounts: new Map(), lamports: new Map(), calls: [], sent: [], statuses: new Map(), genesis: DEVNET, blockhash: BLOCKHASH, simulate: null, failAfter: null, neverSeen: false, down: null, seq: 0 };
+const chain = { accounts: new Map(), lamports: new Map(), calls: [], sent: [], statuses: new Map(), genesis: DEVNET, blockhash: BLOCKHASH, simulate: null, failAfter: null, neverSeen: false, down: null, downFor: null, seq: 0 };
 const put = (address, data, owner) => chain.accounts.set(address, { data, owner });
 const reset = async () => {
-  Object.assign(chain, { calls: [], sent: [], genesis: DEVNET, blockhash: BLOCKHASH, simulate: null, failAfter: null, neverSeen: false, down: null });
+  Object.assign(chain, { calls: [], sent: [], genesis: DEVNET, blockhash: BLOCKHASH, simulate: null, failAfter: null, neverSeen: false, down: null, downFor: null });
   chain.accounts.clear(); chain.lamports.clear(); chain.statuses.clear();
   put(USDC, mintBytes(6), knos.TOKEN);
   put(await knos.ata(WALLET, USDC), tokenBytes({ mint: USDC, owner: WALLET, amount: 100_000_000 }), knos.TOKEN);
@@ -215,6 +215,8 @@ async function mock(ctx) {
       return reply(t ? { slot: 100, blockTime: t.blockTime, meta: t.meta, transaction: t.transaction, version: t.version ?? "legacy" } : null);
     }
     if (method === "getProgramAccounts") {
+      // one program's accounts that cannot be read (a rate limit on the extra query), the rest of devnet answering
+      if (chain.downFor && params[0] === chain.downFor.program) return route.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: -32429, message: chain.downFor.message } }) });
       const filters = params[1].filters, size = filters[0].dataSize, memcmp = filters[1]?.memcmp, want = memcmp && fromB58(memcmp.bytes);
       return reply([...chain.accounts].filter(([, a]) => a.owner === params[0] && a.data.length === size
         && (!memcmp || want.every((b, i) => a.data[memcmp.offset + i] === b))).map(([pubkey, a]) => ({ pubkey, account: info(a) })));
@@ -837,6 +839,22 @@ const BAL = await k.balance(7000001, WALLET, USDC), BALTOK = await k.baltok(BAL)
   check("account: nothing bound, nothing held, nothing paid, said as such", got.includes("No wallet is bound for quiet.") && got.includes("Nothing is held for quiet right now.")
     && got.includes("0 payments from 0 different funders, 0.00 test USDC in all"), got);
   check("  no first-deployment section is added when that account has no due", (await page.$("#due-v1")) === null, got);
+  const quietDue = await first.due(5, USDC);
+  put(quietDue, dueBytes({ amount: 5_000_000, userId: 5, mint: USDC }), FIRST.pay);
+  got = await account("quiet");
+  check("account: a first-deployment due with nothing held on the second never says nothing is held", !got.includes("Nothing is held for quiet right now.")
+    && got.includes("Nothing is held for quiet on the second deployment.") && got.includes("5.00 test USDC is still held for quiet on the first deployment."), got);
+  chain.accounts.delete(quietDue);
+  chain.downFor = { program: FIRST.pay, message: "Too many requests for a specific RPC call" };
+  got = await account("mona");
+  check("account: a first deployment that cannot be read still shows the wallet, the second deployment's holds and the record",
+    got.includes("Paid at " + OTHER_WALLET) && got.includes("12.00 test USDC is held for mona until " + when(NOW + 100 * 86400) + ".")
+    && got.includes("3 payments from 2 different funders") && (await page.$("#due-v1")) === null, got);
+  check("  and says the first deployment could not be read, and why", got.includes("Could not read the first deployment just now (Too many requests for a specific RPC call)"), got);
+  got = await account("quiet");
+  check("  with nothing held on the second, it does not say nothing is held at all", !got.includes("right now") && got.includes("Nothing is held for quiet on the second deployment.")
+    && got.includes("Could not read the first deployment just now"), got);
+  chain.downFor = null;
   got = await account("carol");
   check("account: held with no wallet bound says to bind one, before when, and where it goes after", got.includes("4.50 test USDC is held for carol until " + when(NOW + 5 * 86400))
     && got.includes("Bind a wallet before then and it can be sent there. After that date it goes back to the funder.") && got.includes("No wallet is bound for carol."), got);
