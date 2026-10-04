@@ -16,7 +16,15 @@ Options: --end YYYY-MM-DD (window end; frozen in cache/config.json on first
 run), --days 90, --windows 9, --per-window 20, --max-seconds 270
 Delete ~/.cache/knos-agent-pr-ci/ to take a fresh sample (e.g. with a new --end).
 """
-import argparse, datetime as dt, hashlib, json, os, re, subprocess, sys, time
+import argparse
+import datetime as dt
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(os.path.expanduser("~"), ".cache", "knos-agent-pr-ci")

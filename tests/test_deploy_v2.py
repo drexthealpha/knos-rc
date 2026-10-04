@@ -214,3 +214,209 @@ def test_the_shell_script_has_seven_steps_no_idl_and_hands_over_last():
     assert "idl" not in text.lower() and "Program Metadata" not in text
     assert "--skip-new-upgrade-authority-signer-check" in text and "--max-sign-attempts 60" in text and '--buffer "$buffer"' in text
     assert "mainnet-beta" in text and "knos mainnet-check" in text     # the script refuses a mainnet endpoint and says where to go
+
+
+# ---- 0.3.13: the new programs, a staging copy, and the upgrade's proposals -------------------------------------------
+
+def _buffer(ledger: Ledger, address: Pubkey, elf: bytes, authority: str | None) -> None:
+    head = (1).to_bytes(4, "little") + (b"\x01" + bytes(Pubkey.from_string(authority)) if authority else bytes(33))
+    ledger.accounts[str(address)] = head + elf + bytes(64)
+
+
+def test_a_program_is_named_by_its_pinned_name_or_its_address_and_the_gate_has_one_too():
+    assert d.program_id("knos_meter") == pay.IDS["knos_meter"] and d.program_id("knos_passkey") == pay.IDS["knos_passkey"]
+    assert d.program_id("upgrade_gate") == str(d.gate.GATE_ID) == "2DfVEuBMWvvh3kXZaQwk2SoszJsoV1PTiK1VGCkB55HW"
+    other = str(Keypair().pubkey())
+    assert d.program_id(other) == other
+    for wrong in ("fee_owner", "rotate_sha", "knos_nothing", ""):          # a pinned value that is not a program is not one
+        with pytest.raises(SystemExit, match="neither a program of this deployment"):
+            d.program_id(wrong)
+    ledger = Ledger()
+    assert d.program_state(ledger, other) is None
+    ledger.accounts[str(mc.programdata_address(other))] = (3).to_bytes(4, "little") + bytes(8) + bytes(33) + b"\x7fELFstaged" + bytes(9)
+    assert d.program_state(ledger, other) == (mc.elf_hash(b"\x7fELFstaged"), None)
+
+
+def test_a_buffer_is_read_with_its_build_and_its_authority_and_anything_else_is_not_a_buffer():
+    ledger, at = Ledger(), Keypair().pubkey()
+    assert d.buffer_state(ledger, str(at)) is None
+    _buffer(ledger, at, b"\x7fELFnew build", VAULT)
+    assert d.buffer_state(ledger, str(at)) == (mc.elf_hash(b"\x7fELFnew build"), VAULT)
+    _buffer(ledger, at, b"\x7fELFnew build", None)
+    assert d.buffer_state(ledger, str(at)) == (mc.elf_hash(b"\x7fELFnew build"), None)
+    ledger.accounts[str(at)] = (3).to_bytes(4, "little") + bytes(60)       # program data is not a buffer
+    assert d.buffer_state(ledger, str(at)) is None
+
+
+def test_the_new_programs_are_complete_only_when_all_three_are_deployed_and_the_vault_holds_them():
+    ledger = Ledger()
+    ok, line = d.summary_new(ledger)
+    assert not ok and line.count("is not deployed") == 3
+
+    def put(name: str, authority: str | None) -> None:
+        head = (3).to_bytes(4, "little") + bytes(8) + (b"\x01" + bytes(Pubkey.from_string(authority)) if authority else bytes(33))
+        ledger.accounts[str(mc.programdata_address(d.program_id(name)))] = head + b"\x7fELF" + name.encode() + bytes(16)
+    for name in d.NEW:
+        put(name, str(Keypair().pubkey()))
+    ok, line = d.summary_new(ledger)
+    assert not ok and line.count(f"NOT the upgrade vault {VAULT}") == 3
+    for name in d.NEW:
+        put(name, VAULT)
+    ok, line = d.summary_new(ledger)
+    assert ok and line.count(f"its upgrade authority is the upgrade vault {VAULT}") == 3 and d.NEW == ("knos_meter", "knos_passkey", "upgrade_gate")
+
+
+def test_the_gate_step_says_recorded_no_record_or_no_gate_and_never_calls_a_build_vouched_for_that_is_not():
+    ledger, elf, said = Ledger(), b"\x7fELFa 2.1 build" + bytes(40), []
+    assert d.gate_record(ledger, "knos_pay", elf, say=said.append) == 3 and "not deployed on this cluster" in said[-1]
+    ledger.accounts[str(mc.programdata_address(str(d.gate.GATE_ID)))] = (3).to_bytes(4, "little") + bytes(8) + bytes(33) + b"\x7fELFgate" + bytes(8)
+    assert d.gate_record(ledger, "knos_pay", elf, say=said.append) == 4 and "NO record that GitHub built" in said[-1]
+    h = d.gate.executable_hash(elf)
+    at = d.gate.record_pda(pay.PAY_ID, h)
+    record = bytes([1]) + bytes(7) + (4242).to_bytes(8, "little") + NOW.to_bytes(8, "little") + (9).to_bytes(8, "little") + bytes(pay.PAY_ID) + h + b"c" * 40
+    ledger.accounts[str(at)] = record
+    assert d.gate_record(ledger, "knos_pay", elf, say=said.append) == 0
+    assert said[-1] == f"  upgrade gate: GitHub's runner built {h.hex()} for knos_pay from commit {'c' * 40} (run 4242, record {at})"
+    # the record of another build, or of another program, vouches for nothing
+    assert d.gate_record(ledger, "knos_pay", elf + b"\x01", say=said.append) == 4 and d.gate_record(ledger, "knos_oidc", elf, say=said.append) == 4
+
+
+def test_the_gate_step_waits_for_the_record_program_yml_and_a_relayer_write_and_gives_up_when_its_time_is_over():
+    ledger, elf, said = Ledger(), b"\x7fELF the 2.1 build" + bytes(24), []
+    h = d.gate.executable_hash(elf)
+    at = str(d.gate.record_pda(pay.PAY_ID, h))
+    record = bytes([1, 255]) + bytes(6) + (4242).to_bytes(8, "little") + bytes(16) + bytes(pay.PAY_ID) + h + b"c" * 40
+    t, slept = [0.0], []
+
+    def sleep(seconds: float) -> None:      # the relayer lands the record while the script sleeps for the third time
+        slept.append(seconds)
+        t[0] += seconds
+        if len(slept) == 3:
+            ledger.accounts[at] = record
+    ask = lambda wait: d.gate_awaited(ledger, "knos_pay", elf, wait=wait, every=15, say=said.append, sleep=sleep, clock=lambda: t[0])  # noqa: E731
+    # no gate on this cluster: nothing to wait for
+    assert ask(600) == 3 and not slept and len(said) == 1 and "not deployed on this cluster" in said[0]
+    ledger.accounts[str(mc.programdata_address(str(d.gate.GATE_ID)))] = (3).to_bytes(4, "little") + bytes(8) + bytes(33) + b"\x7fELFgate" + bytes(8)
+    # asked with no wait (as --ungated does): one look, one line
+    del said[:]
+    assert ask(0) == 4 and not slept and len(said) == 1 and "NO record that GitHub built" in said[0]
+    # waited for: said once that it waits and how the record comes, then what is so
+    del said[:]
+    assert ask(600) == 0 and slept == [15, 15, 15]
+    assert len(said) == 2 and "Waiting up to 600 seconds" in said[0] and "program.yml" in said[0] and "a relayer carries" in said[0]
+    assert said[1] == f"  upgrade gate: GitHub's runner built {h.hex()} for knos_pay from commit {'c' * 40} (run 4242, record {at})"
+    # there already: no wait at all
+    del said[:], slept[:]
+    assert ask(600) == 0 and not slept and len(said) == 1
+    # never comes: the time is used up, not more, and the answer is still no
+    del said[:], slept[:]
+    other = elf + b"\x01"
+    assert d.gate_awaited(ledger, "knos_pay", other, wait=40, every=15, say=said.append, sleep=sleep, clock=lambda: t[0]) == 4
+    assert slept == [15, 15, 10] and "NO record that GitHub built" in said[-1] and len(said) == 2
+    # the command line takes the wait
+    with pytest.raises(SystemExit):
+        d.main(["--wait", "soon", "gate", "knos_pay", "x.so"])
+
+
+def test_the_staging_ids_file_replaces_the_two_programs_says_what_it_is_and_the_clients_read_it(tmp_path):
+    a, b = str(Keypair().pubkey()), str(Keypair().pubkey())
+    ids = d.rc_ids(a, b)
+    pinned = json.loads((ROOT / "programs-v2" / "program_ids.json").read_text(encoding="utf-8"))
+    assert ids["knos_oidc"] == a and ids["knos_pay"] == b and "STAGING" in ids["staging"]
+    assert {k: v for k, v in ids.items() if k not in ("knos_oidc", "knos_pay", "staging")} == {k: v for k, v in pinned.items() if k not in ("knos_oidc", "knos_pay")}
+    for wrong in ((pinned["knos_oidc"], b), (a, pinned["knos_pay"]), (a, a)):
+        with pytest.raises(SystemExit, match="a staging program must have an address of its own"):
+            d.rc_ids(*wrong)
+    out = tmp_path / "program_ids.json"
+    assert d.main(["rc-ids", a, b, str(out)]) == 0 and json.loads(out.read_text(encoding="utf-8")) == ids
+    # the Python client: the staging programs with the variable, the pinned ones without, and it says so once
+    import subprocess
+    import sys
+    code = "from knos.settle.v2 import pay, oidc, meter; print(pay.PAY_ID, pay.OIDC_ID, oidc.OIDC_ID, meter.OIDC_ID, pay.FEE_OWNER)"
+    env = {"PYTHONPATH": str(ROOT / "src"), "PATH": "/usr/bin:/bin"}
+    got = subprocess.run([sys.executable, "-c", code], env={**env, "KNOS_PROGRAM_IDS": str(out)}, capture_output=True, text=True, check=True)
+    assert got.stdout.split() == [b, a, a, a, pinned["fee_owner"]]
+    assert got.stderr.count("KNOS_PROGRAM_IDS is set: using the STAGING programs") == 1 and "Unset it to use the real one" in got.stderr
+    plain = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True)
+    assert plain.stdout.split() == [pinned["knos_pay"], pinned["knos_oidc"], pinned["knos_oidc"], pinned["knos_oidc"], pinned["fee_owner"]] and plain.stderr == ""
+
+
+def test_a_staging_file_can_replace_program_addresses_and_nothing_else(tmp_path):
+    from knos.settle import v2
+    pinned = v2.load_ids({})
+    assert pinned == json.loads((ROOT / "programs-v2" / "program_ids.json").read_text(encoding="utf-8"))
+    f = tmp_path / "ids.json"
+
+    def load(doc) -> dict:
+        f.write_text(doc if isinstance(doc, str) else json.dumps(doc), encoding="utf-8")
+        return v2.load_ids({"KNOS_PROGRAM_IDS": str(f)})
+    other = str(Keypair().pubkey())
+    assert load({"knos_pay": other}) == {**pinned, "knos_pay": other}
+    assert load({**pinned, "knos_meter": other, "staging": "a note"}) == {**pinned, "knos_meter": other}       # the whole file, as --rc writes it
+    for doc, why in (({"fee_owner": other}, "it changes fee_owner"), ({"guardian": other}, "it changes guardian"), ({"claim_sha": "0" * 40}, "it changes claim_sha"),
+                     ({"upgrade_authority": other}, "it changes upgrade_authority"), ({"knos_pay": "not an address"}, "knos_pay is not an address"),
+                     ({"knos_pay": 7}, "knos_pay is not an address"), ("[1]", "is not a JSON object"), ("{", "cannot be read as JSON")):
+        with pytest.raises(RuntimeError, match=why):
+            load(doc)
+    with pytest.raises(RuntimeError, match="cannot be read as JSON"):
+        v2.load_ids({"KNOS_PROGRAM_IDS": str(tmp_path / "none.json")})
+
+
+def test_the_schedule_is_the_later_of_the_two_times_plus_ten_minutes_and_an_unapproved_proposal_schedules_nothing(tmp_path):
+    def part(name: str, index: int, at: int | None) -> dict:
+        return {"program": name, "address": pay.IDS[name], "buffer": str(Keypair().pubkey()), "hash": "ab" * 32, "index": index, "status": "Approved" if at else "Active",
+                "approved_at": at, "executable_from": at + 172_800 if at else None}
+    parts = [part("knos_pay", 4, NOW + 30), part("knos_oidc", 3, NOW)]
+    plan = d.schedule(parts, "https://api.devnet.solana.com")
+    assert plan["executable_from"] == NOW + 30 + 172_800 and plan["run_at"] == plan["executable_from"] + 600
+    assert plan["run_at_utc"] == d.when(plan["run_at"]) and [p["index"] for p in plan["proposals"]] == [3, 4] and plan["rpc"] == "https://api.devnet.solana.com"
+    with pytest.raises(SystemExit, match=r"proposal 4 \(knos_pay\) is not approved yet, so its 48 hours have not started"):
+        d.schedule([parts[1], part("knos_pay", 4, None)], "x")
+    with pytest.raises(SystemExit, match="nothing to schedule"):
+        d.schedule([], "x")
+    files = []
+    for p in parts:
+        files.append(tmp_path / f"{p['program']}.json")
+        files[-1].write_text(json.dumps(p), encoding="utf-8")
+    out = tmp_path / "upgrade-schedule.json"
+    assert d.main(["--rpc", "http://127.0.0.1:8899", "schedule", str(out), *map(str, files)]) == 0
+    assert json.loads(out.read_text(encoding="utf-8")) == {**plan, "rpc": "http://127.0.0.1:8899"}
+
+
+def test_the_shell_script_takes_one_new_mode_a_run_and_each_does_what_the_release_needs():
+    import shutil
+    import subprocess
+    text = (ROOT / "scripts" / "deploy_v2.sh").read_text(encoding="utf-8")
+    # --new: the three new programs at their pinned ids, the same resumable buffers, then the vault
+    assert 'NEW_PROGRAMS="knos_meter knos_passkey upgrade_gate"' in text and 'deploy_one "$name" "$(py id "$name")" "$(new_key "$name")" "$KEYS/$name-buffer.json"' in text
+    new = text[text.index("  --new)"):text.index("  --rc)")]
+    assert new.index("build $NEW_PROGRAMS") < new.index("deploy_new") < new.index("handover $NEW_PROGRAMS") < new.index("py summary-new")
+    # --rc: fresh keypairs in the key folder, the fee payer as authority, the ids file, and what the staged escrow trusts said aloud
+    rc = text[text.index("rc_deploy() {"):text.index("rc_close() {")]
+    assert 'solana-keygen new --no-bip39-passphrase --silent --outfile "$RC/$name-keypair.json"' in rc and 'py rc-ids' in rc and '"$RC/program_ids.json"' in rc
+    assert "NOT by the staging verifier" in rc and "export KNOS_PROGRAM_IDS=$RC/program_ids.json" in rc
+    close = text[text.index("rc_close() {"):text.index("# ---- --propose")]
+    assert "sol program close" in close and '--recipient "$PAYER_ADDRESS"' in close and "is the keypair of a PINNED program" in close
+    # --propose: buffer, gate, hand-over, proposal, schedule, in that order; no record means refusal unless --ungated, which is loud
+    pr = text[text.index("propose() {"):text.index("# ---- run")]
+    order = ["program write-buffer", 'py --wait "$wait" gate "$name"', "program set-buffer-authority", "governance upgrade propose", 'py schedule "$SCHEDULE"']
+    assert [pr.index(x) for x in order] == sorted(pr.index(x) for x in order)
+    assert "--propose --ungated" in pr and "UNGATED: NO RECORD AT THE UPGRADE GATE VOUCHES FOR THIS BUILD" in pr and 'flag="--ungated"' in pr
+    # the record is waited for (program.yml's gate job and a relayer write it), so the release proposes WITHOUT --ungated;
+    # the flag is the emergency's: it waits for nothing, says so before anything else, and is passed on only for a build with no record
+    assert 'GATE_WAIT="${KNOS_GATE_WAIT:-1800}"' in text and 'wait="$GATE_WAIT"' in pr and pr.count('py --wait "$wait" gate') == 2
+    assert pr.index("UNGATED: --ungated WAS PASSED. THIS IS FOR AN EMERGENCY ONLY") < pr.index("for name in $PROGRAMS") and "wait=0" in pr
+    gated = pr[pr.index('if [ "$rc" != 0 ]; then'):pr.index('if [ "$held" != "$vault" ]')]
+    assert gated.index('if [ "$UNGATED" != 1 ]; then') < gated.index("after $wait seconds") < gated.index('flag="--ungated"')
+    assert pr.count('flag="--ungated"') == 1 and "In an emergency only: --propose --ungated" in gated and "$flag |" in pr
+    assert '--buffer "$buffer" --buffer-authority "$PAYER"' in pr and "--max-sign-attempts 60" in pr
+    assert "KNOS_PROGRAM_IDS is set" in text            # the script never works on staging ids by accident
+    if shutil.which("bash"):
+        assert subprocess.run(["bash", "-n", str(ROOT / "scripts" / "deploy_v2.sh")]).returncode == 0
+        two = subprocess.run(["bash", str(ROOT / "scripts" / "deploy_v2.sh"), "--new", "--rc"], capture_output=True, text=True)
+        assert two.returncode == 2 and "one of --new, --rc, --rc-close, --propose in a run" in two.stderr
+        alone = subprocess.run(["bash", str(ROOT / "scripts" / "deploy_v2.sh"), "--ungated"], capture_output=True, text=True)
+        assert alone.returncode == 2 and "--ungated goes with --propose" in alone.stderr
+        said = subprocess.run(["bash", str(ROOT / "scripts" / "deploy_v2.sh"), "--help"], capture_output=True, text=True).stdout
+        assert all(flag in said for flag in ("--new", "--rc ", "--rc-close", "--propose [--ungated]", "KNOS_GATE_TOKENS", "KNOS_RC_SO_DIR",
+                                             "KNOS_GATE_WAIT", "--ungated is for an emergency only"))

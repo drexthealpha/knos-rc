@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from knos.proof import checks, claims, engine, history, hook
+from knos.proof import checks, claims, history, hook
 
 import _replay as replay
 

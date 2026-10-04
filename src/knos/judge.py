@@ -113,9 +113,10 @@ _WRITES = {"PATCH": r"repos/[^/]+/[^/]+/issues/comments/\d+",     # the text of 
            "DELETE": r"repos/[^/]+/[^/]+/issues/\d+/assignees"}   # an issue's assignee: `/knos release`, a lapsed take
 
 
-def github(path: str, data: dict | None = None, method: str | None = None):
+def github(path: str, data: dict | None = None, method: str | None = None, *, token: str | None = None):
     """GET api.github.com/<path>; with `data`, POST it there as JSON (GH_TOKEN or GITHUB_TOKEN is sent when set, and
-    the API version these calls were written against). `method` PATCH edits a comment and DELETE takes an assignee
+    the API version these calls were written against; `token`, when given, is sent in their place: an attestor reads
+    another repository with a token of its own). `method` PATCH edits a comment and DELETE takes an assignee
     off an issue, with `data` as the body: any other path is refused before anything is sent, and so is any other
     method. Raises OSError when GitHub says no or does not answer in JSON. An empty answer is None."""
     import urllib.request
@@ -126,7 +127,7 @@ def github(path: str, data: dict | None = None, method: str | None = None):
                                  headers={"Accept": "application/vnd.github+json", "User-Agent": "knos",
                                           "X-GitHub-Api-Version": "2022-11-28",
                                           **({} if data is None else {"Content-Type": "application/json"})})
-    tok = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    tok = token or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if tok:
         req.add_header("Authorization", f"Bearer {tok}")
     with urllib.request.urlopen(req, timeout=20) as resp:  # noqa: S310 - api.github.com
@@ -988,12 +989,16 @@ def _blackbox(box: Box, issue: str, test_dirs, timeout: float, cfg: dict) -> Run
     """The check that cannot be forged from inside: it runs as the judge, outside the tree, and never loads the pull
     request's code. It reaches that code only through "$KNOS_RUN <command>", which runs the command in the tree,
     inside the sandbox. The check file is the base's (the pull request cannot touch .knos/), so it is trusted the way
-    the repository's own CI is. Exit 0 means done."""
+    the repository's own CI is. The bundle is copied out of the tree and taken out of it: what the check holds (a
+    held-out set, a reference) is not readable by the code it judges. Exit 0 means done."""
     import shlex
     bundle = box.work / ".knos" / "acceptance" / issue
     private = box.root / "check"
     shutil.copytree(bundle, private)
     os.chmod(private, 0o700)
+    # The bundle may hold the answers (a held-out set, a reference). The copy above is the judge's; the one in the tree
+    # would be readable by the code that is being judged, so no bundle of the repository stays there.
+    shutil.rmtree(box.work / ".knos" / "acceptance", ignore_errors=True)
     box.open_up()
     argv, env = box.wrap(["sh", "-c", 'exec "$@"', "sh"], net=False)
     runner = private / "knos-run"

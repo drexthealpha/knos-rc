@@ -171,7 +171,8 @@ class Rehearsal:
 
     def logs(self, sig: str) -> list[str]:
         try:
-            got = chain.call(self.url, "getTransaction", [sig, {"encoding": "json", "commitment": "confirmed", "maxSupportedTransactionVersion": 0}], timeout=30)
+            # version 1, as every reader of knos asks (src/knos/records.py): a transaction a relay sent to a 2.1 program is one
+            got = chain.call(self.url, "getTransaction", [sig, {"encoding": "json", "commitment": "confirmed", "maxSupportedTransactionVersion": 1}], timeout=30)
             return [line.split("Program log: ", 1)[1] for line in got["meta"]["logMessages"] if "Program log: knos2:" in line]
         except Exception:  # noqa: BLE001 - the logs are a courtesy; the accounts say what happened
             return []

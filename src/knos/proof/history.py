@@ -217,7 +217,7 @@ def tamper_checks_required(store, repo=None, agent=None) -> set[str]:
 
 # ---- what the judge learned, to carry between runs (knos.proof.memory) -------------------------------------------
 
-LESSONS = ("tamper", "proof_rule", "repo_rule")
+LESSONS = ("tamper", "proof_rule", "repo_rule", "settlement")
 
 
 def lesson(row) -> dict | None:
@@ -232,6 +232,10 @@ def lesson(row) -> dict | None:
         ok = body.get("origin") != "contributing" and isinstance(body.get("kind"), str) and body.get("id") == name
     elif row["category"] == "tamper":
         ok = all(isinstance(body.get(k), str) for k in ("repo", "agent", "pattern"))
+    elif row["category"] == "settlement":   # what one settlement showed (knos.flow): the checks that failed and where, false claims, terms met
+        ok = (isinstance(body.get("repo"), str) and isinstance(body.get("pull"), int) and isinstance(body.get("paid"), bool)
+              and isinstance(body.get("failed"), dict) and all(isinstance(k, str) and isinstance(v, list) for k, v in body["failed"].items())
+              and all(isinstance(body.get(k), list) and all(isinstance(x, str) for x in body[k]) for k in ("met", "false", "paths")))
     else:
         ok = isinstance(body.get("when"), str) and isinstance(body.get("require"), str)
         if ok and body["when"] == "tamper":     # the rule's name is made of what it says: one cannot pose as another
@@ -243,7 +247,7 @@ def lesson(row) -> dict | None:
 
 def lessons(store) -> list[dict]:
     """What the judge learned, as {"category", "name", "body"} rows a later run can load: each tamper it caught, each
-    check that made required, and each rule a rejection taught."""
+    check that made required, each rule a rejection taught, and what each settlement showed."""
     rows = getattr(store, "rows", None)
     found = [lesson({"category": c, "name": name, "body": body}) for c in LESSONS for name, body in (rows(c) if rows else [])]
     return sorted((x for x in found if x), key=lambda x: (x["category"], x["name"]))
