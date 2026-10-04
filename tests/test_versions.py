@@ -83,3 +83,19 @@ def test_one_stale_place_is_named_by_file_and_line_and_history_is_left_alone(tmp
     # a manifest that lost its version is said, not skipped
     (root / "gemini-extension.json").write_text("{}\n", encoding="utf-8")
     assert "gemini-extension.json: carries no version" in b.disagreements(NEW, root, changelog=False)
+
+
+@pytest.mark.parametrize("eol", ["\n", "\r\n"])
+def test_unlock_removes_an_earlier_releases_lock_line_and_keeps_the_files_line_ends(tmp_path, eol):
+    sign = tmp_path / "requirements" / "sign.txt"
+    sign.parent.mkdir()
+    head = eol.join(["solders==0.29.0 \\", "    --hash=sha256:" + "0" * 64, "    # via -r requirements/sign.in", ""])
+
+    def lock(v: str) -> bytes:              # split, so this file names no pin of its own
+        return (head + "knos=" + f"={v} --hash=sha256:" + "a" * 64 + eol).encode()
+    sign.write_bytes(lock("1.2.3"))
+    assert b.unlock("1.2.4", tmp_path)
+    assert sign.read_bytes() == head.encode()           # the solders lines, byte for byte, with the file's own line ends
+    assert not b.unlock("1.2.4", tmp_path)               # nothing left to remove
+    sign.write_bytes(lock("1.2.4"))
+    assert not b.unlock("1.2.4", tmp_path) and sign.read_bytes() == lock("1.2.4")     # a release's own lock stays
