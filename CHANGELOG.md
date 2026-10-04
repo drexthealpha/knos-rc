@@ -74,8 +74,8 @@ the new paths carry audiences that start `knos3:`, so a token of one generation 
   from prepaid credits, 0.02 at volume, and the first 10,000 of a month free. An evaluation is a run of the
   published `attest.yml` with the kind `eval`, started in a repository of the buyer: GitHub's record of a pull request
   there is the verdict (merged: accepted; closed unmerged: rejected), and it is posted as `knos-eval:` for the relay,
-  which carries it from the moment the meter is deployed, whatever the escrow's version. `statement` in `knos.settle.v2.meter`
-  recomputes a month from the program's logs; the command line has no command for it yet.
+  which carries it from the moment the meter is deployed, whatever the escrow's version. `knos statement --meter
+  --buyer X --seller Y --month YYYY-MM` recomputes one buyer's and one seller's month from the program's logs.
 - **Private orders.** Funded from your organisation's Balance by a comment in a judge repository you choose. The
   chain shows the amounts, the payees and that repository, and no name, issue number, check name or path of the
   private one ([SECURITY.md](docs/SECURITY.md), section 12).
