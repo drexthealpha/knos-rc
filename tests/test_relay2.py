@@ -525,6 +525,59 @@ FUND_REFUSALS = {
 ALL_JWKS = {**JWKS, oidc.GITLAB: {"keys": [{"kty": "RSA", "alg": "RS256", "e": "AQAB", "kid": "k", "n": b64(oidc.modulus_bytes(modulus(signing_key(4096))))}]}}
 
 
+class Unfunded:
+    """A cluster that cannot simulate for this caller: its fee payer is not on chain (`refusal`, as the cluster says
+    it), and knos-pay is deployed through the upgradeable loader with `code` as its executable (None: the accounts
+    cannot be read)."""
+
+    def __init__(self, url: str, code: bytes | None, refusal: str = "transaction failed: AccountNotFound"):
+        self.url, self.code, self.refusal, self.pd, self.asked, self.read = url, code, refusal, Keypair().pubkey(), 0, 0
+
+    def simulate(self, ixs, payer, signers=None, v1=False):
+        self.asked += 1
+        raise chain.RpcError(self.refusal, {"err": self.refusal.rpartition(": ")[2], "logs": []})
+
+    def infos(self, addresses):
+        self.read += 1
+        if self.code is None:
+            raise OSError("the cluster did not answer")
+        return [(relay._UPGRADEABLE, (2).to_bytes(4, "little") + bytes(self.pd)) if a == pay.PAY_ID else
+                (relay._UPGRADEABLE, bytes(45) + self.code) if a == self.pd else None for a in addresses]
+
+
+def test_with_no_funded_payer_the_version_is_read_from_the_executable_and_costs_nothing(env, monkeypatch):
+    """A seller with no relay key (`knos settle --neutral`), or a repository with no secret, has no fee payer on chain,
+    and a cluster refuses to simulate for one it has never seen (AccountNotFound): nothing was asked. The deployed
+    executable answers instead, read with no payer at all: a 2.1 build holds Version's log line, a 2.0 build does not."""
+    c, net = env
+    monkeypatch.setattr(relay, "_VERSION", {})
+    nobody = Keypair()                                                          # never on chain: no account, no SOL
+    with pytest.raises(chain.RpcError, match="AccountNotFound"):
+        net.simulate([pay.version_ix()], nobody)
+    lamports0, n0 = lamports(c), net.txs
+    assert relay.version(net, nobody) == 1 and relay._VERSION == {("litesvm", pay.PAY_ID): 1}      # the merged build, as loaded
+    assert (lamports(c), net.txs) == (lamports0, n0)                                                # read, never sent
+    built = (FIX / "knos_pay_v2_test.so").read_bytes()
+    assert relay._VERSION_LINE in built
+    # through the upgradeable loader, as devnet deploys it: the program account names the ProgramData that holds the code
+    new = Unfunded("a 2.1 cluster", built)
+    assert relay.version(new) == relay.version(new) == 1 and (new.asked, new.read) == (1, 2)       # an answer, kept: asked once
+    for refusal in ("Transaction simulation failed: Attempt to debit an account but found no record of a prior credit.",
+                    "transaction failed: InsufficientFundsForFee"):
+        assert relay.version(Unfunded(f"2.1, {refusal[-20:]}", built, refusal)) == 1             # the other words for a payer with nothing
+    old = Unfunded("a 2.0 cluster", b"\x7fELF" + bytes(4096))
+    assert relay.version(old) == relay.version(old) == 0 and old.asked == 1                        # 2.0 has no Version line: an answer, kept
+    down = Unfunded("a cluster that does not answer", None)
+    assert relay.version(down) == 0 and down.url not in {k[0] for k in relay._VERSION}             # not read is no answer: asked again next time
+    # the program's own refusal of instruction 12 is the answer, as before: nothing is read for it
+    refusing = Unfunded("2.0, refusing", built, "transaction failed: TransactionErrorInstructionError((1, Fieldless(InvalidInstructionData)))")
+    assert relay.version(refusing) == 0 and (refusing.asked, refusing.read) == (1, 0)
+    # and with a funded payer the simulation itself answers, with nothing read
+    monkeypatch.setattr(relay, "_VERSION", {})
+    reads0 = net.reads
+    assert relay.version(net, c.payer) == 1 and net.reads == reads0
+
+
 def refused(env, jwt: str, terms: bytes | None, want: str | None, payer: Keypair | None = None) -> dict:
     """The relay's answer to a token the chain would refuse: the same from `precheck` and from `submit`, with no
     transaction and not a lamport spent."""

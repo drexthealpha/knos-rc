@@ -167,6 +167,26 @@ def kind_of(aud: str) -> str | None:
 
 
 _VERSION: dict[tuple, int] = {}         # (cluster, program) -> what Version answered, for as long as this process lives
+_VERSION_LINE = b"knos2:version"         # Version's log line (fund.rs: msg!("knos2:version {}", VERSION)): only a build that answers 12 holds it
+_UPGRADEABLE = Pubkey.from_string("BPFLoaderUpgradeab1e11111111111111111111111")      # its program account names the ProgramData that holds the code
+
+
+def _built(ledger) -> int | None:
+    """Which knos-pay is deployed, read from its executable: no transaction, so no fee payer. 1 when the bytes hold
+    Version's log line, 0 when they do not (2.0 refuses instruction 12 and has no such line), None when they could not
+    be read. The program account holds the executable itself (loader v2, v4), or (the upgradeable loader) is the tag 2
+    and the address of the ProgramData account that holds it."""
+    infos = getattr(ledger, "infos", None)
+    if infos is None:
+        return None
+    try:
+        got = infos([pay.PAY_ID])[0]
+        if got is not None and got[0] == _UPGRADEABLE:
+            data = got[1]
+            got = infos([Pubkey.from_bytes(data[4:36])])[0] if len(data) >= 36 and data[:4] == (2).to_bytes(4, "little") else None
+    except Exception:  # noqa: BLE001 - not read is no answer
+        return None
+    return None if got is None else int(_VERSION_LINE in bytes(got[1]))
 
 
 def version(ledger, payer: Keypair | None = None) -> int:
@@ -174,7 +194,10 @@ def version(ledger, payer: Keypair | None = None) -> int:
     deployed 2.0 program, which refuses that instruction. Asked by simulation, so it costs nothing, and once per
     process and cluster: an upgrade is announced 48 hours ahead, and a worker's run is shorter than that. A ledger that
     cannot simulate, or a cluster that did not answer, counts as 0 for this call and is asked again on the next:
-    everything 2.1 added is used only on the answer 1. `payer`: any funded key (default: the relay key)."""
+    everything 2.1 added is used only on the answer 1. `payer`: any funded key (default: the relay key).
+    A simulation needs a fee payer that is on chain. A seller with no relay key (`knos settle --neutral`) or a
+    repository with no secret has none, and the cluster refuses the simulation for that (AccountNotFound): then the
+    deployed executable is read instead, which needs no payer at all (`_built`)."""
     where = (getattr(ledger, "url", None) or id(ledger), pay.PAY_ID)
     if where in _VERSION:
         return _VERSION[where]
@@ -187,6 +210,11 @@ def version(ledger, payer: Keypair | None = None) -> int:
         text = " ".join([str(why), *((getattr(why, "data", None) or {}).get("logs") or [])]) if isinstance(getattr(why, "data", None), dict) else str(why)
         if "InstructionError" in text or "invalid instruction data" in text or _code(text) is not None:
             _VERSION[where] = 0
+        elif any(mark in text for mark in _BROKE):     # the fee payer is not on chain, or holds no SOL: nothing was asked
+            built = _built(ledger)
+            if built is not None:
+                _VERSION[where] = built
+                return built
         return 0
     found = next((int(m.group(1)) for m in (re.fullmatch(r"knos2:version (\d+)", line) for line in chain.said(logs, pay.PAY_ID)) if m), 0)
     _VERSION[where] = found

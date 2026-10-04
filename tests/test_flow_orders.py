@@ -3,10 +3,11 @@ order's own commands (offer, raise, cancel, split, take). The fakes are tests/_f
 whose escrow is 2.1. While it is 0 every comment does what it did before (tests/test_flow.py)."""
 from __future__ import annotations
 
-from _flow import ADDRESS, EVE, HUBOT, MONA, REPO_ID, WALLET, World, check, key
+from _flow import ADDRESS, EVE, HUBOT, MONA, REPO, REPO_ID, WALLET, World, check, key
 from _hub import user
-from knos import commands, flow, policy, terms
-from knos.settle.v2 import pay
+from knos import chain, commands, flow, policy, terms
+from knos.settle.v2 import pay, relay
+from solders.keypair import Keypair
 from test_flow import BOUGHT, EXPLORER, FAUCET, MONEY, plain
 
 ERIN = user("erin", 77)
@@ -491,6 +492,53 @@ def test_settle_neutral_starts_the_attest_workflow_in_the_sellers_own_repository
     assert flow.main(["settle", "--neutral", "o/r#12"]) == 1
     assert capsys.readouterr().out.strip() == "--neutral takes a pull request's URL, like https://github.com/owner/name/pull/7, and nothing else."
     assert flow.main(["attest", "--repository", "o/r", "--order", "x", "--kind", "bless"]) == 2
+
+
+def test_a_seller_with_no_key_and_no_funded_payer_settles_with_neutral(tmp_path, monkeypatch, capsys):
+    """`knos settle --neutral` as a seller runs it: the run has no environment of its own (no KNOS_RELAY_KEY) and is
+    handed no `version=`, so knos-pay's relay asks the cluster which escrow it runs, with a fee payer the cluster has
+    never seen. The cluster refuses that simulation (AccountNotFound); the deployed executable is read instead, says
+    2.1, and the open neutral order is found and its attest run started. (Before, the refusal read as 2.0 and the
+    seller was told that no work order waited there.)"""
+    w = ordered(tmp_path)
+    w.hub.merge(12)
+    monkeypatch.setattr(relay, "_VERSION", {})
+    payers, programdata = [], Keypair().pubkey()
+    code = b"\x7fELF" + bytes(64) + relay._VERSION_LINE + b" {}" + bytes(64)            # a 2.1 build: it holds Version's log line
+
+    def simulate(ixs, payer, signers=None, v1=False):
+        payers.append(payer)
+        raise chain.RpcError("transaction failed: AccountNotFound", {"err": "AccountNotFound", "logs": []})
+
+    def infos(addresses):
+        return [(relay._UPGRADEABLE, (2).to_bytes(4, "little") + bytes(programdata)) if a == pay.PAY_ID else
+                (relay._UPGRADEABLE, bytes(45) + code) if a == programdata else None for a in addresses]
+    monkeypatch.setattr(w.chain, "simulate", simulate, raising=False)
+    monkeypatch.setattr(w.chain, "infos", infos, raising=False)
+    calls = []
+
+    def gh(*args: str) -> str:
+        calls.append(args)
+        return "mona\n" if args[:2] == ("api", "user") else ""
+
+    def seller() -> flow.Run:
+        return flow.Run(REPO, {}, github=w.hub, ledger=w.chain, env={}, clock=w.clock, sleep=w.clock.sleep, scratch=tmp_path / "seller", gh=gh)
+    run = seller()
+    assert "KNOS_RELAY_KEY" not in run.env and run._version is None and run.relay is relay
+    assert flow.neutral(run, "https://github.com/o/r/pull/12") == 0
+    assert calls[1] == ("workflow", "run", "knos-attest.yml", "--repo", "mona/knos-attest", "-f", "repository=o/r", "-f", "pull=12", "-f",
+                        f"order={ORDER}", "-f", "kind=pay")
+    assert f"Started `knos attest` in mona/knos-attest for the work order on issue #7 (20.00 test USDC) of o/r, order {ORDER}." in capsys.readouterr().out
+    assert run.version() == 1 and len(payers) == 1 and w.chain.account(payers[0].pubkey()) is None     # asked once, with a payer that holds nothing
+    # a cluster whose executable cannot be read either gives no answer: nothing is claimed, and the next run asks again
+    monkeypatch.setattr(relay, "_VERSION", {})
+
+    def unread(addresses):
+        raise OSError("the cluster did not answer")
+    monkeypatch.setattr(w.chain, "infos", unread, raising=False)
+    calls.clear()
+    assert flow.neutral(seller(), "https://github.com/o/r/pull/12") == 1 and "no open work order waits there" in capsys.readouterr().out
+    assert not [c for c in calls if c[:2] == ("workflow", "run")] and relay._VERSION == {}
 
 
 # ---- knos canary ------------------------------------------------------------------------------------------------------
