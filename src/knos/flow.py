@@ -1049,6 +1049,12 @@ def _relayed(run: Run, c: Case, r: dict, after: str, how: str) -> str:
         return (f"not paid yet. {name[0].upper()}{name[1:]} met its terms for {payee} and GitHub signed the token, but Solana did not take "
                 f"it: {_short(r.get('why') or 'no reason was given').rstrip('. ')}. {how[0].upper()}{how[1:]} to try again.")
     tx = _link(run, "transaction", "tx", r["sigs"][-1]) if r.get("sigs") else "an earlier token had carried it"
+    if c.order and r.get("quorum"):         # an order with a quorum, before its last judge: a marker was written, nothing was paid
+        q = r["quorum"]
+        return (f"not paid yet. {name[0].upper()}{name[1:]} met its terms for {payee}, and Solana recorded this judge's word ({tx}, {took}): "
+                f"{q.get('have')} of the {q.get('of')} different judges its funder asked for have passed this commit, so nothing is paid until "
+                f"{q.get('of')} have. A neutral run is one more: someone who is not its funder runs `knos settle --neutral <this pull request's "
+                "URL>`, which starts the pinned attest workflow in a repository of their own.")
     if c.order:
         return _paid_order(run, c, r, tx, took)
     out = []

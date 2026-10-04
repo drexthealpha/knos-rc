@@ -934,3 +934,15 @@ def test_an_agents_account_takes_an_auto_order_with_a_comment_and_no_other(tmp_p
     assert got.startswith(f"Knos: issue #7 is reserved for @{DEVIN['login']} until ") and w.signer.asked == [f"knos3:take:{order}:{DEVIN['id']}:7"]
     w, order, _head, _bought = auto_order(tmp_path / "plain", flags=pay.F_NEUTRAL | pay.F_FAUCET, reserve_days=7)
     assert said(w, 7, DEVIN, "/knos take") == commands.reply("not_allowed", "take") and w.signer.asked == []
+
+
+def test_the_first_judge_of_an_order_with_a_quorum_is_recorded_and_the_reply_does_not_say_paid(tmp_path):
+    # rehearsed on devnet (0.3.14): the order's own run was judge 1 of 2 (knos3:quorum ... have=1 of=2, nothing moved),
+    # and the reply on the pull request said "Knos: paid. @... received 8.00"
+    w = ordered(tmp_path, flags=pay.F_NEUTRAL | pay.F_FAUCET | order_auto.quorum_flags(2))
+    w.chain.bind(MONA)
+    got = settled(w)
+    assert got.startswith("Knos: not paid yet. ") and "1 of the 2 different judges its funder asked for have passed this commit" in got, got
+    assert "received" not in got and "knos settle --neutral" in got
+    (_a, o), = w.chain.orders(7)
+    assert o.state == "open" and o.paid == 0
