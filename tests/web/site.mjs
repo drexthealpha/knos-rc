@@ -383,8 +383,14 @@ await reset();
   check("  the filter shows one stage: exactly it, not at least it", JSON.stringify((await capRows()).map((r) => r[1])) === JSON.stringify(manifest.capabilities.filter((c) => c.stage === "deployed").map((c) => c.what)));
   const built014 = ["meter_batch", "meter_seller_claim", "passkey_funder", "gitlab_pay", "single_use_tokens", "fee_tiers", "hermetic_judge", "evidence_bundle", "receipt_mirror", "audit_export", "install_by_pull_request", "terms_templates",
     "badge", "agent_weekly_rates", "x402_knos_order", "upgrade_feed", "load_local_1000", "adapters"];
-  check("  what 0.3.14 built is in it, each tested and none said to be deployed", built014.every((id) => { const c = manifest.capabilities.find((x) => x.id === id); return c && c.stage === "tested" && !c.evidence.deployed && !c.evidence.exercised; }),
-    built014.filter((id) => manifest.capabilities.find((x) => x.id === id)?.stage !== "tested"));
+  // what the release's rehearsal ran on devnet is exercised on a staging program of its own, never on a pinned one; the rest is tested
+  const rehearsed014 = ["meter_batch", "meter_seller_claim", "passkey_funder", "single_use_tokens", "fee_tiers", "x402_knos_order"];
+  const as014 = (c) => (rehearsed014.includes(c.id)
+    ? c.stage === "exercised" && c.evidence.deployed.program.endsWith("_staging") && !(c.evidence.deployed.program in { knos_oidc: 1, knos_pay: 1, knos_meter: 1, knos_passkey: 1 }) && /^[1-9A-HJ-NP-Za-km-z]{86,88}$/.test(c.evidence.exercised.signature)
+    : c.stage === "tested" && !c.evidence.deployed && !c.evidence.exercised);
+  check("  what 0.3.14 built is in it, each tested, or exercised on a staging program only, and none said to be deployed on a pinned one",
+    built014.every((id) => { const c = manifest.capabilities.find((x) => x.id === id); return c && as014(c); }),
+    built014.filter((id) => { const c = manifest.capabilities.find((x) => x.id === id); return !c || !as014(c); }));
   const buyer = readFileSync(join(root, "buyer.js"), "utf8");
   await visit(page, "#buy");
   await page.waitForTimeout(300);
