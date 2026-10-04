@@ -577,6 +577,23 @@ def wait_for(token_id: str, log_repo: str, timeout: float, every: float = 3.0, g
         time.sleep(min(every, left))
 
 
+def logged(since: str, get=None) -> set[str]:
+    """The ids of the tokens this relay's own log has a verdict on: the lines its workflow wrote since `since`.
+    worker.yml starts the next run before this one stops, so a run may start from notes a run old, and two runs relay
+    together for a few seconds: what the log answers already is neither carried nor logged again. Raises when GitHub
+    does not answer."""
+    get = get or _api
+    n, out = _log_issue(HOME_REPO, get), set[str]()
+    for page in range(1, 11) if n is not None else ():
+        got = get(f"repos/{HOME_REPO}/issues/{n}/comments?since={since}&per_page=100" + (f"&page={page}" if page > 1 else ""))
+        for c in got:
+            if (c.get("user") or {}).get("login") == LOG_BOT:
+                out.update(m.group(1) for m in re.finditer(r"^knos-relay \S+ \S+ ([0-9a-f]{16}) ", c.get("body") or "", re.M))
+        if len(got) < 100:
+            break
+    return out
+
+
 def _state_path() -> Path:
     from .. import paths
     return paths.home() / "ghrelay.json"
@@ -649,6 +666,13 @@ def once(ledger=None, payer=None, now: float | None = None, crank: bool = True) 
         ledger, payer = chain.ledger(), chain.key()
     if state.get("unposted"):
         _post(state.pop("unposted"), state)
+    run_id = os.environ.get("GITHUB_RUN_ID") or ""
+    answered: set[str] = set()
+    if state.get("run", run_id) != run_id:      # another run's notes: it may still be relaying (worker.yml overlaps two runs)
+        try:
+            answered = logged(since)
+        except Exception:  # noqa: BLE001 - GitHub did not answer: a token the chain shows done is looked up one by one
+            answered = set()
     newest = sorted(known, key=lambda r: (-known[r], r))
     rest = sorted(newest[EVERY_PASS:])
     turn = int(state.get("turn", 0)) % max(len(rest), 1)
@@ -687,6 +711,8 @@ def once(ledger=None, payer=None, now: float | None = None, crank: bool = True) 
             continue
         seen.add(tid)
         order.append(tid)
+        if token_id(jwt) in answered:   # the log has its verdict: the run before this one carried it
+            continue
         wrong = ("a withdrawal request is read only on an issue of a repository named knos-claim" if astray else None) if kind == "withdraw" \
             else misposted(kind, jwt, terms)
         if wrong:                   # logged without the token's id: whoever waits for that token is not answered by this
@@ -717,6 +743,13 @@ def once(ledger=None, payer=None, now: float | None = None, crank: bool = True) 
                 continue
             r["why"] = f"{r.get('why')} (gave up after {MAX_TRIES} passes; run the workflow again for a fresh token)"
         tries.pop(tid, None)
+        if r.get("ok") and r.get("already"):
+            try:
+                told = token_id(jwt) in logged(since)
+            except Exception:  # noqa: BLE001 - GitHub did not answer: the line says what the chain shows
+                told = False
+            if told:
+                continue            # another run of this relay carried it, and its line is in the log
         if r.get("ok") and not r.get("sigs") and not r.get("already"):
             continue                # nothing had to be done (a key the chain already has): no log line
         if kind in ("verify", "withdraw") and r.get("ok") and r.get("sigs"):
@@ -742,7 +775,7 @@ def once(ledger=None, payer=None, now: float | None = None, crank: bool = True) 
     if later:
         _post(later, state)
     state.update(seen=list(dict.fromkeys(t for t in order if t in seen))[-2000:], tries=dict(list(tries.items())[-500:]), repos=known,
-                 hold=dict(list(hold.items())[-500:]), verify={"day": day, "n": verified})
+                 hold=dict(list(hold.items())[-500:]), verify={"day": day, "n": verified}, run=run_id)
     sp.parent.mkdir(parents=True, exist_ok=True)
     sp.write_text(json.dumps(state), encoding="utf-8")
     for ln in lines:

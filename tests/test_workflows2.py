@@ -1311,3 +1311,45 @@ def test_actionlint_passes_on_every_workflow():
     bare = subprocess.run([exe, "-no-color", "-shellcheck=", "-pyflakes=", *files], cwd=str(ROOT), capture_output=True, text=True, check=False)
     complaints = [ln for ln in bare.stdout.splitlines() if re.match(r"\S+:\d+:\d+: ", ln)]
     assert all(any(m in ln for m in NEWER_SYNTAX) and ln.split(":")[0].endswith(PUBLISHED) for ln in complaints), complaints
+
+
+# ---- the always-on worker: the next run takes over before this one stops ----------------------------------------------------
+
+def test_the_next_worker_run_takes_over_before_this_one_stops_and_the_timer_starts_no_second_chain(tmp_path):
+    """The relay was down 12 to 22 s between two runs (the next one waited in line behind this one, then installed), and
+    a token posted then waited that long. Each run now starts the next 30 s before it stops, with no line to hold it,
+    so the next one has installed by then; and a run the timer or a person starts goes on only when none is going."""
+    doc = _doc(WF / "worker.yml")
+    assert "concurrency" not in doc and "concurrency" not in doc["jobs"]["relay"]
+    assert set(doc["on"]["workflow_dispatch"]["inputs"]) == {"after"} and doc["on"]["schedule"] == [{"cron": "*/5 * * * *"}]
+    steps, gate = _steps(doc["jobs"]["relay"]), "steps.chain.outputs.go == 'true'"
+    guard = steps[0]
+    assert guard["id"] == "chain" and guard["env"]["AFTER"] == "${{ inputs.after }}"
+    assert [s.get("if") for s in steps[1:-1]] == [gate] * (len(steps) - 2) and steps[-1]["if"] == f"always() && {gate}"
+    serve = next(s["run"] for s in steps if "knos relay --serve" in s.get("run", ""))
+    seconds = int(re.search(r"--serve (\d+)", serve).group(1))
+    lead = int(re.search(r"sleep (\d+) && gh workflow run worker\.yml ", serve).group(1))
+    assert 20 <= seconds - lead <= 45       # time for the next run to install (10 to 21 s were seen), and a short overlap
+    assert serve.count('-f after="$GITHUB_RUN_ID"') == 1 and '&& touch "$RUNNER_TEMP/knos-next"' in serve and "wait" in serve
+    assert steps[-1]["run"].startswith('[ -f "$RUNNER_TEMP/knos-next" ] || gh workflow run worker.yml ') and '-f after="$GITHUB_RUN_ID"' in steps[-1]["run"]
+    bash = shutil.which("bash")
+    if not bash or os.name == "nt":
+        pytest.skip("the first step's script is bash")
+    fake = tmp_path / "bin"
+    fake.mkdir()
+    (fake / "gh").write_text('#!/bin/sh\necho "$*" >> "$CALLS"\n[ -n "$FAIL" ] && exit 1\necho "$OTHERS"\n', encoding="utf-8")
+    (fake / "gh").chmod(0o755)
+
+    def go(after: str, others: str = "0", fail: str = "") -> tuple[str, str]:
+        out, calls = tmp_path / "out", tmp_path / "calls"
+        out.write_text("", encoding="utf-8")
+        calls.write_text("", encoding="utf-8")
+        env = {**os.environ, "PATH": f"{fake}{os.pathsep}{os.environ['PATH']}", "AFTER": after, "OTHERS": others, "FAIL": fail,
+               "CALLS": str(calls), "GITHUB_OUTPUT": str(out), "GITHUB_RUN_ID": "77", "GITHUB_REPOSITORY": "o/r"}
+        subprocess.run([bash, "-e", "-c", guard["run"]], env=env, check=True, capture_output=True)
+        return out.read_text(encoding="utf-8").strip(), calls.read_text(encoding="utf-8")
+    assert go("76", others="1") == ("go=true", "")         # started by the run before it: it takes over and asks nothing
+    went = go("")
+    assert went[0] == "go=true" and "run list" in went[1] and "--workflow worker.yml" in went[1]     # the timer, with no run going
+    assert go("", others="1")[0] == "go=false"                # the timer while the chain runs: that chain goes on alone
+    assert go("", fail="1")[0] == "go=false"                  # GitHub did not list the runs: the next tick asks again

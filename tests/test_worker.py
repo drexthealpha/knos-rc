@@ -742,3 +742,38 @@ def test_a_pass_carries_a_fund_token_and_its_proof_to_the_second_deployment(monk
     [line] = ghrelay.once(net, c.payer)
     assert re.fullmatch(r"knos-relay refund - - ok sig=\S+ note=a bounty nobody could be paid from any more went back to its funder", line)
     assert c.data(pay.job_pda(repo, 9, pay.faucet_balance_pda(org))) is None and gh.log()[-1] == line
+
+
+# -- two runs of the worker relay together for a few seconds (worker.yml starts the next before this one stops) ---------------
+def test_a_run_that_takes_over_neither_carries_nor_logs_again_what_the_log_answers(world, monkeypatch):
+    gh, relays, state = world
+    t0 = time.time()
+    done, new = jwt(fund_aud(7)), jwt(fund_aud(8))
+    gh.comment("octo/widgets", 7, ghrelay.token_comment("fund", done, TERMS), at=t0 - 200)
+    gh.comment("octo/widgets", 8, ghrelay.token_comment("fund", new, TERMS), at=t0 - 5)
+    # the run before this one carried the first token and logged it; the notes this run starts from are a run old
+    gh.comment(HOME, 1, f"knos-relay fund octo/widgets#7 {ghrelay.token_id(done)} ok sig=s1 note=done t=4", at=t0 - 190)
+    state.write_text(json.dumps({"run": "41", "repos": {"octo/widgets": t0 - 400}}))
+    monkeypatch.setenv("GITHUB_RUN_ID", "42")
+    lines = passes(t0)
+    assert [c[1] for c in relays.calls] == [new] and len(lines) == 1 and ghrelay.token_id(new) in lines[0]
+    assert json.loads(state.read_text())["run"] == "42" and len(gh.log()) == 2
+    # from then on the notes are this run's own: the log is not read for them again
+    n = len(gh.asked)
+    assert passes(t0 + 3) == [] and f"repos/{HOME}/issues/1/comments" not in [path for path, _status in gh.gets(n)]
+
+
+def test_a_token_the_chain_shows_done_is_logged_once_whichever_run_carried_it(world, monkeypatch):
+    gh, relays, state = world
+    t0 = time.time()
+    monkeypatch.delenv("GITHUB_RUN_ID", raising=False)
+    ours, theirs = jwt(fund_aud(7)), jwt(fund_aud(8))
+    gh.search = ["octo/widgets"]
+    for n, token in ((7, ours), (8, theirs)):
+        gh.comment("octo/widgets", n, ghrelay.token_comment("fund", token, TERMS), at=t0 - 5)
+        relays.answers[ghrelay.token_id(token)] = {"ok": True, "kind": "fund", "sigs": ["s1"], "note": "done", "already": True}
+    # the run that relayed beside this one carried the first and logged it; someone else's relayer carried the second
+    gh.comment(HOME, 1, f"knos-relay fund octo/widgets#7 {ghrelay.token_id(ours)} ok sig=s1 note=done t=3", at=t0 - 2)
+    [line] = passes(t0)
+    assert ghrelay.token_id(theirs) in line and "(another relayer carried it first)" in line and len(relays.calls) == 2
+    assert [ln for ln in gh.log() if ghrelay.token_id(ours) in ln] == [gh.log()[0]]

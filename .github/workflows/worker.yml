@@ -7,8 +7,13 @@ name: always-on worker
 # where the token says, and anyone can run the same command (`knos relay`).
 #
 # One step relays for about 4.5 minutes, a pass every 3 seconds (`knos relay --serve`: a pass that finds nothing new
-# costs GitHub one conditional request per repository it knows), then starts the next run itself (GitHub's cron is only
-# a restart safety net).
+# costs GitHub one conditional request per repository it knows). Thirty seconds before it stops it starts the next run,
+# which installs while this one still relays and takes over without a gap. (The next run used to wait for this one to
+# end and only then install: the relay was down 12 to 22 s between two runs, and a token posted then waited that long.)
+# For those few seconds two runs relay with the same key, which pays nobody twice: the chain takes a token once, the
+# loser of a race tries again on its next pass and finds it done, and a run logs nothing for a token whose verdict the
+# log has already (ghrelay.logged). GitHub's cron only restarts the chain: a run it starts, or one started by hand,
+# relays only when no run of this workflow is going.
 # The one secret is the fee-paying key; it holds devnet SOL for fees and nobody's money.
 # This job sees that secret, so nothing it installs comes from an Actions cache (`enable-cache: false`): a cache can be
 # written by other runs of this repository. And everything it installs is named by hash (requirements/sign.txt,
@@ -19,14 +24,17 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+    inputs:
+      after:
+        description: The run this one takes over from (each run sets it for the next; leave it empty to start the chain)
+        required: false
+        default: ""
 
-concurrency:
-  group: always-on-worker
-  cancel-in-progress: false
-
+# No concurrency group: one would hold the next run until this one ends, which is the gap this file closes. The first
+# step keeps it to one chain of runs.
 permissions:
   contents: read
-  actions: write      # each run starts the next
+  actions: write      # each run starts the next, and the first step lists the runs that are going
   issues: write       # the relay log: one line per token relayed, in the open issue labelled knos-relay
 
 jobs:
@@ -36,8 +44,28 @@ jobs:
     env:
       KNOS_HOME: ${{ github.workspace }}/.knos-home
     steps:
+      # A run that the run before it started takes over. One that the timer or a person started goes on only when no
+      # run of this workflow is going or waiting (that run starts the next one); when GitHub does not list them, the
+      # next tick of the timer asks again.
+      - name: one chain of runs at a time
+        id: chain
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AFTER: ${{ inputs.after }}
+        run: |
+          if [ -n "$AFTER" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          others=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow worker.yml --limit 30 --json databaseId,status \
+                     --jq "[.[] | select(.databaseId != $GITHUB_RUN_ID and .status != \"completed\")] | length") || others=""
+          if [ "$others" = "0" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Another run of this workflow is relaying and starts the next one (or GitHub did not list the runs): nothing to do."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: steps.chain.outputs.go == 'true'
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        if: steps.chain.outputs.go == 'true'
         with:
           version: "0.8.20"
           python-version: "3.12"
@@ -45,16 +73,21 @@ jobs:
       # Each package by its hash, from this repository's own list, and nothing else: no `-e .`, which would build the
       # package with a build tool fetched unpinned. Knos itself runs from the checkout (PYTHONPATH below).
       - name: install what the relay needs, each by its hash, and nothing else
+        if: steps.chain.outputs.go == 'true'
         run: |
           uv venv --no-config --python 3.12 "$RUNNER_TEMP/knos"
           uv pip install --no-config --python "$RUNNER_TEMP/knos/bin/python" --require-hashes --no-deps --no-build -r requirements/sign.txt
           echo "$RUNNER_TEMP/knos/bin" >> "$GITHUB_PATH"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        if: steps.chain.outputs.go == 'true'
         with:
           path: .knos-home
           key: knos-relay-home-${{ github.run_id }}
           restore-keys: knos-relay-home-
-      - name: relay for about 4.5 minutes, a pass every 3 s
+      # The next run is started 30 s before this one stops: it takes 10 to 21 s to start relaying, so the two overlap
+      # for a few seconds and no token waits for a run to install.
+      - name: relay for about 4.5 minutes, a pass every 3 s, and start the next run 30 s before the end
+        if: steps.chain.outputs.go == 'true'
         env:
           KNOS_RELAY_KEY: ${{ secrets.KNOS_RELAY_KEY || secrets.KNOS_WORKER_KEY }}
           GH_TOKEN: ${{ github.token }}
@@ -62,9 +95,12 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src
         run: |
           [ -n "$KNOS_RELAY_KEY" ] || { echo "no KNOS_RELAY_KEY secret: skipped"; exit 0; }
+          ( sleep 250 && gh workflow run worker.yml --repo "$GITHUB_REPOSITORY" --ref main -f after="$GITHUB_RUN_ID" \
+              && touch "$RUNNER_TEMP/knos-next" ) &
           python -m knos relay --serve 280 || true
-      - name: start the next run (always on)
-        if: always()
+          wait || true
+      - name: start the next run (always on), when the step before did not
+        if: always() && steps.chain.outputs.go == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run worker.yml --repo "$GITHUB_REPOSITORY" --ref main
+        run: '[ -f "$RUNNER_TEMP/knos-next" ] || gh workflow run worker.yml --repo "$GITHUB_REPOSITORY" --ref main -f after="$GITHUB_RUN_ID"'
