@@ -208,7 +208,10 @@ multisigs() {
   governance show --check >/dev/null || die "the multisigs are not right on chain: node scripts/governance.mjs show --rpc $RPC says what is wrong."
 }
 
-sources_hash() { (cd "$ROOT" && find programs-v2 crates/knos-oidc-interface -type f -not -path '*/target/*' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1); }
+# sha256 [--check --status] <files>: sha256sum's lines and --check, from shasum -a 256 where there is no sha256sum (macOS)
+sha256() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$@"; else shasum -a 256 "$@"; fi; }
+
+sources_hash() { (cd "$ROOT" && find programs-v2 crates/knos-oidc-interface -type f -not -path '*/target/*' -print0 | LC_ALL=C sort -z | while IFS= read -r -d '' f; do sha256 "$f"; done | sha256 | cut -d' ' -f1); }
 
 # build <names>: the verified build of each (or the files of KNOS_SO_DIR), and its executable hash
 build() {
@@ -225,7 +228,7 @@ build() {
     stamp="$SO_DIR/.verified-build"
     [ "$*" = "$PROGRAMS" ] || stamp="$SO_DIR/.verified-build-new"
     want="$(sources_hash) $VERIFY_IMAGE"
-    if [ -f "$stamp" ] && [ "$(head -1 "$stamp")" = "$want" ] && (cd "$SO_DIR" && tail -n +2 "$stamp" | sha256sum --check --status); then
+    if [ -f "$stamp" ] && [ "$(head -1 "$stamp")" = "$want" ] && (cd "$SO_DIR" && tail -n +2 "$stamp" | sha256 --check --status); then
       echo "  programs-v2 is unchanged since the last verified build: not built again"
     else
       need solana-verify "Install it: cargo install --locked solana-verify"
@@ -241,7 +244,7 @@ build() {
         [ -f "$SO_DIR/$name.so" ] || die "solana-verify built no $SO_DIR/$name.so (its output above says why). Its line 'Building manifest path' names the crate it built: if that is programs/$name, the first deployment's crate of the same name, it was listed before programs-v2/$name on this file system. Build from a clone on a Linux file system (on WSL, under ~, not /mnt/c), or deploy program.yml's artifacts with KNOS_SO_DIR. Nothing is stamped."
       done
       # shellcheck disable=SC2086  # files is a list of names
-      { echo "$want"; (cd "$SO_DIR" && sha256sum $files); } > "$stamp"
+      { echo "$want"; (cd "$SO_DIR" && sha256 $files); } > "$stamp"
     fi
   fi
   for name in "$@"; do

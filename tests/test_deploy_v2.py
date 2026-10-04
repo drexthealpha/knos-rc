@@ -467,7 +467,8 @@ def _build_world(tmp_path):
     if os.name == "nt" or not bash:
         pytest.skip("runs the script's functions with bash")
     text = (ROOT / "scripts" / "deploy_v2.sh").read_text(encoding="utf-8")
-    funcs = {"sources_hash": next(line for line in text.splitlines() if line.startswith("sources_hash() {")),
+    funcs = {"sha256": next(line for line in text.splitlines() if line.startswith("sha256() {")),
+             "sources_hash": next(line for line in text.splitlines() if line.startswith("sources_hash() {")),
              "build": re.search(r"(?ms)^build\(\) \{.*?^\}$", text).group(0)}
     repo = tmp_path / "repo"
     for rel in ("programs-v2/Cargo.toml", "programs-v2/knos_oidc/Cargo.toml", "programs-v2/knos_pay/Cargo.toml",
@@ -487,12 +488,12 @@ def _build_world(tmp_path):
         f.chmod(0o755)
     log = tmp_path / "log"
     body = "\n".join(['set -euo pipefail', f'ROOT={repo}', 'PROGRAMS="knos_oidc knos_pay"', 'VERIFY_IMAGE=img',
-                      'die() { echo "stopped: $*" >&2; exit 1; }', 'need() { :; }', 'py() { sha256sum "$2" | cut -c1-8; }',
-                      funcs["sources_hash"], funcs["build"], 'build $PROGRAMS'])
+                      'die() { echo "stopped: $*" >&2; exit 1; }', 'need() { :; }', 'py() { sha256 "$2" | cut -c1-8; }',
+                      funcs["sha256"], funcs["sources_hash"], funcs["build"], 'build $PROGRAMS'])
 
-    def run(**env) -> subprocess.CompletedProcess:
+    def run(path: str = "/usr/bin:/bin", **env) -> subprocess.CompletedProcess:
         return subprocess.run([bash, "-c", body], capture_output=True, text=True, timeout=60,
-                              env={"PATH": f"{bin_}:/usr/bin:/bin", "LOG": str(log), **env})
+                              env={"PATH": f"{bin_}:{path}", "LOG": str(log), **env})
     return repo, log, run
 
 
@@ -529,3 +530,35 @@ def test_a_verified_build_of_the_first_deployments_crate_of_the_same_name_is_ref
     wrong = run(FIRST="programs")
     assert wrong.returncode != 0 and "Building manifest path" in wrong.stderr and "programs/knos_oidc" in wrong.stderr, wrong.stderr
     assert not (deploy / ".verified-build").exists() and not (deploy / "knos_oidc.so").exists()
+
+
+def test_the_verified_build_and_its_stamp_need_no_sha256sum_where_the_system_has_only_shasum(tmp_path):
+    """macOS has shasum and no sha256sum. With a PATH that has every command of /usr/bin and /bin but sha256sum, the
+    build hashes its sources and stamps its files with shasum -a 256, and a stamp written where sha256sum is (Linux) is
+    read there as the same build: the two write the same lines."""
+    import shutil
+    repo, log, run = _build_world(tmp_path)
+    if not shutil.which("shasum", path="/usr/bin:/bin"):
+        pytest.skip("needs shasum (perl's), which macOS and the Linux runners have")
+    no_sha256sum = tmp_path / "no-sha256sum"
+    no_sha256sum.mkdir()
+    for d_ in ("/usr/bin", "/bin"):
+        for f in Path(d_).iterdir():
+            if f.name != "sha256sum" and not (no_sha256sum / f.name).exists():
+                (no_sha256sum / f.name).symlink_to(f)
+    assert shutil.which("sha256sum", path=str(no_sha256sum)) is None
+    first = run()
+    assert first.returncode == 0, first.stderr
+    stamp = repo / "programs-v2" / "target" / "deploy" / ".verified-build"
+    written = stamp.read_text()
+    again = run(path=str(no_sha256sum))
+    assert again.returncode == 0, again.stderr
+    assert "unchanged since the last verified build" in again.stdout and len(log.read_text().splitlines()) == 2
+    # a change of the sources builds again, and the stamp shasum writes is the one sha256sum wrote for the same files
+    (repo / "crates" / "knos-oidc-interface" / "src" / "lib.rs").write_text("changed")
+    third = run(path=str(no_sha256sum))
+    assert third.returncode == 0 and "unchanged" not in third.stdout and len(log.read_text().splitlines()) == 4, third.stderr
+    assert "sha256sum" not in third.stderr and stamp.read_text().splitlines()[1:] == written.splitlines()[1:]
+    assert stamp.read_text().splitlines()[0] != written.splitlines()[0]
+    fourth = run()
+    assert fourth.returncode == 0 and "unchanged since the last verified build" in fourth.stdout, fourth.stderr
