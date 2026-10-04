@@ -421,3 +421,35 @@ def test_the_shell_script_takes_one_new_mode_a_run_and_each_does_what_the_releas
         said = subprocess.run([bash, str(ROOT / "scripts" / "deploy_v2.sh"), "--help"], capture_output=True, text=True).stdout
         assert all(flag in said for flag in ("--new", "--rc ", "--rc-close", "--propose [--ungated]", "KNOS_GATE_TOKENS", "KNOS_RC_SO_DIR",
                                              "KNOS_GATE_WAIT", "--ungated is for an emergency only"))
+
+
+def test_lamports_reads_solanas_whole_answer_so_the_line_after_the_number_never_stops_the_script(tmp_path):
+    """`solana rent N --lamports` prints its number, then an empty line. A reader that leaves after the number makes that
+    second write fail (Broken pipe): solana exits 101, and with pipefail the cost check stopped deploy_v2.sh half way with
+    no word of why (one call in ten on devnet). The stand-in waits between its two lines, so a reader that leaves early
+    loses every time, and the script's own lamports() must not."""
+    import os
+    import re
+    import shutil
+    import subprocess
+    bash = shutil.which("bash")
+    if os.name == "nt" or not bash:
+        pytest.skip("runs the script's functions with bash")
+    text = (ROOT / "scripts" / "deploy_v2.sh").read_text(encoding="utf-8")
+    funcs = [line for line in text.splitlines() if re.match(r"(sol|lamports)\(\) \{", line)]
+    assert len(funcs) == 2 and "exit" not in funcs[1], funcs
+    solana = tmp_path / "solana"
+    solana.write_text('#!/bin/bash\ncase " $* " in\n  *" rent "*) echo "Rent-exempt minimum: 3678758200 lamports"; sleep 1; echo ;;\n'
+                      '  *" balance "*) echo "14232197098 lamports" ;;\nesac\n', encoding="utf-8")
+    solana.chmod(0o755)
+    env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "RPC": "http://127.0.0.1:1", "PAYER": "payer.json"}
+
+    def afford(lamports_line: str) -> subprocess.CompletedProcess:
+        # what afford() does with it: the two numbers in arithmetic, under the script's own shell options
+        body = f'set -euo pipefail\n{funcs[0]}\n{lamports_line}\ncost=$(( $(lamports rent 724037) + 2 * $(lamports rent 724045) ))\necho "$cost $(lamports balance me)"\n'
+        return subprocess.run([bash, "-c", body], env=env, capture_output=True, text=True, timeout=60)
+    ok = afford(funcs[1])
+    assert ok.returncode == 0 and ok.stdout.split() == [str(3678758200 * 3), "14232197098"], ok.stderr
+    # the reader deploy_v2.sh had before: the stand-in shows the race is real, not something this test made up
+    early = afford("lamports() { sol \"$@\" --lamports | awk 'NF >= 2 { print $(NF - 1); exit }'; }")
+    assert early.returncode != 0 and early.stdout == ""

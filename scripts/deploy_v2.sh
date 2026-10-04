@@ -140,7 +140,10 @@ sol_again() {
     n=$((n + 1)); echo "  the solana command failed: trying again in 5 seconds (try $n of 3)" >&2; sleep 5
   done
 }
-lamports() { sol "$@" --lamports | awk 'NF >= 2 { print $(NF - 1); exit }'; }
+# the number in the first line of `solana <rent|balance> --lamports`. awk reads to the end and never exits early: `solana
+# rent` prints an empty line after its number, and a reader that had already gone would make that write fail (Broken
+# pipe), solana exit 101, and pipefail stop this script half way with no word of why
+lamports() { sol "$@" --lamports | awk 'NF >= 2 && !n++ { print $(NF - 1) }'; }
 # HAVE (the executable hash on chain, or "absent") and AUTHORITY (the upgrade authority, or "none") of a program
 program_state() {
   local state
