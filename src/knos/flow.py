@@ -1401,7 +1401,7 @@ def _fund(run: Run, cmd, said: dict, on: dict, pull: dict | None, att=None) -> s
         if any(why.startswith(x) for x in _BALANCE_LIMITS):     # the Balance's own limits: the same comment is refused the same way
             before = any(x in why for x in _BALANCE_LIMITS[1:]) or "spent today" in why     # the relay's check (relay._limits), before any transaction
             fix = "its wallet raises the limit" if why.startswith(pay.ERRORS[100]) else "its wallet changes what it allows"
-            return (f"Knos: nothing was funded. GitHub signed the request, and "
+            return ("Knos: nothing was funded. GitHub signed the request, and "
                     + ("the relay refused it before anything was sent to Solana" if before else "Solana did not take it") + f": {why}. Posting the "
                     f"comment again changes nothing until {fix} (it signs knos_pay's SetBalanceX: `knos.settle.v2.pay.set_balance_x_ix` builds "
                     "the instruction)" + (", or a smaller `/knos fund` fits under it." if why.startswith(pay.ERRORS[100]) else "."))
