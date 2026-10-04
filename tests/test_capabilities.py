@@ -34,15 +34,32 @@ def test_every_stage_has_its_evidence():
     assert cap.main(["check"]) == 0
 
 
+# What the 0.3.14 rehearsal ran on devnet, on staging deployments of this build (docs/CAPABILITIES.md)
+EXERCISED = {"work_orders", "order_pay", "single_use_tokens", "fee_tiers", "reserve_cancel", "warranty_revert", "order_auto_accept", "tests_mode",
+             "order_quorum", "order_challenge", "meter_batch", "meter_seller_claim", "passkey_funder", "passkey_fund_relay", "buyer_page",
+             "x402_knos_order"}
+
+
 def test_the_manifest_claims_no_more_than_is_true_today():
-    """2.1 of knos_pay and knos_oidc is proposed, not executed: what it adds is tested and no more. No document of
-    this repository gives a devnet signature or an outside run, so nothing is exercised or reproduced."""
+    """2.1 of knos_pay and knos_oidc is proposed, not executed: on the pinned programs what it adds is tested and no
+    more. What the release's rehearsal ran on devnet is exercised on a staging program of its own, never on a pinned
+    one, with its transaction; nothing else is exercised, and no document links an outside run, so nothing is reproduced."""
     assert DATA["programs"]["knos_pay"]["on_chain"] == DATA["programs"]["knos_oidc"]["on_chain"] == "2.0"
-    for cid in ("work_orders", "order_pay", "seller_settle", "neutral_attest", "arbiter_rule", "warranty_revert", "reserve_cancel", "top_up", "assign", "plans",
-                "org_balance_limits", "single_use_tokens", "verify_any_issuer"):
+    for cid in ("seller_settle", "neutral_attest", "arbiter_rule", "top_up", "assign", "plans", "org_balance_limits", "verify_any_issuer", "holdback_release"):
         assert BY_ID[cid]["stage"] == "tested", cid
-    assert {c["stage"] for c in DATA["capabilities"]} <= {None, "implemented", "tested", "deployed"}
+    assert {c["stage"] for c in DATA["capabilities"]} <= {None, "implemented", "tested", "deployed", "exercised"}
+    assert {c["id"] for c in DATA["capabilities"] if c["stage"] == "exercised"} == EXERCISED
     assert all(c["evidence"]["deployed"]["version"] in ("2.0", "1.0") for c in DATA["capabilities"] if c["stage"] == "deployed")
+    ids = json.loads((ROOT / "programs-v2" / "program_ids.json").read_text(encoding="utf-8"))
+    pinned = {v for v in ids.values() if isinstance(v, str)}
+    staging = {n: p for n, p in DATA["programs"].items() if n.endswith("_staging")}
+    assert set(staging) == {"knos_pay_staging", "knos_meter_staging", "knos_passkey_staging"}
+    assert all(p["id"] not in pinned and n not in ids and p["on_chain"] in p["versions"] for n, p in staging.items())
+    rehearsal = (ROOT / cap.FULL).read_text(encoding="utf-8").split("## The 0.3.14 rehearsal on devnet", 1)[1]
+    for cid in EXERCISED:
+        ev = BY_ID[cid]["evidence"]
+        assert ev["deployed"]["program"] in staging and "staging deployment" in BY_ID[cid]["note"], cid
+        assert ev["exercised"]["signature"] in rehearsal, cid
     for cid in ("fund_by_comment", "pay_on_merge", "verify_github", "meter_single", "passkey_payee_wallet"):
         assert BY_ID[cid]["stage"] == "deployed", cid
 
@@ -54,23 +71,23 @@ def _with(cid: str, **change) -> dict:
 
 
 def test_a_stage_without_evidence_is_refused():
-    wo = BY_ID["work_orders"]
+    wo = BY_ID["seller_settle"]     # a knos_pay 2.1 capability that is tested, no more
     sig = "5" * 87
     cases = {
-        "stage deployed without deployed evidence": _with("work_orders", stage="deployed"),
-        "stage tested without tested evidence": _with("work_orders", evidence={"implemented": wo["evidence"]["implemented"]}),
-        "stage exercised without deployed evidence": _with("work_orders", stage="exercised", evidence={**wo["evidence"], "exercised": {"signature": sig}}),
-        "knos_pay 2.1 carries it, and devnet runs 2.0": _with("work_orders", stage="deployed", evidence={
+        "stage deployed without deployed evidence": _with("seller_settle", stage="deployed"),
+        "stage tested without tested evidence": _with("seller_settle", evidence={"implemented": wo["evidence"]["implemented"]}),
+        "stage exercised without deployed evidence": _with("seller_settle", stage="exercised", evidence={**wo["evidence"], "exercised": {"signature": sig}}),
+        "knos_pay 2.1 carries it, and devnet runs 2.0": _with("seller_settle", stage="deployed", evidence={
             **wo["evidence"], "deployed": {"program": "knos_pay", "id": DATA["programs"]["knos_pay"]["id"], "version": "2.1"}}),
-        "is not a file of this repository": _with("work_orders", evidence={**wo["evidence"], "implemented": {"path": "programs-v2/knos_pay/src/nothing.rs", "names": "fund_order"}}),
-        "does not say 'test_an_order_flies'": _with("work_orders", evidence={**wo["evidence"], "tested": {"test": "tests/test_order_chain.py", "names": "test_an_order_flies"}}),
-        "is not a test file": _with("work_orders", evidence={**wo["evidence"], "tested": {"test": "src/knos/flow.py", "names": "def "}}),
-        "has tested evidence but says stage implemented": _with("work_orders", stage="implemented"),
-        "has implemented evidence but says stage None": _with("work_orders", stage=None),
+        "is not a file of this repository": _with("seller_settle", evidence={**wo["evidence"], "implemented": {"path": "programs-v2/knos_pay/src/nothing.rs", "names": "fund_order"}}),
+        "does not say 'test_an_order_flies'": _with("seller_settle", evidence={**wo["evidence"], "tested": {"test": "tests/test_order_chain.py", "names": "test_an_order_flies"}}),
+        "is not a test file": _with("seller_settle", evidence={**wo["evidence"], "tested": {"test": "src/knos/flow.py", "names": "def "}}),
+        "has tested evidence but says stage implemented": _with("seller_settle", stage="implemented"),
+        "has implemented evidence but says stage None": _with("seller_settle", stage=None),
         "exercised: a transaction signature on devnet is needed": _with("fund_by_comment", stage="exercised", evidence={**BY_ID["fund_by_comment"]["evidence"], "exercised": {"signature": ""}}),
         "reproduced: a link to someone else's run": _with("fund_by_comment", stage="reproduced", evidence={
             **BY_ID["fund_by_comment"]["evidence"], "exercised": {"signature": sig}, "reproduced": {"url": "https://example.com/a-run-nobody-made"}}),
-        "`what` is one plain sentence": _with("work_orders", what="Orders. And more."),
+        "`what` is one plain sentence": _with("seller_settle", what="Orders. And more."),
     }
     for said, data in cases.items():
         assert any(said in line for line in cap.problems(data)), (said, cap.problems(data))
@@ -110,7 +127,9 @@ def test_the_readme_and_the_document_are_what_render_writes(tmp_path):
     assert cap.rendered(text, cap.summary(DATA)) == text and cap.rendered(full, cap.table(DATA, "../")) == full and cap.render(check=True) == []
     # README.md names every capability under its stage; the document has one row each, with the evidence
     block = text[text.index(cap.START):text.index(cap.END)]
-    assert all(f"`{c['id']}`" in block for c in DATA["capabilities"]) and "**Exercised on devnet:** none recorded yet." in block and "**Reproduced by someone else:** none recorded yet." in block
+    assert all(f"`{c['id']}`" in block for c in DATA["capabilities"]) and "**Reproduced by someone else:** none recorded yet." in block
+    exercised = block[block.index("**Exercised on devnet:**"):block.index("**Deployed on devnet:**")]
+    assert all(f"`{cid}`" in exercised for cid in EXERCISED) and exercised.count("`") == 2 * len(EXERCISED)
     deployed = block[block.index("**Deployed on devnet:**"):block.index("**Tested locally:**")]
     assert "`pay_on_merge`" in deployed and "`work_orders`" not in deployed
     rows = full[full.index(cap.START):full.index(cap.END)]

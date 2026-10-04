@@ -33,7 +33,7 @@ Knos is the neutral count and settlement for software work priced per outcome. T
 the work: the checks that must pass and the paths that may change. They are hashed into the order. A submission
 that says it passed and did not is refused, and the refusal names the check. A valid one is merged; the forge signs
 the CI run; a Solana program verifies that signature itself and pays the seller in full. From merge to paid took
-24 seconds at the median, over 36 payments on devnet. Send the same token again and
+25 seconds at the median, over 38 payments on devnet. Send the same token again and
 it pays nothing. Tested and not yet on devnet: an order that pays an agent's passing pull request with no merge
 and no person in between, and a batched count with the supplier's count beside the buyer's.
 

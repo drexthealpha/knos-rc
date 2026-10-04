@@ -15,7 +15,7 @@ the supplier's own count sits beside the buyer's, and fees in tiers so that a la
 
 *On screen: the site's Numbers page.*
 
-From merge to paid took 24 seconds at the median, on devnet.
+From merge to paid took 25 seconds at the median, on devnet.
 
 ## The hardest problem, and the decision (0:30)
 

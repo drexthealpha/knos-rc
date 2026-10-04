@@ -86,4 +86,13 @@ How it is derived: blocks = the largest of (all compute / the block limit), (all
 
 Latency is seconds from a transaction's first submission until the script first saw it `finalized` (it asks once a second), per transaction and per unit (a token: all its transactions; an order: its one). A retry is a transaction signed again because it did not land in time; a failure is one the cluster refused or lost.
 
-**No cluster run is recorded yet.** The path is unit-tested against a simulated RPC (`tests/test_load.py`); it has not been run on devnet.
+### devnet, 2026-10-04: 200 orders, 8 senders
+
+| Stage | Units finalized | Transactions | Failures | Retries | Transaction p50 s | p95 | p99 | Unit p50 s | p95 | p99 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| verify | 200 of 200 | 600 | 0 | 0 | 51.12 | 112.73 | 158.58 | 73.18 | 140.04 | 184.79 |
+| fund | 200 of 200 | 200 | 0 | 0 | 38.35 | 97.18 | 157.56 | 38.35 | 97.18 | 157.56 |
+| refund | 200 of 200 | 200 | 0 | 0 | 36.43 | 49.89 | 68.21 | 36.43 | 49.89 | 68.21 |
+| close | 200 of 200 | 200 | 0 | 0 | 34.51 | 55.22 | 62.19 | 34.51 | 55.22 | 62.19 |
+
+Wallet `Dg2KBXnEBGMME7w1JFbnhZfzjNHJN9CWJmokGmfTuHMJ`, key account `4jtusKvDteVRsri9z3FCFUweZFRfRC9YhjeYj6YWjjN5`, mint `98G8AC2j1H1RHkBitQfVbRbtdwNR453ifrfpBZezmZe1`.

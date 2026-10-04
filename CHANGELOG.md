@@ -10,9 +10,11 @@ issue, relaying the second fund token after the first order was paid put a new o
 pay token that had paid the first order paid the second too. This was found during the 48-hour delay. That build was
 never live on any cluster, and only test USDC was involved. **Every token is now single-use in every instruction.**
 
-Everything is on Solana devnet with test USDC. Nothing in this release is deployed yet: each line of
-[`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) says how far it has got, and the new ones are "tested locally" or,
-for two that no test runs here (the Kani proofs and the GitLab pipeline example), "implemented".
+Everything is on Solana devnet with test USDC. Nothing in this release is deployed on the pinned programs yet: each
+line of [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) says how far it has got. The new ones are "tested locally";
+"implemented" for two that no test runs here (the Kani proofs and the GitLab pipeline example); or "exercised on
+devnet", each with its transaction, where the release's rehearsal ran them on a staging deployment of this build
+([`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), "The 0.3.14 rehearsal on devnet").
 The 0.3.13 build was proposed and approved by the multisig on 2026-10-04 07:17 UTC. The release of 0.3.14 cancels
 that proposal and proposes this build in its place, as `knos_pay 2.1` and `knos_oidc 2.1`, with the same public
 48-hour delay. Until the release has done that, the chain shows the old proposal pending:
@@ -59,24 +61,29 @@ that proposal and proposes this build in its place, as `knos_pay 2.1` and `knos_
   and revert, the faucet, self-managed GitLab, and any relayer, command or page ([`docs/OIDC.md`](docs/OIDC.md)).
 - **Adapters** ([`docs/ADAPTERS.md`](docs/ADAPTERS.md)): workflow files that turn a signed event (a release, a
   deployment, an attestation, a tracker's webhook) into a settlement or a count.
-- **x402.** The example's `knos-order` scheme funds a real order over RPC. Its devnet run has not been done
-  ([`docs/X402.md`](docs/X402.md)). The interface crates and the npm package are ready to publish.
+- **x402.** The example's `knos-order` scheme funds a real order over RPC. On devnet, on the staging deployment, it
+  funded an order and the seller was paid on acceptance ([`docs/X402.md`](docs/X402.md)). The interface crates and
+  the npm package are ready to publish.
 
 ### Evidence
 
 - **Receipts in four parts**, an **evidence bundle** that verifies with no network, and a **mirror** that keeps
   what the chain's history no longer serves ([`docs/RECEIPT.md`](docs/RECEIPT.md), `knos bundle`, `knos receipt`).
 - **An audit export** per organisation and period: one hash-chained file that two parties can compare.
-- **A hermetic judge.** In tests mode a submission runs in a container named by image digest. It is tested against
-  a stand-in for the container runtime only ([`docs/ASSURANCE.md`](docs/ASSURANCE.md)).
+- **A hermetic judge.** In tests mode a submission runs in a container named by image digest. Its end-to-end test
+  ran in a real container on GitHub's runner, in the staging repository's run 37217535106
+  ([`docs/ASSURANCE.md`](docs/ASSURANCE.md)).
 - **A badge** ("paid on proof") that states its scope, its money and its date, `knos record` for a payee's record,
   and each agent's rate of false claims by week in the Index.
 - **Load.** 1,000 orders open at once were each paid once and none was lost, in the local simulator
-  ([`docs/LOAD.md`](docs/LOAD.md)). Time on a cluster is derived, not measured.
+  ([`docs/LOAD.md`](docs/LOAD.md)). Time for 1,000 on a cluster is derived, not measured. On devnet, 200 orders were
+  verified, funded from a wallet, refunded and closed with no failure; paying is not part of that run.
 
 ### Orders that need no person, and what checks the programs
 
-All of this is tested locally and not deployed ([`docs/CAPABILITIES.md`](docs/CAPABILITIES.md)).
+All of this is tested locally and not deployed on the pinned programs. The release's rehearsal ran auto-accept, the
+challenge, the quorum, the agent's tools and the Buy page on a staging deployment of this build
+([`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), "The 0.3.14 rehearsal on devnet").
 
 - **Auto-accept.** A funder can make an order paid by the black-box suite `auto` at funding: the first pull request
   the suite passes is paid, with no merge and no comment (`tests/test_order_auto.py`).
@@ -86,7 +93,8 @@ All of this is tested locally and not deployed ([`docs/CAPABILITIES.md`](docs/CA
   (`tests/test_order_quorum.py`).
 - **Tools for an agent** ([`docs/AGENTS.md`](docs/AGENTS.md)): find funded work, take it, submit it after the
   order's acceptance passes locally, collect; with a key of the agent's own. The tools that post are off until the
-  operator turns them on. Tested against stand-ins for GitHub and the chain; no agent has been paid on devnet.
+  operator turns them on. Tested against stand-ins for GitHub and the chain; on the staging deployment an agent was
+  paid for an auto order.
 - **The Buy page.** A buyer picks a terms template and a passkey signs the line that funds the order; a relay
   carries that line (`/knos passkey-fund`). Tested in a headless browser and the local simulator.
 - **Advance.** [`examples/advance`](examples/advance) says what `Assign` does: an assignment made before the order

@@ -50,5 +50,7 @@ What is not done: `examples/knos-workflow.yml` has no separate relay step and do
 `KNOS_FEE_KEY`. Its jobs call the pinned workflows, which take one optional secret, `KNOS_RELAY_KEY`, and a job that
 calls a workflow cannot have steps of its own. `KNOS_FEE_KEY` is read only by `knos relay`.
 
-How much time this removes from merge to paid is not measured here. It is measured on devnet at release time (the
-canary's legs, `knos canary`), with and without the key.
+Measured on devnet in the release's rehearsal, on a staging deployment: 33 payments relayed in the run that merged
+them, with the repository's own key, took a median of 22 s and, at the 95th percentile, 24 s from GitHub's
+`merged_at` to the block of the paying transaction ([CAPABILITIES.md](CAPABILITIES.md), "The 0.3.14 rehearsal on
+devnet", item 10). The public relay's own figure, over its log, is in [BENCH.md](BENCH.md).
