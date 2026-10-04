@@ -21,7 +21,8 @@
 #   systemd   systemd-run --user --on-calendar: a transient timer of the user's systemd (unit knos-upgrade)
 #   at        the at command, when its daemon (atd) is running
 #   schtasks  a Windows scheduled task (KnosUpgrade), made with schtasks.exe from inside WSL, that starts
-#             `wsl.exe -d <this distribution>` at the time: it runs even if no WSL window is open then. schtasks.exe
+#             `wsl.exe -d <this distribution>` at the time, in a headless console (conhost --headless): it runs
+#             even if no WSL window is open then. schtasks.exe
 #             is taken from PATH, or from Windows' System32 when this WSL does not put Windows' PATH on its own
 #             ([interop] appendWindowsPath=false in /etc/wsl.conf)
 # Under WSL schtasks is tried FIRST: a systemd or at timer of WSL fires only while the distribution is running at that
@@ -228,7 +229,9 @@ arrange() {
         printf '  <Triggers><TimeTrigger><StartBoundary>%s</StartBoundary><Enabled>true</Enabled></TimeTrigger></Triggers>\n' "$(date_at "$at" -u "+%Y-%m-%dT%H:%M:%SZ")"
         printf '  <Settings><StartWhenAvailable>true</StartWhenAvailable><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>'
         printf '<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><WakeToRun>true</WakeToRun><ExecutionTimeLimit>PT1H</ExecutionTimeLimit></Settings>\n'
-        printf '  <Actions><Exec><Command>wsl.exe</Command><Arguments>-d %s -- env KNOS_KEYS=%s /bin/bash -l %s --run</Arguments></Exec></Actions>\n</Task>\n' \
+        # wsl.exe inside a headless console: started by the Task Scheduler in a console of its own, wsl.exe was ended
+        # with STATUS_CONTROL_C_EXIT after about 20 seconds (seen on Windows 10), taking the run with it half way
+        printf '  <Actions><Exec><Command>C:\\Windows\\System32\\conhost.exe</Command><Arguments>--headless C:\\Windows\\System32\\wsl.exe -d %s -- env KNOS_KEYS=%s /bin/bash -l %s --run</Arguments></Exec></Actions>\n</Task>\n' \
           "$distro" "$(printf '%q' "$KEYS" | sed 's/&/\&amp;/g; s/</\&lt;/g')" "$(printf '%s' "$command" | sed 's/&/\&amp;/g; s/</\&lt;/g')"
       } | { printf '\xff\xfe'; iconv -f UTF-8 -t UTF-16LE; } > "$xml"
       "$(schtasks_exe)" /Create /TN "$id" /XML "$(wslpath -w "$xml")" /F >/dev/null || die "schtasks.exe did not make the task (the lines above say why)."

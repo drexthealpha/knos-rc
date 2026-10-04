@@ -122,7 +122,10 @@ def test_under_wsl_a_windows_task_comes_first_and_starts_wsl_at_a_utc_instant_th
     assert xml[:2] == b"\xff\xfe"
     task = xml[2:].decode("utf-16-le")
     assert f"<StartBoundary>{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(plan['run_at']))}</StartBoundary>" in task
-    assert f"<Command>wsl.exe</Command><Arguments>-d Ubuntu-24.04 -- env KNOS_KEYS={keys} /bin/bash -l {SCRIPT} --run</Arguments>" in task
+    # in a headless console: in a console of its own, the task's wsl.exe is ended after about 20 seconds
+    assert ("<Command>C:\\Windows\\System32\\conhost.exe</Command><Arguments>--headless C:\\Windows\\System32\\wsl.exe -d Ubuntu-24.04 -- "
+            f"env KNOS_KEYS={keys} /bin/bash -l {SCRIPT} --run</Arguments>") in task
+    assert "<Command>wsl.exe</Command>" not in task
     assert "<StartWhenAvailable>true</StartWhenAvailable>" in task and MARK not in task
     assert "arranged with the Windows Task Scheduler: the task KnosUpgrade starts wsl.exe -d Ubuntu-24.04" in done.stdout
     assert "(or: schtasks.exe /Delete /TN KnosUpgrade /F)" in done.stdout and "NOTE: this is WSL" not in done.stdout
