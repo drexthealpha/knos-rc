@@ -272,5 +272,32 @@ check("the page as it opens does not scroll sideways at 390 px", first.over <= 1
 if (shots) await second.page.screenshot({ path: join(shots, "buyer-390-open.png"), fullPage: true });
 await again.close();
 
+// a build of other program ids (a staging deployment): the wallet shown is the one passkey_fund.js signs for, the address
+// under THAT build's knos_passkey, when it is made and when a browser recalls it
+const STAGED = knos.b58(Uint8Array.from({ length: 32 }, (_, i) => (i * 11 + 7) % 256));
+const passkeyLib = await import(pathToFileURL(join(root, "passkey.js")));
+const stagedIds = async (c) => { await c.route(`${base}program_ids.json`, (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...ids, knos_passkey: STAGED }) })); return c; };
+const made3 = await stagedIds(await context(1280));
+const third = await open(made3);
+const cdp3 = await made3.newCDPSession(third.page);
+await cdp3.send("WebAuthn.enable");
+await cdp3.send("WebAuthn.addVirtualAuthenticator", { options: { protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+await pick(third.page, "#buy-template", "bugfix");
+await third.page.fill("#buy-issue", "https://github.com/octo/widgets/issues/7");
+await third.page.click("#buy-pk-create");
+await third.page.waitForSelector("#buy-pk-made");
+const kept3 = await third.page.evaluate(() => JSON.parse(localStorage.getItem("knos-passkey")));
+const staged3 = await passkeyLib.wallet(Buffer.from(kept3.key, "hex"), STAGED);
+check("on a build of other program ids, the wallet made is the address under that build's knos_passkey", (await text(third.page, "#buy-pk-address")) === staged3
+  && staged3 !== await passkeyLib.wallet(Buffer.from(kept3.key, "hex")), [await text(third.page, "#buy-pk-address"), staged3]);
+await made3.close();
+const recalled3 = await stagedIds(await context(1280));
+await recalled3.addInitScript((saved) => { localStorage.setItem("knos-passkey", saved); }, JSON.stringify(kept));
+const fourth = await open(recalled3);
+await fourth.page.waitForSelector("#buy-pk-made");
+const staged4 = await passkeyLib.wallet(Buffer.from(kept.key, "hex"), STAGED);
+check("  and the wallet a browser kept is recalled at that address", (await text(fourth.page, "#buy-pk-address")) === staged4 && staged4 !== chain.wallet, [await text(fourth.page, "#buy-pk-address"), staged4]);
+await recalled3.close();
+
 await browser.close(); server.close();
 console.log(process.exitCode ? "the Buy page FAILED" : "the Buy page holds");

@@ -298,7 +298,9 @@ export function renderBuyer(el, env = {}) {
     try {
       say(st, "Asking your device to make a passkey…");
       const made = await passkey.create({ rpId, rpName: "Knos", userName: "Knos wallet" }, credentials || globalThis.navigator?.credentials);
-      me = { credentialId: made.credentialId, key: made.key, wallet: made.wallet };
+      // the wallet of THIS build's knos_passkey (program_ids.json), the program passkey_fund.js signs for: not the
+      // address passkey.create derives under the pinned id, which a build of other ids would show and never fund from
+      me = { credentialId: made.credentialId, key: made.key, wallet: await passkey.wallet(made.key, (await ids()).knos_passkey) };
       remember();
       await showWallet("Your passkey wallet is made. Its address is below.");
     } catch (e) {
@@ -410,7 +412,7 @@ export function renderBuyer(el, env = {}) {
   if (saved?.key) {
     (async () => {
       const key = passkey.compressed(unhex(String(saved.key)));
-      me = { credentialId: saved.credentialId ? unb64(String(saved.credentialId)) : null, key, wallet: await passkey.wallet(key) };
+      me = { credentialId: saved.credentialId ? unb64(String(saved.credentialId)) : null, key, wallet: await passkey.wallet(key, (await ids()).knos_passkey) };
       await showWallet("The passkey wallet this browser kept is in use.");
     })().catch(() => {});
   }

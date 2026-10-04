@@ -1537,6 +1537,28 @@ const BAL = await k.balance(7000001, WALLET, USDC), BALTOK = await k.baltok(BAL)
   check("  a cluster that is not devnet is refused before the balance is read", (await text(fp, "#pk-balance")).includes("not devnet"));
   chain.genesis = DEVNET;
   await fp.close();
+
+  // a build of other program ids (a staging deployment): the wallet is the address under ITS knos_passkey, the program a
+  // withdrawal goes to, when made and when recalled, and its withdrawal number is read from an account of that program
+  const STAGED = unique(97);
+  const staged = await world({ passkeys: true });
+  await staged.route(`${base}program_ids.json`, (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...ids, knos_passkey: STAGED }) }));
+  const sp = await staged.newPage();
+  await visit(sp, "#claim");
+  await sp.click("#pk-create");
+  await sp.waitForSelector("#pk-address:not(:empty)");
+  const sKey = Buffer.from((await stored(sp)).key, "hex"), sAddress = await text(sp, "#pk-address");
+  check("passkey: on a build of other program ids the wallet made is the address under that build's knos_passkey", sAddress === await passkey.wallet(sKey, STAGED) && sAddress !== await passkey.wallet(sKey), sAddress);
+  put(await passkey.ata(sAddress, USDC), tokenBytes({ mint: USDC, owner: sAddress, amount: 4_000_000 }), knos.TOKEN);
+  put(sAddress, walletAccount(sKey, 6), STAGED);
+  await sp.close();
+  const sp2 = await staged.newPage();
+  await visit(sp2, "#claim");
+  await sp2.waitForSelector("#pk-address:not(:empty)");
+  await sp2.waitForFunction(() => document.getElementById("pk-held")?.textContent.includes("4.00"));
+  check("  the wallet this browser kept is recalled at that address, and its withdrawals are read from that program's account", (await text(sp2, "#pk-address")) === sAddress
+    && (await text(sp2, "#pk-held")).includes("Withdrawals so far: 6"), [await text(sp2, "#pk-address"), await text(sp2, "#pk-held")]);
+  await sp2.close();
   await reset();
 }
 
