@@ -56,6 +56,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ["README.md", "docs/BENCH.md"]
+# The pitch-facing text (scripts/claims_check.py reads the same list): every number in it needs a fact.
+PITCH = ["README.md", "web/index.html", "docs/submission/SUBMISSION.md", "docs/submission/pitch_script.md",
+         "docs/submission/demo_script.md", "docs/submission/weekly_update.md"]
 SUBMISSION = "docs/submission"       # every .md under it may carry [[stat: name]] slots
 # The other files that may carry slots. Everything a judge opens states a release-measured fact through one, so that the
 # release fills them all in one run and no document is left with an older number.
@@ -523,6 +526,9 @@ def fill(stats_path: str | None = None, given: dict | None = None, root: Path = 
                                                   "not a time" if name in WHEN else "not a number"))
         src.setdefault("release", {})[name] = {"value": value, "source": source}
 
+    where_said: dict[str, set[str]] = {}       # a fact's path -> the documents its slot was filled in
+    here = [""]
+
     def number(m: re.Match) -> str:
         name = m.group(1)
         what, path = SLOTS.get(name, ("", None))
@@ -537,14 +543,22 @@ def fill(stats_path: str | None = None, given: dict | None = None, root: Path = 
         if name in WHEN:
             fact["text"] = value                       # a time is held to its text, not to a number (claims_check.py)
         facts["facts"] = [f for f in facts["facts"] if f.get("path") != where] + [fact]
+        where_said.setdefault(where, set()).add(here[0])
         return _said(value)
 
     for rel in slot_files(root):
+        here[0] = rel
         doc = root / rel
         text = doc.read_text(encoding="utf-8")
         new = SLOT.sub(number, text)
         if new != text:
             doc.write_text(new, encoding="utf-8")
+    # A number said only in documents that are not pitch-facing (docs/ASSURANCE.md, ...) is a "doc" fact: claims_check.py
+    # then holds those documents to it, instead of looking for it in the pitch-facing text, which does not say it.
+    for f in facts["facts"]:
+        docs = where_said.get(f.get("path"), set())
+        if docs and f["say"] and not docs & set(PITCH):
+            f["doc"] = sorted(docs) if len(docs) > 1 else next(iter(docs))
     bench.write_text(json.dumps(src, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     facts_file.write_text(json.dumps(facts, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     return sorted({name for _doc, name in slots(root)})

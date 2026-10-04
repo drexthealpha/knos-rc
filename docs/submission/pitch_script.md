@@ -12,7 +12,7 @@ they are filled.
 
 In 826 repositories I took the first pull request by a coding agent that said its tests pass. In 147 a check had
 failed. In 80, a test or a build. Now this one: merged, and its author paid. From merge to paid took
-[[stat: seconds_from_merge_to_paid]] seconds, the median over [[stat: payments_timed]] payments on devnet. Nobody
+24 seconds, the median over 36 payments on devnet. Nobody
 approved that payment.
 
 ## The insight (0:23)
@@ -33,8 +33,8 @@ the fee on top. If the buyer deletes the workflow after merging, the seller runs
 
 ## Evidence (1:21)
 
-It runs on Solana devnet, in test money. [[stat: tests_passing]] tests pass. Refund, key expiry, the pause and a
-time-locked upgrade were drilled against the deployed bytes. Outside funders so far: [[stat: outside_funders]].
+It runs on Solana devnet, in test money. 1,617 tests pass. Refund, key expiry, the pause and a
+time-locked upgrade were drilled against the deployed bytes. Outside funders so far: 0.
 
 ## Why now (1:33)
 

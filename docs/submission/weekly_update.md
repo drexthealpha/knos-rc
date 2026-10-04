@@ -16,7 +16,7 @@ passkey, and a verifier that takes any issuer.
 
 *On screen: the site's Numbers page.*
 
-From merge to paid took [[stat: seconds_from_merge_to_paid]] seconds at the median, on devnet.
+From merge to paid took 24 seconds at the median, on devnet.
 
 ## The hardest problem, and the decision (0:33)
 

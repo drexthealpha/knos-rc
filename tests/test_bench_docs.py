@@ -23,6 +23,22 @@ def _copy(tmp_path: Path, files) -> None:
         (tmp_path / rel).write_bytes((ROOT / rel).read_bytes())
 
 
+def _unfill(root: Path, bd, names) -> None:
+    """Once the release has filled the slots, the copied documents state those facts with numbers. The tests below add
+    statements of their own, so the facts they test are first taken back out of the copy: each sentence that states
+    one of `names` (bd.FRAMES, read across line breaks) says "not measured" there instead of the number."""
+    import re
+    for rel in bd.public_text(root):
+        doc = root / rel
+        text = old = doc.read_text(encoding="utf-8")
+        for name in names:
+            for frame in bd.FRAMES[name]:
+                text = re.sub(frame.replace(" ", r"\s+"), lambda m: m.group(0)[:m.start(1) - m.start(0)] + "not measured"
+                              + m.group(0)[m.end(1) - m.start(0):], text)
+        if text != old:
+            doc.write_text(text, encoding="utf-8")
+
+
 def test_docs_match_the_one_benchmark_source():
     assert _script("bench_docs").main(check=True) == 0
 
@@ -83,6 +99,7 @@ def test_the_release_fills_a_slot_once_with_its_number_and_a_fact(tmp_path, monk
     for rel in bd.SLOTTED:                              # the other documents that may carry them say "not measured"
         if (tmp_path / rel).is_file():
             (tmp_path / rel).write_text(bd.SLOT.sub("not measured", (tmp_path / rel).read_text(encoding="utf-8")), encoding="utf-8")
+    _unfill(tmp_path, bd, ("seconds_from_merge_to_paid", "payments_timed", "tests_passing"))
     (sub / "a.md").write_text("Median: [[stat: seconds_from_merge_to_paid]] seconds over [[stat: payments_timed]] payments.\n"
                               "[[stat: tests_passing]] tests pass. [[stat: outside_funders]] funders.\n", encoding="utf-8")
     stats = tmp_path / "stats.json"
@@ -118,6 +135,8 @@ def test_the_release_fills_a_slot_once_with_its_number_and_a_fact(tmp_path, monk
     (sub / "a.md").write_text("[[stat: made_up_number]] things.\n", encoding="utf-8")
     capsys.readouterr()
     assert bd.main(check=True, root=tmp_path) == 1 and "made_up_number" in capsys.readouterr().out
+    # and a number filled only in a document that is not pitch-facing is held to that document
+    _a_number_filled_only_outside_the_pitch_is_a_doc_fact_that_document_is_held_to(tmp_path / "outside")
 
 
 def _tree(tmp_path: Path, bd, cc) -> None:
@@ -143,6 +162,7 @@ def test_the_documents_a_judge_opens_can_carry_slots_and_this_tree_states_each_f
 def test_one_fact_has_one_value_across_every_document_and_the_site(tmp_path, capsys):
     bd, cc = _script("bench_docs"), _script("claims_check")
     _tree(tmp_path, bd, cc)
+    _unfill(tmp_path, bd, ("seconds_from_merge_to_paid", "payments_timed"))
     why, readme, page = tmp_path / "docs" / "WHY.md", tmp_path / "README.md", tmp_path / "web" / "index.html"
     kept = {p: p.read_text(encoding="utf-8") for p in (why, readme, page)}
     assert bd.main(check=True, root=tmp_path) == 0, capsys.readouterr().out
@@ -186,6 +206,7 @@ def test_one_fact_has_one_value_across_every_document_and_the_site(tmp_path, cap
 def test_the_upgrade_is_one_time_and_the_moment_it_can_execute_is_48_hours_later_everywhere(tmp_path, monkeypatch, capsys):
     bd, cc = _script("bench_docs"), _script("claims_check")
     _tree(tmp_path, bd, cc)
+    _unfill(tmp_path, bd, ("upgrade_proposed", "upgrade_executable"))
     readme, sec = tmp_path / "README.md", tmp_path / "docs" / "SECURITY.md"
     line = "\nThe upgrade was proposed on [[stat: upgrade_proposed]] and can execute from [[stat: upgrade_executable]].\n"
     for doc in (readme, sec):
@@ -228,3 +249,17 @@ def test_the_one_sentence_and_its_long_form_are_on_the_first_screen_of_the_readm
     config = (ROOT / "web" / "config.js").read_text(encoding="utf-8")
     labels = [line.split('label: "', 1)[1].split('"', 1)[0] for line in config.splitlines() if 'label: "' in line]
     assert len(labels) == 3 and all(f"**{label}:**" in first for label in labels)      # the site's three buttons, by name
+
+
+def _a_number_filled_only_outside_the_pitch_is_a_doc_fact_that_document_is_held_to(tmp_path):
+    """A slot filled only in a document that is not pitch-facing (docs/ASSURANCE.md) gets a fact with "doc", so
+    claims_check.py holds that document to the number instead of failing it as said nowhere."""
+    bd, cc = _script("bench_docs"), _script("claims_check")
+    assert bd.PITCH == cc.PITCH
+    _tree(tmp_path, bd, cc)
+    page = tmp_path / "docs" / "ASSURANCE.md"
+    page.write_text(page.read_text(encoding="utf-8") + "\nThe fuzzer tried [[stat: claim_parser_executions]] inputs.\n", encoding="utf-8")
+    bd.fill(given={"claim_parser_executions": (1234567, "a run")}, root=tmp_path)
+    fact = [f for f in json.loads((tmp_path / "docs" / "facts.json").read_text(encoding="utf-8"))["facts"]
+            if f.get("path") == "release.claim_parser_executions.value"]
+    assert fact and fact[0]["say"] == ["1,234,567"] and fact[0]["doc"] == "docs/ASSURANCE.md"

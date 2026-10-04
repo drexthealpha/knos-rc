@@ -6,7 +6,7 @@ each source file in [`programs-v2`](../programs-v2).
 
 This page describes Knos 0.3.13: `knos-pay` 2.1 and `knos-oidc` 2.1 (an upgrade of the second deployment at the same
 addresses), and two new programs, `knos-meter` and `knos-passkey`. The upgrade was proposed and approved by the
-multisig on [[stat: upgrade_proposed]] and can execute from [[stat: upgrade_executable]]. Until it executes, the
+multisig on 2026-10-04 07:17 UTC and can execute from 2026-10-06 07:17 UTC. Until it executes, the
 deployed escrow and verifier are 0.3.12's, and what this page says about work orders, judges, any-issuer keys and
 single-use pay tokens is not live yet ([section 8](#8-versions-and-what-is-live-when)). Knos runs on Solana devnet,
 the money is test USDC, and no outside security firm has reviewed anything. Report a vulnerability privately:

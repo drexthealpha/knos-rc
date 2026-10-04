@@ -160,8 +160,8 @@ Everything is on **Solana devnet**, and the money is **test USDC**. Mainnet is n
 | `knos-meter`, the count | `FUMKkcE95x2kZUj1zZTCbgcYBmJ3WXPHL8pyA8J6anX` | new in this release |
 | `knos-passkey`, a wallet from a passkey | `FQPX9i5kQxLYKZyyPgM2fVK9am3w1LSk1Cuoer1sSY85` | new in this release |
 
-The upgrade of `knos-oidc` and `knos-pay` was proposed and approved by the multisig on [[stat: upgrade_proposed]]. It
-can execute from [[stat: upgrade_executable]], 48 hours later, and not before: that delay is the rule this project
+The upgrade of `knos-oidc` and `knos-pay` was proposed and approved by the multisig on 2026-10-04 07:17 UTC. It
+can execute from 2026-10-06 07:17 UTC, 48 hours later, and not before: that delay is the rule this project
 asks its users to rely on, so it waits like anyone else. Until it executes, the two programs behave as 0.3.12
 described them: a bounty's fee is taken from the payment, only the funder's repository can sign, and there is no
 warranty, arbiter, split or standing order. Work orders, the seller's own settlement, any-issuer keys and single-use

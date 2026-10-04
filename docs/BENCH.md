@@ -315,18 +315,18 @@ refused token only when it takes the signature check on chain to tell. The token
 <!-- bench:devnet -->
 | the second deployment on devnet | measured |
 |---|---|
-| tasks funded | 10 |
-| tasks paid | 6 |
+| tasks funded | 49 |
+| tasks paid | 40 |
 | tasks funded with their own tokens by someone other than Knos, both deployments | 0 |
 | of those, paid to someone other than the funder | 0 |
 | funders among them | 0 |
 | funders who funded again after one of their tasks was paid | 0 |
-| payments timed from the merge, over the public relay's log | 2 |
-| seconds from the merge to the payment, median | 110 |
-| seconds from the merge to the payment, 90th percentile | 164 |
-| seconds from the funding comment to the funded task, median | 260 |
+| payments timed from the merge, over the public relay's log | 36 |
+| seconds from the merge to the payment, median | 24 |
+| seconds from the merge to the payment, 90th percentile | 54 |
+| seconds from the funding comment to the funded task, median | 48 |
 
-Read from the site's `stats.json` of 2026-10-03 16:04 UTC (`python scripts/bench_docs.py --stats stats.json`).
+Read from the site's `stats.json` of 2026-10-04 07:51 UTC (`python scripts/bench_docs.py --stats stats.json`).
 <!-- /bench:devnet -->
 
 The site's [Numbers section](https://drexthealpha.github.io/Knos/#network) shows today's count, read from the

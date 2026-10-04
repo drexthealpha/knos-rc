@@ -60,11 +60,11 @@ record: every funded order is listed for agents, and every payment adds to a pub
 
 No traction is claimed beyond these counts. Knos's own account funded every task paid so far, in test USDC. By
 3 Oct 2026 the two deployments had made 15 payments on devnet: 3 to an outside contributor, for bounties Knos funded
-itself, and the rest to Knos's own accounts. Tasks paid on the second deployment when the release ran:
-[[stat: tasks_paid_on_the_second_deployment]]. Across both deployments, [[stat: outside_tasks_paid]] paid tasks were
-funded by someone other than Knos with their own tokens, by [[stat: outside_funders]] funders, of whom
-[[stat: funders_who_funded_again]] funded again. From
-merge to paid took [[stat: seconds_from_merge_to_paid]] seconds at the median, over [[stat: payments_timed]]
+itself, and the rest to Knos's own accounts. Tasks paid on the second deployment when the release ran: 40.
+Across both deployments, 0 paid tasks were
+funded by someone other than Knos with their own tokens, by 0 funders, of whom
+0 funded again. From
+merge to paid took 24 seconds at the median, over 36
 payments. The site's Numbers page shows today's counts, read from the programs' own logs, with Knos's own accounts
 kept apart from everyone else's.
 

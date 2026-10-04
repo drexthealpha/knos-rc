@@ -47,7 +47,7 @@ head commit and the hash of the terms.
 
 **Narration.** This one passes. She merges it, and that is the last thing anyone does. A pinned workflow reads
 GitHub's record and asks GitHub to sign what it found. The program checks the signature and pays. From merge to paid
-took [[stat: seconds_from_merge_to_paid]] seconds at the median.
+took 24 seconds at the median.
 
 ## 5. The buyer deletes the workflow, and the seller still settles (1:27, 30 seconds)
 
@@ -85,4 +85,4 @@ docs/SECURITY.md, "Known limits".
 
 **Narration.** What this does not show. It is devnet and test money. No outside security firm has reviewed it, and
 until one has, I can change these programs, through a multisig, after a public 48-hour delay. In a private
-repository a buyer can still withhold. Outside funders so far: [[stat: outside_funders]].
+repository a buyer can still withhold. Outside funders so far: 0.

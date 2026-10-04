@@ -44,7 +44,7 @@ buyer's own system of record does the counting, for any seller.
 |---|---|---|---|
 | A vendor that bills per merged change, and its customer | The contract already exists. Its size is not published by any vendor above. | A count neither side keeps (Meter), a statement both accept, privacy for private repositories (Control) | A first vendor. No outside party has used Meter. |
 | Teams and foundations that hold USDC and pay strangers per outcome | Immunefi: "$140M+ paid" across "650+ protocols" **[sourced]** ([immunefi.com](https://immunefi.com)). Superteam Earn: 2,730+ sponsors, 15.9 million USD in total **[sourced]** ([superteam.fun/earn](https://superteam.fun/earn); [its stats](https://superteam.fun/api/homepage/stats), field `totalInUSD`) | Settlement on a merge and named checks, in place of judging every submission by hand (Settle) | Mainnet, and a review by a security firm. Neither exists. |
-| Open-source companies that post bounties | Algora charges them 9% **[sourced]** ([pricing](https://algora.io/pricing)); every open bounty on every board came to 64,291 USD **[sourced]** ([BountyOS](https://bountyos.rovidev.com/en/github-bounty-board/), read 2 Oct 2026) | A lower fee, and payment on the day of the merge, not days later: from merge to payment took [[stat: seconds_from_merge_to_paid]] seconds at the median, over [[stat: payments_timed]] payments ([BENCH.md](BENCH.md)) | Money a bank accepts. Knos pays USDC. |
+| Open-source companies that post bounties | Algora charges them 9% **[sourced]** ([pricing](https://algora.io/pricing)); every open bounty on every board came to 64,291 USD **[sourced]** ([BountyOS](https://bountyos.rovidev.com/en/github-bounty-board/), read 2 Oct 2026) | A lower fee, and payment on the day of the merge, not days later: from merge to payment took 24 seconds at the median, over 36 payments ([BENCH.md](BENCH.md)) | Money a bank accepts. Knos pays USDC. |
 | Engineering teams with private repositories that buy fixed-scope changes from outside | Not measured. They pay by contract and invoice. | Budgets, policy, statements, exports, private settlement (Control) | A company that answers for the service: see [CONTROLS.md](CONTROLS.md) |
 
 Bounties on issues are where Knos starts, not a business: 2.5% of every open bounty on every board is 1,607 USD.
@@ -304,7 +304,7 @@ A seller who checks each attempt that carefully loses money on a 20 USDC order a
 - The price of a merged change. Sourcegraph and GitStart do not publish theirs.
 - How many repositories have installed the check.
 - How long a merge takes to become a payment across many repositories. On devnet, from merge to payment took
-  [[stat: seconds_from_merge_to_paid]] seconds at the median, over [[stat: payments_timed]] payments
+  24 seconds at the median, over 36 payments
   ([BENCH.md](BENCH.md)), all in Knos's own repositories.
 - How many payees can turn USDC into money they can spend, and in which countries.
 - How these payments are regulated and taxed. [REGULATION.md](REGULATION.md) says what was read and what was not.

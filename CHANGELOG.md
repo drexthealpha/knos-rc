@@ -12,8 +12,8 @@ has reviewed anything. One of them confirmed seven defects in 0.3.12 by reading 
 ### What is live, and when
 
 The escrow and the verifier are upgraded at their existing addresses, through the multisig, with its public 48-hour
-delay. The upgrade was proposed and approved by the multisig on [[stat: upgrade_proposed]] and can execute from
-[[stat: upgrade_executable]].
+delay. The upgrade was proposed and approved by the multisig on 2026-10-04 07:17 UTC and can execute from
+2026-10-06 07:17 UTC.
 `knos status` and the site's banner show it while it is pending.
 
 | | live |
