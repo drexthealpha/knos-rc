@@ -102,6 +102,29 @@ def test_relay_carries_one_token_from_a_file_and_prints_the_result_as_json(world
     assert ran == ["once", (280.0, 3.0), (60.0, 1.5)]
 
 
+def test_relay_reads_a_key_tokens_issuer_url_from_the_comment_that_carried_it(world, tmp_path, monkeypatch):
+    """The comment the rotate workflow posts names the issuer on a `knos-issuer:` line, as the worker reads it
+    (ghrelay.tokens): `knos relay --token-file <that comment>` hands the relay the same URL, with no --terms-file."""
+    c, net, knos = world
+    carried = []
+    monkeypatch.setattr(ghrelay, "carry", lambda ledger, payer, jwt, terms=None: carried.append((jwt, terms)) or {"ok": False, "kind": "key", "why": "spied"})
+    jwt = "eyJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJrbm9zLW9pZGM6aWtleSJ9.c2lnbmF0dXJl"
+    (tmp_path / "key").write_text(ghrelay.token_comment("key", jwt, "https://agent.buildkite.com"), encoding="utf-8")
+    assert ghrelay.tokens([{"body": (tmp_path / "key").read_text(), "issue_url": "x/8"}])[0].terms == b"https://agent.buildkite.com"
+    assert knos("relay", "--token-file", tmp_path / "key")[0] == 1
+    assert carried[-1] == (jwt, b"https://agent.buildkite.com")                 # what the worker would have carried
+    # a fund comment's terms line still rides; a key comment's knos-terms line is not its issuer; --terms-file wins
+    (tmp_path / "fund").write_text(ghrelay.token_comment("fund", jwt, TERMS), encoding="utf-8")
+    knos("relay", "--token-file", tmp_path / "fund")
+    assert carried[-1] == (jwt, TERMS)
+    (tmp_path / "odd").write_text(f"knos-key: {jwt}\nknos-terms: {TERMS.decode()}\n", encoding="utf-8")
+    knos("relay", "--token-file", tmp_path / "odd")
+    assert carried[-1] == (jwt, None)
+    (tmp_path / "url").write_text("https://issuer.example\n", encoding="utf-8")
+    knos("relay", "--token-file", tmp_path / "key", "--terms-file", tmp_path / "url")
+    assert carried[-1] == (jwt, b"https://issuer.example")
+
+
 # -- knos keys -----------------------------------------------------------------------------------------------------------------
 def test_keys_lists_what_the_verifier_holds_and_ends_1_when_an_issuers_key_is_missing_unusable_or_expiring(world, monkeypatch):
     c, net, knos = world

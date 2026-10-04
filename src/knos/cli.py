@@ -351,7 +351,9 @@ def relay(token_file: Path = typer.Option(None, "--token-file", "--token", help=
             ghrelay.once()
         return
     text = token_file.read_text(encoding="utf-8")
-    found, said = ghrelay.TOKEN.search(text), ghrelay.TERMS.search(text)      # the token alone, or the comment that carried it
+    found = ghrelay.TOKEN.search(text)                                  # the token alone, or the comment that carried it
+    # what travels beside it, read as the worker reads it (ghrelay.tokens): a key token's `knos-issuer:` line, else `knos-terms:`
+    said = (ghrelay.ISSUER if found and found.group(1) == "key" else ghrelay.TERMS).search(text)
     terms = terms_file.read_bytes().strip() if terms_file else said.group(1).encode() if said else None
     r = ghrelay.carry(_ledger(), chain.key(), found.group(2) if found else text.strip(), terms)
     if r.get("ok"):
