@@ -82,7 +82,20 @@ What this cannot show:
 
 `python scripts/backtest_paid.py` (with a GitHub token) writes `docs/backtest_paid.json`: of the merged pull requests that were paid a bounty on Algora or Opire (labels and commands: [Algora](https://remotion.dev/bounties), [Opire](https://github.com/abdulmajeedsualihu/Autokey/issues/1)), how many had a failed check at the commit that was merged.
 
-**Not run.** The release run executes it and fills this block; until then there is no number here, and none is taken from another measurement.
+Read 2026-10-04: 48 closed bounty issues created 2026-01-08 – 2026-10-04, 41 merged pull requests linked from them, 17 of them paid by the platform's own account of it (24 had no such comment and are left out). **At the head commit, 4 of 15 (26.7%) had a failed check** (95% Wilson interval 10.9%–51.9%). At the commit the merge made: 5 of 16 (31.2%, 14.2%–55.6%). At either: 7 of 15 (46.7%, 24.8%–69.9%).
+
+| platform | issues | merged pull requests | paid | classified at the head | failed at the head |
+|---|---|---|---|---|---|
+| Algora | 47 | 40 | 17 | 15 | 4 |
+| Opire | 1 | 1 | 0 | 0 | 0 |
+
+What this cannot show:
+
+- How a platform marks a PAID bounty: neither platform documents what its bot writes on GitHub when it pays. `paid` is the rule in DEFINITIONS; a bounty paid without a bot comment is counted as `unpaid`
+- Money: no amount is read. A comment can say paid for a tip, and a bounty can be paid in parts
+- Whether the check was failing when the maintainer merged: CI is read as it is on the day of the run. A check re-run later shows its last result, and a check can fail after a merge (`failed_at_merge`)
+- Which checks a Knos bounty on these issues would have required: none of them had one. This counts merges with a failed check, not payments refused
+- Bounties in general: these are the newest closed issues per window that GitHub's search returned for the platform's label (and, for Opire, text), not a random sample, and only public repositories
 <!-- backtest_paid:end -->
 
 ## The verifier on chain (knos-oidc)

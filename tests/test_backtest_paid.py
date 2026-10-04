@@ -1,7 +1,8 @@
 """scripts/backtest_paid.py: of the merged pull requests that were paid a bounty on Algora or Opire, how many had a failed
 check. Offline: GitHub's answers are recorded in the shapes its REST API documents (search/issues, issue timeline, comments,
 pulls, commit status, check runs) and handed to the script as `get`. Until the release run, the committed document says `not
-run`."""
+run`; once the release run has filled it, the document and the block of docs/BENCH.md are the script's own output, and its
+numbers add up."""
 
 from __future__ import annotations
 
@@ -142,21 +143,38 @@ def test_windows_and_queries_cover_the_labels_and_the_opire_text():
     assert len(bp.queries("opire", "a", "b")) == 2 and "reward using Opire" in bp.queries("opire", "a", "b")[1]
 
 
-def test_the_document_and_the_block_say_not_run_until_the_release_run_fills_them(tmp_path):
+def test_the_document_and_the_block_say_not_run_until_the_release_run_fills_them_and_then_are_the_scripts_own(tmp_path):
     committed = json.loads((ROOT / "docs" / "backtest_paid.json").read_text(encoding="utf-8"))
-    assert committed["status"] == "not run" and "paid" not in committed and "issues" not in committed
     bench = (ROOT / "docs" / "BENCH.md").read_text(encoding="utf-8")
     block = bench.split("<!-- backtest_paid:begin -->")[1].split("<!-- backtest_paid:end -->")[0]
-    assert "**Not run.**" in block and "%" not in block and "Wilson" not in block and "| platform |" not in block
+    # the block is exactly what the script writes from the committed document: not one word of it typed by hand
+    assert bp.update_bench(bench, committed) == bench
+    if committed["status"] == "not run":
+        assert "paid" not in committed and "issues" not in committed
+        assert "**Not run.**" in block and "%" not in block and "Wilson" not in block and "| platform |" not in block
+    else:
+        # the release run filled them: the whole of a run's document, and its counts add up
+        assert committed["status"] == "run" and {"read", "window", "queries", "issues", "merged_prs", "paid", "unpaid", "platforms",
+                                                 "evidence", "cannot_show"} <= set(committed)
+        p, platforms = committed["paid"], committed["platforms"].values()
+        assert committed["merged_prs"] == p["paid"] + committed["unpaid"]
+        assert committed["issues"] == sum(v["issues"] for v in platforms) and p["paid"] == sum(v["paid"]["paid"] for v in platforms)
+        assert len(committed["evidence"]) == min(p["paid"], 200) and all(e["comment"].startswith("https://github.com/") for e in committed["evidence"])
+        for name in ("failed_at_head", "failed_at_merge", "failed_at_head_or_merge"):
+            s = p[name]
+            assert 0 <= s["prs"] <= s["of"] <= p["paid"] and s["ci95"] == agent_pr_index.wilson(s["prs"], s["of"])
+        assert "**Not run.**" not in block and f"{p['failed_at_head']['prs']} of {p['failed_at_head']['of']}" in block and "| platform |" in block
     # the same run on the recorded world fills the block and the file; running `--not-run` again puts the words back
+    empty = bp.update_bench(bench, bp.not_run())
     out = bp.run(world(), dt.date(2026, 10, 1), 30, 1, 100)
-    filled = bp.update_bench(bench, out)
+    filled = bp.update_bench(empty, out)
     assert "**At the head commit, 2 of 3 (66.7%) had a failed check**" in filled and "Not run." not in filled.split("backtest_paid:begin")[1].split("backtest_paid:end")[0]
-    assert bp.update_bench(filled, bp.not_run()) == bench
+    assert bp.update_bench(filled, bp.not_run()) == empty
     docs, bench_copy = tmp_path / "out.json", tmp_path / "BENCH.md"
     bench_copy.write_text(bench, encoding="utf-8")
     assert bp.main(["--not-run", "--out", str(docs), "--bench", str(bench_copy)]) == 0
-    assert json.loads(docs.read_text(encoding="utf-8")) == committed and bench_copy.read_text(encoding="utf-8") == bench
+    assert json.loads(docs.read_text(encoding="utf-8")) == json.loads(json.dumps(bp.not_run())) and bench_copy.read_text(encoding="utf-8") == empty
+    assert committed["status"] == "run" or json.loads(docs.read_text(encoding="utf-8")) == committed
 
 
 def test_main_reads_through_the_cached_gh_reader_and_stops_when_out_of_time(tmp_path, monkeypatch):

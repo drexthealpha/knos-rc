@@ -202,6 +202,9 @@ from_devnet() {
   need solana-test-validator "It comes with the Solana command line tools."
   local port="${KNOS_LOCAL_PORT:-8899}" from="${KNOS_CLONE_FROM:-https://api.devnet.solana.com}" n
   KEYS="$WORK/keys" PAYER="$WORK/keys/payer.json" LEDGER="$WORK/ledger" RPC="http://127.0.0.1:$port" OWN=1
+  # the members are the keys made below (member-N.json in $KEYS), never the operator's own: governance.mjs takes
+  # KNOS_MEMBERS before the key folder, and a release shell has it set to the real members' files
+  unset KNOS_MEMBERS
   mkdir -p "$KEYS"
   for n in payer member-1 member-2 member-3 member-4 member-5; do solana-keygen new --no-bip39-passphrase --silent --force --outfile "$KEYS/$n.json" >/dev/null; done
   # both multisig accounts as the cluster has them, with each member's key replaced by one made above (sorted, as the
@@ -257,11 +260,21 @@ noop_buffer() {
   sol program set-buffer-authority "$BUFFER" --new-buffer-authority "$VAULT" >/dev/null || die "the buffer $BUFFER could not be handed to the upgrade vault."
 }
 
-# proposes the upgrade to $BUFFER: INDEX (the proposal) and FROM (the unix time its time lock ends)
-INDEX="" FROM=""
+# proposes the upgrade to $BUFFER: INDEX (the proposal) and FROM (the unix time its time lock ends). GATE says how the
+# upgrade gate took it. The no-op buffer holds the bytes the program already runs; a build deployed before the gate
+# existed (the 2.0 programs) has no record there, and none can be made for it, so governance.mjs refuses it first, and
+# the drill then proposes it with --ungated: the gate is checked to refuse, and the time lock and the vote are what
+# this drill is about. A build the gate has a record of is proposed as it is.
+INDEX="" FROM="" GATE=""
 propose() {
   local iso
-  gov upgrade propose "$NAME" "$BUFFER" || die "the upgrade could not be proposed."
+  if gov upgrade propose "$NAME" "$BUFFER"; then
+    GATE="the upgrade gate holds a record that GitHub built it"
+  else
+    grep -q "the upgrade gate has no record that GitHub built" "$OUT" || die "the upgrade could not be proposed."
+    GATE="governance.mjs refused it first because the upgrade gate holds no record of these bytes (deployed before the gate existed), so it was proposed with --ungated"
+    gov upgrade propose "$NAME" "$BUFFER" --ungated || die "the upgrade could not be proposed, even with --ungated."
+  fi
   INDEX="$(sed -n 's/^on chain now: proposal \([0-9][0-9]*\) of the upgrade multisig is approved.*/\1/p' "$OUT")"
   [ -n "$INDEX" ] || die "the proposal is not approved: the member keys given are fewer than the multisig's threshold. Set KNOS_MEMBERS to enough of them."
   iso="$(sed -n 's/.*it can be executed from \([0-9TZ:-]*\) .*/\1/p' "$OUT")"
@@ -295,7 +308,7 @@ noop_buffer 1
 propose
 FIRST="$INDEX"
 [ "$((FROM - $(now)))" -gt "$((LOCK - 3600))" ] || die "proposal $FIRST can be executed $(day "$FROM"), which is not 48 hours after its approval."
-passed "an upgrade is proposed" "on $SETUP: the bytes $NAME already runs, in buffer $BUFFER owned by the vault; proposal $FIRST of the upgrade multisig is approved and can be executed from $(day "$FROM"), 48 hours after the vote"
+passed "an upgrade is proposed" "on $SETUP: the bytes $NAME already runs, in buffer $BUFFER owned by the vault; proposal $FIRST of the upgrade multisig is approved and can be executed from $(day "$FROM"), 48 hours after the vote; $GATE"
 
 step 3 "it cannot be executed before the 48 hours"
 refused "It cannot be executed before that" upgrade execute "$FIRST"
