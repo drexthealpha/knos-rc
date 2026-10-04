@@ -739,7 +739,7 @@ mod tests {
         assert_eq!(pins::ISSUERS.len(), pins::ISSUER_OTHER as usize);
         assert_eq!((key_tail(0), key_tail(1), key_tail(2), key_tail(3)), (0, 0, KEY_TAIL, KEY_TAIL));
         // an issuer account is shorter than a key's header plus a modulus and than a token's header
-        assert!(ISS_HDR + MAX_ISS < K_HDR + 8 * 64 && ISS_HDR + MAX_ISS < T_JWT && ISS_STATE != VERIFIED && ISS_STATE > 1);
+        const { assert!(ISS_HDR + MAX_ISS < K_HDR + 8 * 64 && ISS_HDR + MAX_ISS < T_JWT && ISS_STATE != VERIFIED && ISS_STATE > 1) };
     }
 
     #[test]
