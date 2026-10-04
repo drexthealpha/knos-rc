@@ -723,7 +723,7 @@ def mainnet_check_cmd(as_json: bool = typer.Option(False, "--json")) -> None:
 # ---- knos status: the second deployment's health (one block, so it merges cleanly) ----------------
 
 @app.command("status")
-def status_cmd(as_json: bool = typer.Option(False, "--json", help='print the checks as data instead of lines: {"checks": [{"check", "pass", "evidence", "next"}], "passed", "of"}; the exit code is the same')) -> None:
+def status_cmd(as_json: bool = typer.Option(False, "--json", help='print the checks as data instead of lines: {"cluster", "checks": [{"check", "pass", "evidence", "next"}], "overall", "passed", "of"}; the exit code is the same')) -> None:
     """Is the second deployment running as designed? Reads Solana (KNOS_RPC, default devnet) and GitHub's key list, and
     says for each of twelve things whether it holds and, when it does not, what to do. Exit 1 while any fails. With
     --json the same answer is one JSON document: each check's name, whether it passes, what was read, and its next step."""

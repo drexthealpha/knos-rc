@@ -114,6 +114,7 @@ class Fetch:
     now: Callable[[], int]
     elsewhere: Callable[[str], dict[str, bool | None]]
     refunded: "Callable[[str], tuple[int, int] | None] | None" = None    # (refunds found, transactions read) in a program's newest transactions; None: not readable
+    cluster: Callable[[], str] | None = None    # the RPC's cluster, named from its genesis hash; None: "unknown"
 
 
 class Unreachable(Exception):
@@ -780,11 +781,19 @@ def _refunded(url: str) -> Callable[[str], tuple[int, int] | None]:
     return refunded
 
 
+def _cluster(url: str) -> str:
+    """Name the RPC's cluster from Solana's genesis hash, without exposing the endpoint URL."""
+    try:
+        return GENESIS.get(chain.call(url, "getGenesisHash", []), "unknown")
+    except Exception:  # noqa: BLE001 - status still reports its checks when the cluster cannot be identified
+        return "unknown"
+
+
 def live(env: dict | None = None) -> Fetch:
     env = os.environ if env is None else env
     url = env.get("KNOS_RPC") or env.get("KNOS_SOLANA_RPC") or PUBLIC["devnet"]
     return Fetch(account=_rpc(url), verified=_verified(env), program_checks=_program_checks, get=_get, review=_review,
-                 now=chain.Ledger(url).now, elsewhere=_elsewhere(url), refunded=_refunded(url))
+                 now=chain.Ledger(url).now, elsewhere=_elsewhere(url), refunded=_refunded(url), cluster=lambda: _cluster(url))
 
 
 def main(say: Callable[[str], None] = print, fetch: Fetch | None = None, as_json: bool = False) -> int:
@@ -805,11 +814,13 @@ def main(say: Callable[[str], None] = print, fetch: Fetch | None = None, as_json
 
 def status_main(say: Callable[[str], None] = print, fetch: Fetch | None = None, as_json: bool = False) -> int:
     """`knos status`: exit 0 only when every check passes."""
-    got = status(fetch or live())
+    source = fetch or live()
+    got = status(source)
     passed = sum(c.ok for c in got)
     if as_json:
-        say(json.dumps({"checks": [{"check": c.name, "pass": c.ok, "evidence": c.evidence, "next": c.todo if not c.ok else ""} for c in got],
-                        "passed": passed, "of": len(got)}, indent=1))
+        say(json.dumps({"cluster": source.cluster() if source.cluster else "unknown",
+                        "checks": [{"check": c.name, "pass": c.ok, "evidence": c.evidence, "next": c.todo if not c.ok else ""} for c in got],
+                        "overall": passed == len(got), "passed": passed, "of": len(got)}, indent=1))
         return 0 if passed == len(got) else 1
     for c in got:
         say(f"{'PASS' if c.ok else 'FAIL'}  {c.name}  ({c.evidence})")
