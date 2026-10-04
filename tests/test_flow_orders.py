@@ -731,6 +731,25 @@ def test_every_settlement_is_remembered_and_a_funding_proposes_terms_from_that_m
     assert "changes under `docs/guide` failed `lint` 4 times: add it?" in w.hub.knos(10)[-1] and "as a work order" in w.hub.knos(10)[-1]
 
 
+
+def test_a_pull_request_paid_stays_paid_in_memory_when_another_run_settles_it_later_and_refuses(tmp_path):
+    """A merge's settlement (prove.yml's merged job) and attest can settle one pull request at the same commit at once:
+    the run that refused learns after the one that paid, under the same lesson's name. The payment stands."""
+    from knos.proof import history, memory
+    w = World(tmp_path)
+    w.hub.required = [{"context": "test", "integration_id": 15368}]
+    w.chain.bind(MONA)
+    assert merged_round(w, 20, 40, ["src/parser/lex.py"], [check("test"), check("build")]).startswith("Knos: paid.")
+    late = w.run(w.hub.merge(40))
+    flow._learn(late, w.hub.pulls[40], [], [], [])                                   # the other run: no case of it was paid
+    # the judge's memory in that run (what it judges from next) still says paid, and it posted nothing
+    assert [b["paid"] for b in history.SibylStore.local(late.scratch() / "memory").all("settlement")] == [True]
+    kept = [x for x in memory.read("o/r", w.hub)[1] if x["category"] == "settlement"]
+    assert [(x["body"]["pull"], x["body"]["paid"]) for x in kept] == [(40, True)]
+    store = history.SibylStore.local(tmp_path / "next")
+    memory.pull("o/r", store, w.hub)
+    assert [b["paid"] for b in store.all("settlement")] == [True] and flow.suggest_terms("o/r", store)["checks"] == []
+
 def _assign_bytes(order, payee_id: int, to, since: int) -> bytes:
     """An assignment as knos_pay 24 Assign lays it out (order_terms.rs A_*): the wallet an order pays in a payee's place."""
     d = bytearray(88)

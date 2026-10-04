@@ -2498,7 +2498,9 @@ def _learn(run: Run, pull: dict, cases: list[Case], runs, statuses) -> None:
         if store is None:
             run.note("Knos: the judge's memory (the knos-memory issue) could not be read, so what this settlement showed was not kept.")
             return
-        store.put("settlement", history._id("settlement", body["repo"], number, head), body)
+        # as a lesson read from the issue is loaded: a "not paid" never takes back a "paid" for the same pull request at
+        # the same commit (a merge's settlement and the attestor's run can settle it at the same moment)
+        history.import_lessons(store, [{"category": "settlement", "name": history._id("settlement", body["repo"], number, head), "body": body}])
         memory.push(run.repo, store, run.github, run.github, str(run.env.get("GITHUB_RUN_ID") or ""))
     except Exception as why:  # noqa: BLE001
         run.note(f"Knos: what this settlement showed could not be written to the knos-memory issue ({_short(why)}).")
