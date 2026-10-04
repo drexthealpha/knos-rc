@@ -75,9 +75,14 @@ def test_cluster_time_is_the_slowest_ceiling():
 class FakeRpc:
     """The JSON-RPC methods scripts/load.py calls, answered by LiteSVM with the test builds of both programs. A
     transaction is `confirmed` the first time its status is asked and `finalized` the third. `drop(k)`: the k-th
-    submission is acknowledged and thrown away, as a cluster under load does; `refuse(program, tag)`: preflight fails."""
+    submission is acknowledged and thrown away, as a cluster under load does; `refuse(program, tag)`: preflight fails.
+    A transaction may be signed over any of the last 150 blockhashes, as on a cluster: LiteSVM takes only its newest,
+    and every landed transaction moves it on, so with three senders one of them could see its blockhash expire before
+    it sent four times running. Its own check is off, and this one stands in for it."""
     def __init__(self, drop=lambda k: False, refuse=lambda program, tag: False):
         self.c = Chain2(programs={pay.PAY_ID: "knos_pay_v2_test.so"})
+        self.c.svm = self.c.svm.with_blockhash_check(False)
+        self.recent = [str(self.c.svm.latest_blockhash())]
         self.drop, self.refuse, self.lock = drop, refuse, threading.Lock()
         self.asked: dict[str, int] = {}
         self.seen: set[str] = set()
@@ -115,6 +120,8 @@ class FakeRpc:
         ix = tx.message.instructions[-1]
         if self.refuse(keys[ix.program_id_index], bytes(ix.data)[0]):
             raise chain.RpcError("Transaction simulation failed: refused on purpose")
+        if str(tx.message.recent_blockhash) not in self.recent[-150:]:
+            raise chain.RpcError("Transaction simulation failed: Blockhash not found")
         if sig not in self.seen and self.drop(self.submissions):
             self.seen.add(sig)
             return sig
@@ -123,6 +130,7 @@ class FakeRpc:
         if "Failed" in type(r).__name__:
             raise chain.RpcError(f"Transaction simulation failed: {r.err()}")
         self.c.svm.expire_blockhash()        # the next slot: a new recent blockhash
+        self.recent.append(str(self.c.svm.latest_blockhash()))
         self.asked[sig] = 0
         return sig
 
