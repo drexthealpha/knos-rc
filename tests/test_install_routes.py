@@ -218,6 +218,8 @@ def test_the_install_page_names_one_release_and_says_why_two_registries_are_miss
     dep = _toml(crate)["dependencies"]["knos-oidc-interface"]
     assert dep == {"git": f"https://github.com/{REPO}", "tag": f"v{tag}"} and tarball == tag
     assert set(re.findall(r"drexthealpha/Knos@v([\d.]+)", page)) == {tag}
+    # and no sentence about it names another release (a third party's action pin is the comment after its sha: `# v10.2.0`)
+    assert set(re.findall(r"(?<!# )\bv(\d+\.\d+\.\d+)\b", page)) == {tag}
     # The page is written for the release being built, and pyproject.toml moves at the release itself: until then the
     # page may be ahead of it. It may never name an older release than the package's.
     as_numbers = lambda v: tuple(int(x) for x in v.split("."))  # noqa: E731

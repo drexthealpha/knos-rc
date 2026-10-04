@@ -236,7 +236,7 @@ needs, so it also works on pull requests from forks, and it never needs `pull_re
 
 Keep it in a workflow file of its own and keep the job's name: Knos does not count the jobs of its own workflow run
 as evidence, and it knows its earlier runs on a commit by a name that starts with `knos`. A tag can be moved; to
-pin what runs, write the release's full commit sha in place of `v0.3.12`.
+pin what runs, write the release's full commit sha in place of the tag after `@`.
 
 To also pay for merged work, a repository uses [`examples/knos-workflow.yml`](../examples/knos-workflow.yml)
 instead.
