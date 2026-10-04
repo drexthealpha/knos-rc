@@ -78,7 +78,7 @@ jobs:
     uses: drexthealpha/knos-workflows/.github/workflows/attest.yml@def6ac689479af2225c1b022ed078c2388b87800
     with:
       repository: ${{ inputs.repository }}
-      pull: ${{ inputs.pull }}
+      pull: ${{ fromJSON(inputs.pull) }}       # a number input started by hand reaches here as text, and the called workflow takes a number
       order: ${{ inputs.order }}
       kind: ${{ inputs.kind }}
       payees: ${{ inputs.payees }}

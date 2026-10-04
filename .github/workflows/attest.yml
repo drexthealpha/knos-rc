@@ -101,7 +101,7 @@ permissions: {}
 jobs:
   attest:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15     # the command waits up to 10 minutes (knos.flow.RELAY_WAIT) for a relayer, and then says what became of the token
     cache-mode: read
     permissions:
       contents: read          # GitHub's public record, read through its API (there is no checkout)

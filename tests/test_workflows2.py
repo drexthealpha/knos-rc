@@ -364,7 +364,8 @@ def test_untrusted_text_reaches_a_shell_only_through_the_event_file_or_env():
     the commands read the event from the file GitHub wrote."""
     # what an action or a called workflow is handed from an event or another job: the address for the claim workflow,
     # the one the owner types into "Run workflow" (it takes it as an input, into its own env), and nothing else
-    handed = {"${{ inputs.address }}", *(f"${{{{ inputs.{i} }}}}" for i in ATTEST_INPUTS)}
+    # (the pull request's number goes through fromJSON: started by hand it is text, and attest.yml takes a number)
+    handed = {"${{ inputs.address }}", "${{ fromJSON(inputs.pull) }}", *(f"${{{{ inputs.{i} }}}}" for i in ATTEST_INPUTS if i != "pull")}
     written_by_others = re.compile(r"github\.event\.|github\.head_ref|github\.ref_name|\binputs\.|\bneeds\.|\bsteps\.")
     for path in _mine():
         for job_name, job in _doc(path)["jobs"].items():
@@ -957,7 +958,9 @@ def test_the_seller_calls_attest_by_hand_from_a_repository_of_his_own_and_it_ask
     mine, theirs = doc["on"]["workflow_dispatch"]["inputs"], _doc(WF / ATTEST)["on"]["workflow_call"]["inputs"]
     assert set(mine) == set(theirs) and {k: v["required"] for k, v in mine.items()} == {k: v["required"] for k, v in theirs.items()}
     assert mine["kind"]["type"] == "choice" and mine["kind"]["options"] == ["pay", "take", "revert", "rule", "eval"]       # eval: a buyer's, for knos_meter
-    assert job["with"] == {k: f"${{{{ inputs.{k} }}}}" for k in ATTEST_INPUTS}
+    # a number input started by hand reaches the caller as text, and attest.yml's `pull` is a number: fromJSON makes it one
+    # (C2: run 37179523007 of knos-seller-rc failed "Line: 77, Col: 13: Unexpected value '114'" with `${{ inputs.pull }}`)
+    assert job["with"] == {k: "${{ fromJSON(inputs.pull) }}" if k == "pull" else f"${{{{ inputs.{k} }}}}" for k in ATTEST_INPUTS}
     text = (EXAMPLES / "knos-attest.yml").read_text(encoding="utf-8")
     said = _comments(EXAMPLES / "knos-attest.yml")
     for words in ("Actions > knos attest > Run workflow", "Nothing else starts it", "it writes one comment", "What it can do in this repository",
@@ -966,6 +969,103 @@ def test_the_seller_calls_attest_by_hand_from_a_repository_of_his_own_and_it_ask
                   "it is no use for another", "A buyer who deletes his own workflow"):
         assert words in said, words
     assert not re.search(r"\bimmutable\b|nobody can change|audit", text, re.I)
+
+
+def _with_type(value, caller: dict) -> str:
+    """The type GitHub gives a `with:` value of a calling job when it evaluates it against the called workflow's typed
+    inputs: "number", "boolean", "string", "any" (fromJSON: whatever the text says) or "unknown". An input of a run
+    started by hand (`workflow_dispatch`) is text in the `inputs` context unless it is a boolean, and always text in
+    `github.event.inputs`; an input of a called workflow keeps its declared type. Text around an expression makes a string."""
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, (int, float)):
+        return "number"
+    text = str(value)
+    if "${{" not in text:
+        return "string"
+    m = re.fullmatch(r"\$\{\{\s*(.*?)\s*\}\}", text.strip(), re.S)
+    if m is None:
+        return "string"
+    expr = m.group(1)
+    if re.fullmatch(r"(?i)fromJSON\(.*\)", expr, re.S):
+        return "any"
+    if re.fullmatch(r"github\.event\.(pull_request|issue)\.number", expr):
+        return "number"
+    if re.fullmatch(r"github\.event\.inputs\.[\w-]+", expr):
+        return "string"
+    m = re.fullmatch(r"inputs\.([\w-]+)", expr)
+    if m is None:
+        return "unknown"
+    by_hand = ((caller.get("workflow_dispatch") or {}).get("inputs") or {}).get(m.group(1))
+    called = ((caller.get("workflow_call") or {}).get("inputs") or {}).get(m.group(1))
+    if by_hand is not None:         # started by hand, it is text, whatever else could start it
+        return "boolean" if by_hand.get("type") == "boolean" else "string"
+    return (called or {}).get("type", "unknown")
+
+
+def _callers() -> list[Path]:
+    """Every file a repository installs or Knos runs that can call a reusable workflow: Knos's own, the examples (at any
+    depth), and the copies the command line writes (src/knos/settle/*.yml)."""
+    found = {*WF.glob("*.yml"), *EXAMPLES.rglob("*.yml"), *(ROOT / "src" / "knos" / "settle").glob("*.yml")}
+    return sorted(p for p in found if "jobs" in (_doc(p) or {}))
+
+
+def test_every_value_handed_to_a_typed_input_of_a_called_workflow_has_that_type_when_github_evaluates_it():
+    """GitHub refuses a run, before any job starts, when a calling job hands a called workflow's `type: number` or
+    `type: boolean` input a value of another type ("Unexpected value '114'"), and when it names an input the called
+    workflow does not define or leaves out one it requires. C2 found examples/knos-attest.yml handing a number input
+    started by hand (text) straight to attest.yml's number `pull`: every seller's settlement failed. This reads every
+    caller as GitHub does. A called workflow outside this repository (the claim workflows of knos-oidc-rotate) is not
+    read here, so what is handed to it from a run started by hand must be text of a text input, or go through fromJSON."""
+    seen = 0
+    for path in _callers():
+        doc = _doc(path)
+        caller = doc["on"] if isinstance(doc["on"], dict) else {}
+        for name, job in doc["jobs"].items():
+            uses = str(job.get("uses") or "")
+            if not uses:
+                continue
+            m = re.fullmatch(rf"(?:{re.escape(CALLED)}|\./\.github/workflows/)([\w.-]+\.yml)(?:@{SHA}|@KNOS_WORKFLOWS_SHA)?", uses)
+            given = job.get("with") or {}
+            where = f"{path.relative_to(ROOT).as_posix()} job {name}"
+            if m is None:           # not one of Knos's published workflows: only the caller's side can be checked
+                for k, v in given.items():
+                    got, by_hand = _with_type(v, caller), ((caller.get("workflow_dispatch") or {}).get("inputs") or {})
+                    src = re.fullmatch(r"\$\{\{\s*inputs\.([\w-]+)\s*\}\}", str(v).strip())
+                    if src and src.group(1) in by_hand:
+                        assert by_hand[src.group(1)].get("type", "string") in ("string", "choice"), \
+                            f"{where} hands `{k}` the {by_hand[src.group(1)].get('type')} input `{src.group(1)}` started by hand, which arrives as text: wrap it in fromJSON"
+                    assert got != "unknown" or "${{" not in str(v), f"{where}: `{k}: {v}` is an expression this test cannot type"
+                continue
+            inputs = ((_doc(WF / m.group(1))["on"].get("workflow_call") or {}).get("inputs") or {})
+            assert set(given) <= set(inputs), f"{where} hands {sorted(set(given) - set(inputs))}, which {m.group(1)} does not define"
+            missing = [k for k, v in inputs.items() if v.get("required") and k not in given]
+            assert not missing, f"{where} leaves out {missing}, which {m.group(1)} requires"
+            for k, v in given.items():
+                want, got = inputs[k].get("type", "string"), _with_type(v, caller)
+                seen += 1
+                if want in ("number", "boolean"):
+                    assert got in (want, "any"), f"{where}: `{k}: {v}` is {got} when GitHub evaluates it, and {m.group(1)}'s `{k}` is a {want}"
+    assert seen >= 5            # knos-attest.yml's five, at least: the check reads the files it means to
+    # the rule itself, on what GitHub did with the file C2 ran and with the fixed one
+    by_hand = {"workflow_dispatch": {"inputs": {"pull": {"type": "number"}, "go": {"type": "boolean"}, "who": {"type": "string"}}}}
+    called = {"workflow_call": {"inputs": {"pull": {"type": "number"}}}}
+    assert _with_type("${{ inputs.pull }}", by_hand) == "string"                 # Unexpected value '114'
+    assert _with_type("${{ fromJSON(inputs.pull) }}", by_hand) == "any"
+    assert _with_type("${{ inputs.pull }}", {**by_hand, **called}) == "string"   # either way it may be started, it is text by hand
+    assert _with_type("${{ inputs.pull }}", called) == "number" and _with_type("${{ inputs.go }}", by_hand) == "boolean"
+    assert _with_type("${{ github.event.inputs.go }}", by_hand) == "string" and _with_type("#${{ github.event.issue.number }}", by_hand) == "string"
+    assert _with_type(114, by_hand) == "number" and _with_type("${{ github.event.pull_request.number }}", by_hand) == "number"
+
+
+def test_a_job_that_waits_for_a_relayer_outlasts_the_wait_so_it_can_say_what_became_of_the_token():
+    """A job whose command can hand its token to Knos's public relay waits up to knos.flow.RELAY_WAIT for the relay's
+    word, then says what became of it. C2 (knos-seller-rc run 37180149403): attest.yml's 10 minutes cancelled the job
+    the very second the wait ran out, so the seller read "The operation was canceled" instead of what to do next."""
+    from knos import flow
+    for name, job in SIGNS:
+        minutes = _jobs(name)[job]["timeout-minutes"]
+        assert minutes * 60 >= flow.RELAY_WAIT + 4 * 60, f"{name} job {job}: {minutes} minutes leave no time after the {flow.RELAY_WAIT // 60}-minute wait"
 
 
 def test_the_attestor_calls_the_two_pinned_workflows_by_hand_or_on_a_timer_and_hands_them_its_read_token():
