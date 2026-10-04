@@ -79,4 +79,4 @@ async function main() {
   process.exit(fails ? 1 : 0);
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) await main();
+if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split(/[\\/]/).pop())) await main();

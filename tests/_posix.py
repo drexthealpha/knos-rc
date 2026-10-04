@@ -1,8 +1,9 @@
 """A POSIX bash for the tests that run a shell script (scripts/build_site.sh, an adapter's step) as GitHub's Ubuntu
 runner does. On Windows a bare `bash` is looked up in System32 first, and that is WSL's launcher, which starts a Linux
 distribution (or fails, where none is installed) instead of running the script here. So there the one taken is Git
-for Windows' bash (it comes with git; GitHub's Windows runners have it at C:\\Program Files\\Git\\bin\\bash.exe), and
-never one under the Windows folder or a Store alias. Tests only."""
+for Windows' own (GitHub's Windows runners have it under C:\\Program Files\\Git), and never one under the Windows folder
+or a Store alias: <Git>\\usr\\bin\\bash.exe, not the <Git>\\bin\\bash.exe launcher, which puts Git's own programs (its
+curl among them) before the PATH it is given, ahead of a test's stand-ins. Tests only."""
 from __future__ import annotations
 
 import os
@@ -22,13 +23,12 @@ def _launcher(p: Path) -> bool:
 def find() -> str | None:
     if os.name != "nt":
         return shutil.which("bash")
-    candidates = []
+    roots = []
     git = shutil.which("git")
-    if git:                     # <Git>\cmd\git.exe (or <Git>\bin\git.exe): its bash is <Git>\bin\bash.exe
-        candidates.append(Path(git).resolve().parents[1] / "bin" / "bash.exe")
-    for base in (os.environ.get("ProgramFiles"), os.environ.get("ProgramW6432"), r"C:\Program Files"):
-        if base:
-            candidates.append(Path(base) / "Git" / "bin" / "bash.exe")
+    if git:                     # <Git>\cmd\git.exe (or <Git>\bin\git.exe)
+        roots.append(Path(git).resolve().parents[1])
+    roots += [Path(base) / "Git" for base in (os.environ.get("ProgramFiles"), os.environ.get("ProgramW6432"), r"C:\Program Files") if base]
+    candidates = [r / "usr" / "bin" / "bash.exe" for r in roots]
     if shutil.which("bash"):
         candidates.append(Path(shutil.which("bash")))
     return next((str(c) for c in candidates if c.is_file() and not _launcher(c)), None)
@@ -40,6 +40,13 @@ def bash() -> str:
     if not found:
         pytest.skip("no POSIX bash on this machine (on Windows: Git for Windows' bash)")
     return found
+
+
+def environ(env: dict, first=()) -> dict:
+    """`env` for a script run by bash(): PATH is the folders of `first` (a test's stand-ins), then, on Windows, the
+    folder of that bash (cp, sed, grep, tr: what the runner has in /usr/bin), then the PATH of `env` or of this process."""
+    parts = [str(p) for p in first] + ([str(Path(bash()).parent)] if os.name == "nt" else [])
+    return {**env, "PATH": os.pathsep.join([*parts, env.get("PATH", os.environ.get("PATH", ""))])}
 
 
 def path(p) -> str:

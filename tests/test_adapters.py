@@ -253,8 +253,8 @@ def play(tmp_path: Path, name: str, world: dict, **env) -> list[str]:
     # what Windows needs to start a program at all (Python reads SYSTEMROOT), and no other variable of this process
     system = {k: os.environ[k] for k in ("SYSTEMROOT", "WINDIR", "TEMP", "TMP", "PATHEXT", "COMSPEC") if os.name == "nt" and k in os.environ}
     got = subprocess.run([bash, "-c", last["run"]], cwd=str(tmp_path), capture_output=True, text=True, check=False,
-                         env={**system, "PATH": f"{bin_}{os.pathsep}{os.environ['PATH']}", "WORLD": str(state), "LOG": str(log),
-                              "MSYS_NO_PATHCONV": "1", "R": "acme/app", **given, **env})     # Git's bash: arguments as written
+                         env=_posix.environ({**system, "WORLD": str(state), "LOG": str(log), "MSYS_NO_PATHCONV": "1",   # Git's bash: arguments as written
+                                             "R": "acme/app", **given, **env}, first=[bin_]))
     assert got.returncode == 0, got.stdout + got.stderr
     return [ln for ln in log.read_text(encoding="utf-8").splitlines() if not ln.startswith(("search", "curl"))]
 

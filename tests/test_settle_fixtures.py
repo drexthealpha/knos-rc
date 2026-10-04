@@ -280,9 +280,12 @@ def test_the_recorded_rpc_of_the_agent_calls_reads_the_same_in_python():
 
 
 def test_the_site_is_built_at_one_commit(tmp_path):
+    import os
+
     import _posix
     sha = "ab" * 20
-    r = subprocess.run([_posix.bash(), _posix.path(ROOT / "scripts" / "build_site.sh"), _posix.path(tmp_path / "site"), sha], capture_output=True, text=True, check=False)
+    r = subprocess.run([_posix.bash(), _posix.path(ROOT / "scripts" / "build_site.sh"), _posix.path(tmp_path / "site"), sha], capture_output=True, text=True, check=False,
+                       env=_posix.environ(dict(os.environ)))
     assert r.returncode == 0, r.stderr
     site = tmp_path / "site"
     assert {"index.html", "app.js", "front.js", "settle.js", "knos-claim.yml", "program_ids.json"} <= {p.name for p in site.iterdir()}
@@ -292,7 +295,8 @@ def test_the_site_is_built_at_one_commit(tmp_path):
     assert (site / "settle.js").read_bytes() == (ROOT / "sdk" / "settle" / "index.js").read_bytes()
     # the second deployment's addresses ship as a file, and the first deployment's are only in the page, as history
     assert (site / "program_ids.json").read_bytes() == (ROOT / "src" / "knos" / "settle" / "v2" / "program_ids.json").read_bytes()
-    assert subprocess.run([_posix.bash(), _posix.path(ROOT / "scripts" / "build_site.sh"), _posix.path(tmp_path / "x"), "main"], capture_output=True).returncode != 0
+    assert subprocess.run([_posix.bash(), _posix.path(ROOT / "scripts" / "build_site.sh"), _posix.path(tmp_path / "x"), "main"], capture_output=True,
+                          env=_posix.environ(dict(os.environ))).returncode != 0
 
 
 # -- the site's words against the code they describe -----------------------------------------------------------------

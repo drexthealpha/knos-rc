@@ -23,7 +23,7 @@ def test_no_page_scrolls_sideways(tmp_path: Path) -> None:
     if not node:
         pytest.skip("node is not installed")
     site = tmp_path / "site"
-    env = {**os.environ, "PYTHON": _posix.path(sys.executable), "PYTHONPATH": str(ROOT / "src")}
+    env = _posix.environ({**os.environ, "PYTHON": _posix.path(sys.executable), "PYTHONPATH": str(ROOT / "src")})
     if "PLAYWRIGHT_BROWSERS_PATH" not in env and Path(BROWSERS).is_dir():
         env["PLAYWRIGHT_BROWSERS_PATH"] = BROWSERS
     built = subprocess.run([_posix.bash(), _posix.path(ROOT / "scripts" / "build_site.sh"), _posix.path(site), "c" * 40],
