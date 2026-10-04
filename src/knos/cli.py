@@ -551,25 +551,54 @@ def balance_withdraw(owner: str = _OWNER, amount: str = typer.Argument(None, hel
     out.print(_tx(sig), markup=False)
 
 
+RELEASES = "drexthealpha/Knos"      # where each release's examples/ are published, at its tag v<version>
+ORDER_SEQS = 8                       # how many orders one wallet may hold on one issue at once (web/anyissue.js SEQ_TRIES)
+
+
+def _given_pin(given: str) -> tuple[str, str]:
+    import re
+    m = re.fullmatch(r"([\w.-]+/[\w.-]+)@([0-9a-f]{40})", given)
+    if not m:
+        raise Stop("--workflow is owner/name@<40-character commit>: the repository and commit of the workflows whose signed run may pay this bounty.")
+    return m.group(1), m.group(2)
+
+
+def _file_pin(name: str, ref: str, path: str, called: str) -> tuple[str, str] | None:
+    """(owner/name, commit) of the `called` workflow the file `path` of repository `name` at `ref` names at a full
+    commit, or None when there is no such file or it names none."""
+    import base64
+    import re
+    try:
+        text = base64.b64decode(_github(f"repos/{name}/contents/{path}?ref={ref}").get("content", "")).decode("utf-8", "replace")
+    except (Stop, AttributeError):
+        text = ""
+    m = re.search(rf"uses:\s*([\w.-]+/[\w.-]+)/\.github/workflows/{re.escape(called)}@([0-9a-f]{{40}})\b", text)
+    return (m.group(1), m.group(2)) if m else None
+
+
 def _pinned(name: str, branch: str, given: str | None) -> tuple[str, str]:
     """(the repository that holds the workflows a job pins, their commit): as given (owner/name@commit), else what the
     repository's own .github/workflows/knos.yml calls prove.yml from."""
-    import base64
-    import re
     if given:
-        m = re.fullmatch(r"([\w.-]+/[\w.-]+)@([0-9a-f]{40})", given)
-        if not m:
-            raise Stop("--workflow is owner/name@<40-character commit>: the repository and commit of the prove.yml whose signed run may pay this bounty.")
-        return m.group(1), m.group(2)
-    try:
-        text = base64.b64decode(_github(f"repos/{name}/contents/.github/workflows/knos.yml?ref={branch}").get("content", "")).decode("utf-8", "replace")
-    except Stop:
-        text = ""
-    m = re.search(r"uses:\s*([\w.-]+/[\w.-]+)/\.github/workflows/prove\.yml@([0-9a-f]{40})\b", text)
-    if not m:
+        return _given_pin(given)
+    found = _file_pin(name, branch, ".github/workflows/knos.yml", "prove.yml")
+    if found is None:
         raise Stop(f"{name} has no .github/workflows/knos.yml that calls prove.yml at a pinned commit, so no run there could pay this bounty.",
                    "Install Knos in the repository first, or name the workflows yourself: --workflow owner/name@<commit>")
-    return m.group(1), m.group(2)
+    return found
+
+
+def _release_pin() -> tuple[str, str]:
+    """The workflows a NEUTRAL order of this release names: the commit of attest.yml that this release's
+    examples/knos-attest.yml (the file a seller commits to run `knos attest`) calls, read at the release's tag. The
+    site's "Fund any issue" names the same commit (the Protect view's files are the same release's examples)."""
+    tag = f"v{version()}"
+    found = _file_pin(RELEASES, tag, "examples/knos-attest.yml", "attest.yml")
+    if found is None:
+        raise Stop(f"{RELEASES} at {tag} has no examples/knos-attest.yml that calls attest.yml at a pinned commit, so this copy of knos cannot "
+                   "tell which workflows a work order would name.",
+                   "Name them yourself: --workflow owner/name@<commit> (the commit the knos-attest.yml you run calls attest.yml at).")
+    return found
 
 
 @app.command("fund-wallet")
@@ -578,12 +607,15 @@ def fund_wallet(where: str = typer.Argument(..., metavar="OWNER/REPO#ISSUE"), am
                 paths: str = typer.Option(None, "--paths", help="globs the pull request's files must match, comma-separated"),
                 days: int = typer.Option(14, "--days", help="days until an unpaid bounty goes back to the wallet (1 to 90)"),
                 reserve: int = typer.Option(7, "--reserve", help="days a `/knos take` reservation lasts"),
-                workflow: str = typer.Option(None, "--workflow", metavar="OWNER/NAME@COMMIT", help="the workflows whose signed runs may pay it (default: the ones the repository installed)"),
+                workflow: str = typer.Option(None, "--workflow", metavar="OWNER/NAME@COMMIT", help="the workflows whose signed runs may pay it (default: the ones the repository installed, or for a repository with none, the ones this release's knos-attest.yml calls)"),
                 mint: str = _MINT, keypair: Path = _KEYPAIR) -> None:
     """Put a bounty on an issue straight from a wallet: anyone can add their own to any issue. It is paid when the
-    pull request that closes the issue is merged and meets the terms shown; unpaid, it goes back to the wallet."""
+    pull request that closes the issue is merged and meets the terms shown; unpaid, it goes back to the wallet. On an
+    issue of a repository that runs no Knos workflow it is a neutral work order (the fee on top), which the person
+    who did the work has paid after the merge with `knos settle --neutral`."""
     from . import commands, judge, terms
     from .settle.v2 import pay
+    from .settle.v2 import relay as second
     name, n = _issue(where)
     if not 1 <= days <= commands.MAX_DAYS:
         raise Stop(f"--days is from 1 to {commands.MAX_DAYS}.")
@@ -594,7 +626,19 @@ def fund_wallet(where: str = typer.Argument(..., metavar="OWNER/REPO#ISSUE"), am
         raise Stop(f"A bounty is from {_money(pay.MIN_AMOUNT, m, decimals)} to {_money(pay.MAX_AMOUNT, m, decimals)}.")
     repo = _github(f"repos/{name}")
     branch = str(repo["default_branch"])
-    wf_repo, wf_sha = _pinned(name, branch, workflow)
+    # A repository that runs Knos's workflow pays a job from its own prove.yml. One that runs none can pay nothing that
+    # waits for its own run: on knos-pay 2.1 the money becomes a NEUTRAL work order, as the site's "Fund any issue"
+    # makes it, and after the merge the seller's own knos-attest.yml has it paid (`knos settle --neutral`).
+    installed = _file_pin(name, branch, ".github/workflows/knos.yml", "prove.yml")
+    order = installed is None and second.version(ledger, wallet) == 1
+    if order:
+        wf_repo, wf_sha = _given_pin(workflow) if workflow else _release_pin()
+        if units < pay.units(pay.ORDER_MIN_AMOUNT, decimals):
+            raise Stop(f"{name} runs no Knos workflow, so this is a work order, and a work order holds at least "
+                       f"{_money(pay.units(pay.ORDER_MIN_AMOUNT, decimals), m, decimals)}.")
+        reserve = 0      # a reservation is a `/knos take` comment, and nothing in that repository answers one
+    else:
+        wf_repo, wf_sha = _given_pin(workflow) if workflow else _pinned(name, branch, None)
     named = None if checks is None else () if checks.strip().lower() == "none" else tuple(c.strip() for c in checks.split(",") if c.strip())
     fund = commands.Fund(units, named, tuple(p.strip() for p in (paths or "").split(",") if p.strip()), days, reserve)
     try:
@@ -607,18 +651,41 @@ def fund_wallet(where: str = typer.Argument(..., metavar="OWNER/REPO#ISSUE"), am
     except (OSError, KeyError, TypeError) as why:
         raise Stop(f"GitHub did not answer for {name}'s checks ({ghwords.first_line(why)}), so the bounty's terms could not be fixed. "
                    + (f"It refused the request: {ghwords.RATE}." if ghwords.code_of(why) in (403, 429) else "Try again.")) from None
-    me = wallet.pubkey()
-    job, source = pay.job_pda(int(repo["id"]), n, me), pay.ata(me, m, program)
-    if ledger.account(job) is not None:
-        raise Stop(f"This wallet already has a bounty on {where}: job {job}.")
+    me, repo_id = wallet.pubkey(), int(repo["id"])
+    source = pay.ata(me, m, program)
+    if order:
+        scope = pay.scope_of(repo_id, n)
+        seq = next((s for s in range(ORDER_SEQS) if ledger.account(pay.order_pda(scope, me, s)) is None), None)
+        if seq is None:
+            raise Stop(f"This wallet has already funded {where} {ORDER_SEQS} times. Use another wallet, or wait until one of those orders is paid or sent back.")
+        fee = pay.order_fee(units, decimals=decimals)
+        need, made = units + fee, pay.order_pda(scope, me, seq)
+        ix = pay.fund_order_wallet_ix(me, source, m, repo_id, n, units, wf_repo, wf_sha, raw, pay.MERGE, days * 86_400, seq,
+                                      pay.opts(pay.F_NEUTRAL), token_program=program)
+    else:
+        job = pay.job_pda(repo_id, n, me)
+        if ledger.account(job) is not None:
+            raise Stop(f"This wallet already has a bounty on {where}: job {job}.")
+        need, ix = units, pay.fund_wallet_ix(me, source, m, repo_id, n, units, wf_repo, wf_sha, raw, pay.MERGE, days * 86_400, program)
     held = ledger.account(source)
-    if held is None or int.from_bytes(held[64:72], "little") < units:
-        raise Stop(f"The wallet's token account ({source}) holds less than {_money(units, m, decimals)}.")
-    sig = _send(ledger, [pay.fund_wallet_ix(me, source, m, int(repo["id"]), n, units, wf_repo, wf_sha, raw, pay.MERGE, days * 86_400, program)], wallet)
-    out.print(f"{_money(units, m, decimals)} is in escrow for {where}. Job {job}.", markup=False)
+    if held is None or int.from_bytes(held[64:72], "little") < need:
+        raise Stop(f"The wallet's token account ({source}) holds less than {_money(need, m, decimals)}"
+                   + (f" ({_money(units, m, decimals)} and the fee of {_money(fee, m, decimals)} on top)." if order else "."))
+    sig = _send(ledger, [ix], wallet)
+    after = f"  Unpaid after {days} day{'s' if days != 1 else ''}, it goes back to this wallet."
+    if order:
+        out.print(f"{_money(units, m, decimals)} is in escrow for {where}, and Knos's fee of {_money(fee, m, decimals)} was paid on top. "
+                  f"Work order {made}.", markup=False)
+    else:
+        out.print(f"{_money(units, m, decimals)} is in escrow for {where}. Job {job}.", markup=False)
     for line in [*terms.describe(built.terms, built.source), *built.notes]:
         out.print(f"  {line}", markup=False)
-    out.print(f"  Unpaid after {days} day{'s' if days != 1 else ''}, it goes back to this wallet. Only a signed run of prove.yml of {wf_repo} at {wf_sha[:12]} can pay it.", markup=False)
+    if order:
+        out.print(f"{after} {name} needs no Knos file: after the merge, whoever did the work runs `knos settle --neutral <pull request URL>`, "
+                  f"which starts `knos attest` in their own repository knos-attest. Only a signed run of attest.yml of {wf_repo} at {wf_sha[:12]} can pay it.",
+                  markup=False)
+    else:
+        out.print(f"{after} Only a signed run of prove.yml of {wf_repo} at {wf_sha[:12]} can pay it.", markup=False)
     out.print(_tx(sig), markup=False)
 
 

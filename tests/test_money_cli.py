@@ -260,15 +260,60 @@ def test_fund_wallet_fixes_the_terms_from_the_repositorys_checks_and_funds_from_
                        (("octo/widgets#9", "20", "--paths", "../x"), "glob"), (("nobody/home#1", "20"), "GitHub did not answer for repos/nobody/home")):
         rc, said = knos("fund-wallet", *args, "--mint", mint, "--keypair", c.keyfile)
         assert rc == 1 and want in said, (args, said)
-    # a repository that has not installed Knos pins nothing, so nothing there could prove a bounty
+    # a repository that has not installed Knos: on 2.1 a neutral work order, as the site funds one (test_fund_wallet_on_a_repository_with_no_knos_file...)
+    # on 2.0 it pins nothing, so nothing there could prove a bounty
     github(monkeypatch, {"repos/octo/bare": {"id": 5, "default_branch": "main"}})
+    live = relay2.version
+    monkeypatch.setattr(relay2, "version", lambda ledger, payer=None: 0)
     rc, said = knos("fund-wallet", "octo/bare#1", "20", "--checks", "none", "--mint", mint, "--keypair", c.keyfile)
     assert rc == 1 and said.splitlines() == ["octo/bare has no .github/workflows/knos.yml that calls prove.yml at a pinned commit, so no run there could pay this bounty.",
                                              "Install Knos in the repository first, or name the workflows yourself: --workflow owner/name@<commit>"]
+    monkeypatch.setattr(relay2, "version", live)
     # GitHub not answering for the checks is not the same as there being none
     github(monkeypatch, {"repos/octo/widgets": {"id": REPO, "default_branch": "main"}, "repos/octo/widgets/contents/.github/workflows/knos.yml": _installed()})
     rc, said = knos("fund-wallet", "octo/widgets#9", "20", "--mint", mint, "--keypair", c.keyfile)
     assert rc == 1 and "GitHub did not answer for octo/widgets's checks" in said and net.txs == n0
+
+
+def test_fund_wallet_on_a_repository_with_no_knos_file_funds_a_neutral_order_pinned_to_the_releases_attest(world, monkeypatch):
+    """C2 scenario 8: `knos fund-wallet` on a repository that runs no Knos workflow was refused, and with --workflow it
+    made a 2.0 job that only that repository's own prove.yml could pay, so it could only go back. On 2.1 it makes what
+    the site's "Fund any issue" makes: a NEUTRAL work order, pinned to the attest.yml commit this release's
+    knos-attest.yml calls, which the seller has paid after the merge with `knos settle --neutral`."""
+    from knos import version
+    c, net, knos = world
+    mint, wallet = str(c.usdc), c.wallet_key.pubkey()
+    attest = "jobs:\n  attest:\n    uses: drexthealpha/knos-workflows/.github/workflows/attest.yml@" + "a" * 40 + "\n"
+    asked = []
+    github(monkeypatch, {"repos/octo/bare": {"id": 5, "default_branch": "main"},
+                         "repos/drexthealpha/Knos/contents/examples/knos-attest.yml": {"content": base64.encodebytes(attest.encode()).decode()}})
+    real = cli._github
+    monkeypatch.setattr(cli, "_github", lambda path: asked.append(path) or real(path))
+    rc, said = knos("fund-wallet", "octo/bare#1", "20", "--checks", "none", "--days", "1", "--mint", mint, "--keypair", c.keyfile)
+    order = pay.order_pda(pay.scope_of(5, 1), wallet, 0)
+    assert rc == 0, said
+    assert f"repos/drexthealpha/Knos/contents/examples/knos-attest.yml?ref=v{version()}" in asked      # the release's own file, at its tag
+    lines = said.splitlines()
+    assert lines[0] == f"20.00 of mint {mint} is in escrow for octo/bare#1, and Knos's fee of 0.50 of mint {mint} was paid on top. Work order {order}."
+    assert "  Nobody can reserve it: the first accepted pull request is paid." in lines             # nothing there answers `/knos take`
+    assert not any("/knos take` reserves" in x for x in lines)
+    assert lines[-2] == ("  Unpaid after 1 day, it goes back to this wallet. octo/bare needs no Knos file: after the merge, whoever did the work runs "
+                         "`knos settle --neutral <pull request URL>`, which starts `knos attest` in their own repository knos-attest. "
+                         f"Only a signed run of attest.yml of drexthealpha/knos-workflows at {'a' * 12} can pay it.")
+    o = pay.read_order(c.data(order))
+    assert (o.state, o.from_balance, o.flags & pay.F_NEUTRAL, o.amount, o.fee, o.source, o.repo_id, o.issue, o.reserve_days, o.wf_sha, o.wf_repo_hash) == \
+        ("open", False, pay.F_NEUTRAL, 20 * USDC, 500_000, wallet, 5, 1, 0, "a" * 40, pay.wf_repo_hash("drexthealpha/knos-workflows"))
+    assert c.data(pay.job_pda(5, 1, wallet)) is None                                                 # no 2.0 job that nobody could pay
+    # again from the same wallet: the next order on the issue; --workflow names the workflows by hand; too little for an order
+    rc, said = knos("fund-wallet", "octo/bare#1", "6", "--checks", "none", "--workflow", "evil/flows@" + "d" * 40, "--mint", mint, "--keypair", c.keyfile)
+    assert rc == 0 and pay.read_order(c.data(pay.order_pda(pay.scope_of(5, 1), wallet, 1))).wf_sha == "d" * 40, said
+    n0 = net.txs
+    rc, said = knos("fund-wallet", "octo/bare#2", "4", "--checks", "none", "--mint", mint, "--keypair", c.keyfile)
+    assert rc == 1 and said.strip() == "octo/bare runs no Knos workflow, so this is a work order, and a work order holds at least 5.00 of mint " + mint + "." and net.txs == n0
+    # a release whose examples cannot be read names no workflows: said, and nothing is sent
+    github(monkeypatch, {"repos/octo/bare": {"id": 5, "default_branch": "main"}})
+    rc, said = knos("fund-wallet", "octo/bare#3", "20", "--checks", "none", "--mint", mint, "--keypair", c.keyfile)
+    assert rc == 1 and "cannot tell which workflows a work order would name" in said and "--workflow owner/name@<commit>" in said and net.txs == n0
 
 
 # -- knos bounty, knos due -----------------------------------------------------------------------------------------------------
