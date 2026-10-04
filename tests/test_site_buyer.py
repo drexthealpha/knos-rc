@@ -35,6 +35,8 @@ def _script(name: str):
 
 def _site(tmp_path: Path) -> tuple[Path, dict]:
     """The site as the Pages build lays it out, and the environment its tests run in."""
+    if os.name == "nt":
+        pytest.skip("the Pages build runs on ubuntu-latest")
     site = tmp_path / "site"
     env = {**os.environ, "PYTHON": sys.executable, "PYTHONPATH": str(ROOT / "src")}
     if "PLAYWRIGHT_BROWSERS_PATH" not in env and Path(BROWSERS).is_dir():

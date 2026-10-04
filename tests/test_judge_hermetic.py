@@ -270,10 +270,13 @@ def test_an_image_is_never_swapped_for_the_host(repos, monkeypatch):
     monkeypatch.setattr(judge, "container_runtime", lambda *a, **k: None)
     monkeypatch.setattr(judge, "_side", lambda *a, **k: pytest.fail("pull request code was run"))
     none = judge.judge(base, pr, {"issue": "2", "image": IMAGE})
-    assert not none["passed"] and "no container runtime on this machine" in none["reasons"][0] and "KNOS_CONTAINER" in none["reasons"][0]
     monkeypatch.setattr(judge, "container_runtime", lambda *a, **k: "/no/such/docker")
     down = judge.judge(base, pr, {"issue": "2", "image": IMAGE})
-    assert "does not answer" in down["reasons"][0]
+    if os.name == "nt":     # it says it needs a POSIX shell before it looks for a runtime, and runs nothing
+        assert not none["passed"] and not down["passed"] and all("needs a POSIX shell" in v["reasons"][0] for v in (none, down))
+    else:
+        assert not none["passed"] and "no container runtime on this machine" in none["reasons"][0] and "KNOS_CONTAINER" in none["reasons"][0]
+        assert "does not answer" in down["reasons"][0]
     tag = judge.judge(base, pr, {"issue": "2", "judge": {"image": "python:3.12"}})
     assert not tag["passed"] and "Pin it by digest" in tag["reasons"][0]
     inproc = judge.judge(base, pr, {"issue": "1", "image": IMAGE})

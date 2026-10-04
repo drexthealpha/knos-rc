@@ -230,6 +230,8 @@ sys.exit(22)
 
 def play(tmp_path: Path, name: str, world: dict, **env) -> list[str]:
     """Runs the adapter's last step with stand-ins for `gh` and `curl`. Returns what they were asked to do."""
+    if os.name == "nt":         # a bare `bash` there is WSL's launcher; the adapters run on ubuntu-24.04
+        pytest.skip("the adapters run on ubuntu-24.04")
     bin_ = tmp_path / "bin"
     bin_.mkdir(exist_ok=True)
     for tool, body in (("gh", GH), ("curl", CURL)):

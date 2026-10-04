@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import stat
 
 import pytest
@@ -268,7 +269,9 @@ def test_the_key_is_made_once_readable_only_by_its_owner_and_never_printed():
     made = run.invoke(app, ["agent", "init"])
     key = agentkey.folder() / "key.json"
     secret = json.loads(key.read_text())
-    assert made.exit_code == 0 and len(secret) == 64 and stat.S_IMODE(key.stat().st_mode) == 0o600
+    assert made.exit_code == 0 and len(secret) == 64
+    if os.name != "nt":          # Windows keeps who can read a file in its ACL, not in these bits
+        assert stat.S_IMODE(key.stat().st_mode) == 0o600
     address = agentkey.address()
     assert address == str(Pubkey.from_bytes(bytes(secret[32:]))) and address in made.output and "off" in made.output
     again = run.invoke(app, ["agent", "init", "--allow-actions"])
@@ -281,7 +284,9 @@ def test_the_key_is_made_once_readable_only_by_its_owner_and_never_printed():
     new = agentkey.address()
     assert turned.exit_code == 0 and new != address and new in turned.output
     assert json.loads((agentkey.folder() / f"key.{address}.json").read_text()) == secret          # the old key is kept, not destroyed
-    assert stat.S_IMODE(key.stat().st_mode) == 0o600 and agentkey.actions() is True               # and the switches carry over
+    assert agentkey.actions() is True                                                              # and the switches carry over
+    if os.name != "nt":
+        assert stat.S_IMODE(key.stat().st_mode) == 0o600
 
 
 def test_the_address_is_read_without_opening_the_key_file(monkeypatch):

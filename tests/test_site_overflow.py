@@ -21,6 +21,8 @@ def test_no_page_scrolls_sideways(tmp_path: Path) -> None:
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not installed")
+    if os.name == "nt":
+        pytest.skip("the Pages build runs on ubuntu-latest")
     site = tmp_path / "site"
     env = {**os.environ, "PYTHON": sys.executable, "PYTHONPATH": str(ROOT / "src")}
     if "PLAYWRIGHT_BROWSERS_PATH" not in env and Path(BROWSERS).is_dir():

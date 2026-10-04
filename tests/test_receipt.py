@@ -252,7 +252,7 @@ def test_the_attestation_is_on_by_default_and_fails_soft(monkeypatch, tmp_path):
         assert json.loads(open(args[2], encoding="utf-8").read()) == r and kw["timeout"] == 60.0
         return Done(0, json.dumps({"sent": True, "signature": "S", "attestation": "A"}))
     assert receipt.attest(r, run=run) == {"attested": True, "why": "attested", "attestation": "A", "signature": "S"}
-    assert sent[0][1].endswith("scripts/sas_receipt.mjs") and sent[0][3:] == ["--send", "--keypair", str(tmp_path / "key.json")]
+    assert sent[0][1].replace("\\", "/").endswith("scripts/sas_receipt.mjs") and sent[0][3:] == ["--send", "--keypair", str(tmp_path / "key.json")]
     assert receipt.attest(r, run=lambda *a, **k: Done(0, json.dumps({"sent": False, "already": True, "attestation": "A"})))["why"] == "already attested"
     # soft, whatever goes wrong: the script refuses, hangs, or cannot be started
     assert receipt.attest(r, run=lambda *a, **k: Done(1, errs="refused: this script writes to devnet only")) == {
