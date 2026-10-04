@@ -187,10 +187,12 @@ print("RELAYED", len(relays.calls))
 
 def _installed() -> set[str]:
     """What a module may import in a job that installs requirements/sign.txt: the standard library, knos, and the
-    packages that file names (each imported under its name with `-` as `_`)."""
+    packages that file names (each imported under its name with `-` as `_`). The standard library is Python 3.12's,
+    the one those jobs make their venv with: tomllib is in it, though not in 3.10's, where this test runs too."""
     names = re.findall(r"^([A-Za-z0-9_.-]+)==", (ROOT / "requirements" / "sign.txt").read_text(encoding="utf-8"), re.MULTILINE)
     assert "solders" in names and not {"typer", "rich", "click"} & set(names)
-    return {n.lower().replace("-", "_") for n in names} | set(sys.stdlib_module_names) | {"knos"}
+    assert 'uv venv --no-config --python 3.12 "$RUNNER_TEMP/knos"' in (ROOT / ".github" / "workflows" / "prove.yml").read_text(encoding="utf-8")
+    return {n.lower().replace("-", "_") for n in names} | set(sys.stdlib_module_names) | {"tomllib"} | {"knos"}
 
 
 def _file(module: str) -> Path | None:
