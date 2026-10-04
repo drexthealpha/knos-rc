@@ -1685,6 +1685,13 @@ def test_compute_units_are_recorded(chain):
     bundled token programs). Pay is measured over 16 payees, because the addresses it derives (bind, record, pair,
     vault) cost 1,500 units for each bump the derivation tries."""
     c = chain
+    # The one transaction of two instructions, sent here: under pytest-xdist the faucet's own test can run in another
+    # worker, with another chain, and then this run would have no measurement of it.
+    org, repo, n = user(), user(), issue()
+    tok = faucet_token(c, n, org, repo, actor=MAINT)
+    assert c.send([pay.faucet_open_ix(c.payer.pubkey(), tok, c.key, org, repo),
+                   pay.fund_balance_ix(c.payer.pubkey(), tok, c.key, pay.faucet_balance_pda(org), c.test_usdc, repo, n, TERMS)],
+                  tag="faucet_open+fund_balance"), c.err
     coin = c.new_mint22(confidential=True, close_authority=True)
     c.token_account(pay.FEE_OWNER, coin)
     w, wtok = c.wallet(coin, 1_000 * USDC)
