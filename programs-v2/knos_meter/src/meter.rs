@@ -65,7 +65,7 @@ pub fn set_plan(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> P
 
 /// The owner's count of this month goes up by `by` (the Plan account, created on first use, started again when the
 /// month changes). Returns (the count, the rate that applies now, in millionths of a whole unit).
-fn count_month<'a>(program_id: &Pubkey, payer: &AccountInfo<'a>, plan: &AccountInfo<'a>, sys: &AccountInfo<'a>, owner_id: u64, month: u32,
+#[allow(clippy::too_many_arguments)] fn count_month<'a>(program_id: &Pubkey, payer: &AccountInfo<'a>, plan: &AccountInfo<'a>, sys: &AccountInfo<'a>, owner_id: u64, month: u32,
                    now: i64, by: u64) -> Result<(u64, u64), ProgramError> {
     let (new, bump) = open(program_id, payer, plan, sys, PLAN_LEN, &[b"plan", &owner_id.to_le_bytes()], E_ACCOUNTS)?;
     let mut d = plan.try_borrow_mut_data()?;
