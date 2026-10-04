@@ -985,6 +985,60 @@ def _command(box: Box, issue: str, test_dirs, timeout: float, cfg: dict) -> Run:
     return Run(got, {"acceptance::check"}, log=log[-2000:])
 
 
+# $KNOS_RUN on Windows, which runs no "#!/bin/sh" file: a .cmd hands the command to this relay, which runs it in the tree
+# (WORK, written in by the judge) and ends it when the .cmd is ended. A check that stops "$KNOS_RUN ..." at its time
+# limit ends the .cmd, and on Windows the process a .cmd started outlives it and holds the check's pipe open.
+_WINDOWS_RUN = """import ctypes
+import os
+import shutil
+import subprocess
+import sys
+import threading
+
+try:
+    os.chdir(WORK)
+except OSError:
+    sys.exit(126)
+argv = sys.argv[1:]
+if not argv:
+    sys.exit(0)
+if argv[0] == "python3" and not shutil.which("python3"):
+    argv[0] = sys.executable     # Python on Windows is python.exe; a check written for prove.yml says python3
+kernel = ctypes.WinDLL("kernel32")
+kernel.OpenProcess.restype = ctypes.c_void_p
+kernel.WaitForSingleObject.argtypes = (ctypes.c_void_p, ctypes.c_uint32)
+cmd = kernel.OpenProcess(0x00100000, False, os.getppid())     # SYNCHRONIZE: to wait for the .cmd to end
+std = []
+for fd in (0, 1, 2):
+    try:
+        os.fstat(fd)
+        std.append(fd)
+    except OSError:
+        std.append(subprocess.DEVNULL)
+try:
+    child = subprocess.Popen(argv, stdin=std[0], stdout=std[1], stderr=std[2])
+except OSError as why:
+    print(f"knos-run: {why}", file=sys.stderr)
+    sys.exit(127)
+if cmd:
+    def watch():
+        kernel.WaitForSingleObject(cmd, 0xFFFFFFFF)
+        child.kill()
+    threading.Thread(target=watch, daemon=True).start()
+sys.exit(child.wait())
+"""
+
+
+def _windows_runner(private: Path, work: Path) -> Path:
+    """$KNOS_RUN on Windows: knos-run.cmd, which runs the relay above with the interpreter itself (not a virtual
+    environment's launcher, which would stand between the .cmd and the relay and outlive the .cmd)."""
+    (private / "knos-run.py").write_text(f"WORK = {str(work)!r}\n" + _WINDOWS_RUN, "utf-8")
+    python = str(getattr(sys, "_base_executable", "") or sys.executable).replace("%", "%%")
+    runner = private / "knos-run.cmd"
+    runner.write_text(f'@"{python}" -I -S "%~dp0knos-run.py" %*\n', "utf-8")
+    return runner
+
+
 def _blackbox(box: Box, issue: str, test_dirs, timeout: float, cfg: dict) -> Run:
     """The check that cannot be forged from inside: it runs as the judge, outside the tree, and never loads the pull
     request's code. It reaches that code only through "$KNOS_RUN <command>", which runs the command in the tree,
@@ -1000,10 +1054,13 @@ def _blackbox(box: Box, issue: str, test_dirs, timeout: float, cfg: dict) -> Run
     # would be readable by the code that is being judged, so no bundle of the repository stays there.
     shutil.rmtree(box.work / ".knos" / "acceptance", ignore_errors=True)
     box.open_up()
-    argv, env = box.wrap(["sh", "-c", 'exec "$@"', "sh"], net=False)
-    runner = private / "knos-run"
-    runner.write_text("#!/bin/sh\n" + f"cd {shlex.quote(str(box.work))} || exit 126\n"
-                      + "exec " + " ".join(shlex.quote(a) for a in argv) + ' "$@"\n', "utf-8")
+    if os.name == "nt":
+        runner = _windows_runner(private, box.work)
+    else:
+        argv, env = box.wrap(["sh", "-c", 'exec "$@"', "sh"], net=False)
+        runner = private / "knos-run"
+        runner.write_text("#!/bin/sh\n" + f"cd {shlex.quote(str(box.work))} || exit 126\n"
+                          + "exec " + " ".join(shlex.quote(a) for a in argv) + ' "$@"\n', "utf-8")
     runner.chmod(0o700)
     name = next(n for n in BLACKBOX_ENTRY if (private / n).is_file())
     cmd = [sys.executable, name] if name.endswith(".py") else ["sh", name]

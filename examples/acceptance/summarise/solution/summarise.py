@@ -16,4 +16,5 @@ service = find(r"The (\S+) outage lasted", r"and the fix, (\S+) was unavailable"
 minutes = find(r"outage lasted (\d+) minutes", r"\((\d+) minutes in total\)", r"could not reach \S+ for (\d+) minutes")
 cause = find(r"The root cause was ([^.]+)\.", r"showed that (.+?) had triggered", r"traced to ([^.]+)\.")
 fix = find(r"Engineers (.+?) and traffic recovered", r"after the team ([^.]+)\.", r"The fix: the team ([^.]+)\.")
+sys.stdout.reconfigure(encoding="utf-8", newline="\n")    # the line ends in \n on every system, as in the example
 print(f"{service} was down for {minutes} minutes because of {cause}. The team {fix}.")

@@ -31,27 +31,29 @@ ROOT = Path(__file__).resolve().parents[1]
 V = r"(\d+\.\d+\.\d+)"
 OURS = ("knos", "knos-oidc-interface", "knos-pay-interface", "knos_oidc", "knos_pay", "knos_meter", "knos_passkey")
 JSON_VERSION = r'"version": "' + V + '"'
-# (files, pattern): every match's groups are the version. Each file must match at least once.
+# (files, pattern): every match's groups are the version. Each file must match at least once. A line ends in \n or in
+# \r\n: a file written on Windows (by an editor, or Python's text mode) names its version as any other file does, and
+# a bump still rewrites the version's bytes and nothing else.
 PLACES: list[tuple[str, str]] = [
-    ("pyproject.toml", r'(?m)\A(?:.*\n)*?\[project\]\n(?:(?!\[).*\n)*?version = "' + V + '"'),
-    ("uv.lock", r'\[\[package\]\]\nname = "knos"\nversion = "' + V + '"'),
+    ("pyproject.toml", r'(?m)\A(?:.*\n)*?\[project\]\r?\n(?:(?!\[).*\n)*?version = "' + V + '"'),
+    ("uv.lock", r'\[\[package\]\]\r?\nname = "knos"\r?\nversion = "' + V + '"'),
     ("server.json", JSON_VERSION),                              # twice: the server, and the PyPI package it runs
     ("gemini-extension.json", JSON_VERSION),
     ("plugin/.claude-plugin/plugin.json", JSON_VERSION),
     ("plugin/.codex-plugin/plugin.json", JSON_VERSION),
-    ("sdk/settle/package.json", r'\A\{\n(?:  .*\n)*?  ' + JSON_VERSION),
-    ("idl/*.json", r'\A\{\n(?:  .*\n)*?  ' + JSON_VERSION),
-    ("crates/*/Cargo.toml", r'(?m)^\[package\]\n(?:(?!\[).*\n)*?version = "' + V + '"'),
-    ("programs-v2/*/Cargo.toml", r'(?m)^\[package\]\n(?:(?!\[).*\n)*?version = "' + V + '"'),
+    ("sdk/settle/package.json", r'\A\{\r?\n(?:  .*\n)*?  ' + JSON_VERSION),
+    ("idl/*.json", r'\A\{\r?\n(?:  .*\n)*?  ' + JSON_VERSION),
+    ("crates/*/Cargo.toml", r'(?m)^\[package\]\r?\n(?:(?!\[).*\n)*?version = "' + V + '"'),
+    ("programs-v2/*/Cargo.toml", r'(?m)^\[package\]\r?\n(?:(?!\[).*\n)*?version = "' + V + '"'),
 ]
 LOCKS = ("crates/*/Cargo.lock", "examples/*/Cargo.lock", "programs-v2/Cargo.lock", "programs-v2/knos_oidc/fuzz/Cargo.lock")
-LOCKED = r'name = "(?:' + "|".join(OURS[1:]) + r')"\nversion = "' + V + '"'
+LOCKED = r'name = "(?:' + "|".join(OURS[1:]) + r')"\r?\nversion = "' + V + '"'
 PINS = (r"\bknos==" + V, r'tag = "v' + V + '"', r"drexthealpha/Knos@v" + V, r"releases/download/v" + V + r"/knos-settle-" + V + r"\.tgz",
         r"git tag v" + V + r" && git push origin v" + V)
 PIN = re.compile("|".join(PINS))
 # history, the first deployment, the patterns themselves, and the lock (its line names a wheel by hash: see unlock)
 NOT_PINNED = ("CHANGELOG.md", "programs/", "scripts/bump_version.py", "requirements/sign.txt")
-LOCK = re.compile(r"\nknos==" + V + r" --hash=sha256:[0-9a-f]{64}\n\Z")
+LOCK = re.compile(r"\r?\nknos==" + V + r" --hash=sha256:[0-9a-f]{64}\r?\n\Z")
 CHANGELOG = re.compile(r"^## " + V + r"\b", re.M)
 
 
@@ -135,7 +137,8 @@ def unlock(version: str, root: Path = ROOT) -> bool:
     m = LOCK.search(text)
     if not m or m.group(1) == version:
         return False
-    path.write_bytes((text[:m.start()] + "\n").encode("utf-8"))
+    end = "\r\n" if text[m.start()] == "\r" else "\n"         # the line before keeps the end it had
+    path.write_bytes((text[:m.start()] + end).encode("utf-8"))
     return True
 
 

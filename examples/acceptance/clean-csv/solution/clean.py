@@ -58,6 +58,7 @@ def main() -> None:
         seen.add(email)
         out.append([name(r[at["name"]]), email, when(r[at["signup_date"]]), amount(r[at["amount"]]),
                     COUNTRY[r[at["country"]].strip().lower().replace(".", "")]])
+    sys.stdout.reconfigure(encoding="utf-8", newline="\n")    # lines end in \n on every system, as in the example
     w = csv.writer(sys.stdout, lineterminator="\n")
     w.writerow(["name", "email", "signup_date", "amount", "country"])
     w.writerows(out)
