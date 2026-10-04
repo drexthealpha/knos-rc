@@ -44,9 +44,10 @@
 # Steps (each reads the chain first; a step that is already done says so and sends nothing)
 #   1 multisigs  both Squads multisigs exist as the design fixes them (governance.mjs show --check); created with
 #                governance.mjs create when they do not (it takes the member keys of the key folder, threshold 2)
-#   2 build      the verified build of both programs: solana-verify build . --workspace-path programs-v2
-#                --library-name knos_oidc, then knos_pay, in the docker image program.yml pins, the repository
-#                mounted (knos_meter, a member of the workspace, reads crates/knos-oidc-interface); the default
+#   2 build      the verified build of both programs, program.yml's command: solana-verify build "$PWD"
+#                --workspace-path "$PWD/programs-v2" --library-name <name> (from the repository's root), for knos_oidc,
+#                then knos_pay, in the docker image program.yml pins, the repository mounted (knos_meter, a member of
+#                the workspace, reads crates/knos-oidc-interface); the default
 #                features, which is the devnet build. Prints each executable hash. Not repeated while programs-v2
 #                and the interface crate are unchanged since the last build.
 #   3 deploy     solana program deploy, each program under its own keypair, with a buffer keypair kept in the key
@@ -231,7 +232,13 @@ build() {
       docker info >/dev/null 2>&1 || die "docker is not running, and the verified build runs in it. Start docker; or deploy files built elsewhere with KNOS_SO_DIR."
       rm -f "${stamp:?}"
       for name in "$@"; do
-        solana-verify build "$ROOT" --workspace-path "$ROOT/programs-v2" --library-name "$name" --base-image "$VERIFY_IMAGE"
+        # programs/ holds the first deployment's crate of the same name, and solana-verify builds the first manifest
+        # `find <mount>` lists, then hashes whatever programs-v2/target/deploy holds. Where programs/ is listed first
+        # (NTFS: WSL under /mnt/c, Git Bash) it builds that crate, and a file left here (build_programs_v2.sh's cargo
+        # build-sbf) would be stamped as this build. So the file goes first, and the build must make it again.
+        rm -f "${SO_DIR:?}/$name.so"
+        solana-verify build "$ROOT" --workspace-path "$ROOT/programs-v2" --library-name "$name" --base-image "$VERIFY_IMAGE" || true
+        [ -f "$SO_DIR/$name.so" ] || die "solana-verify built no $SO_DIR/$name.so (its output above says why). Its line 'Building manifest path' names the crate it built: if that is programs/$name, the first deployment's crate of the same name, it was listed before programs-v2/$name on this file system. Build from a clone on a Linux file system (on WSL, under ~, not /mnt/c), or deploy program.yml's artifacts with KNOS_SO_DIR. Nothing is stamped."
       done
       # shellcheck disable=SC2086  # files is a list of names
       { echo "$want"; (cd "$SO_DIR" && sha256sum $files); } > "$stamp"
@@ -428,7 +435,7 @@ propose() {
         die "the upgrade gate holds no record of this build of $name after $wait seconds. program.yml records the builds it makes on main and on a release tag: push the commit this build is of, let its gate job finish, and run this again (or put its token in KNOS_GATE_TOKENS/$name.jwt). If the hash above is not the one that run printed, this file is not the build GitHub made: take the run's artifacts (KNOS_SO_DIR). The buffer is written and stays. (In an emergency only: --propose --ungated.)"
       fi
       echo "  UNGATED: NO RECORD AT THE UPGRADE GATE VOUCHES FOR THIS BUILD OF $name. It is proposed because --ungated was passed:"
-      echo "  UNGATED: the members have only their own rebuild to compare $want with (solana-verify build . --workspace-path programs-v2 --library-name $name)."
+      echo "  UNGATED: the members have only their own rebuild to compare $want with (from the root of a clone: solana-verify build \"\$PWD\" --workspace-path \"\$PWD/programs-v2\" --library-name $name --base-image $VERIFY_IMAGE)."
       flag="--ungated"
     fi
     if [ "$held" != "$vault" ]; then

@@ -628,3 +628,49 @@ def test_the_second_deployments_script_builds_test_binaries_with_test_keys_and_l
         assert sums.pop("docs/other.json") == "0" * 64
         assert sums == {f"tests/fixtures/{name}": hashlib.sha256((root / "tests" / "fixtures" / name).read_bytes()).hexdigest() for name in got}
     assert not (root / "programs" / "target").exists()
+
+
+def test_the_rebuild_a_person_is_told_to_run_is_the_command_program_yml_and_deploy_v2_run():
+    """The verified hashes are program.yml's builds. ASSURANCE.md, deploy_v2.sh (the build it runs, the step it describes
+    and the command its UNGATED line hands the members) and build_programs_v2.sh's note must say the same command, or a
+    verifier rebuilds something else. Every mount is an absolute path: solana-verify finds the manifest with `find
+    <mount>` and strips the mount's text from each path it finds, so a mount of "." strips every dot
+    (./programs-v2/knos_pay/Cargo.toml becomes /programs-v2/knos_pay/Cargotoml) and cargo refuses it."""
+    import shlex
+    doc = _doc()
+    image = doc["env"]["VERIFY_IMAGE"]
+    run = _runs(doc["jobs"]["verified-build"])
+    ci = next(line.strip() for line in run.splitlines() if line.strip().startswith('solana-verify build "$GITHUB_WORKSPACE" '))
+
+    def words(command: str, root: str, name: str) -> list[str]:
+        return shlex.split(command.replace(root, "<repo>").replace("$WORKSPACE", "programs-v2").replace("$VERIFY_IMAGE", image)
+                           .replace("$PROGRAM", "<name>").replace("$name", "<name>").replace("<name>", name))
+    want = {name: words(ci, "$GITHUB_WORKSPACE", name) for name in ("knos_oidc", "knos_pay")}
+    assert want["knos_pay"] == ["solana-verify", "build", "<repo>", "--workspace-path", "<repo>/programs-v2", "--library-name",
+                                "knos_pay", "--base-image", image]
+    script = (ROOT / "scripts" / "deploy_v2.sh").read_text(encoding="utf-8")
+    assert f'VERIFY_IMAGE="${{KNOS_VERIFY_IMAGE:-{image}}}"' in script
+    built = [line.strip().split(" || ")[0] for line in script.splitlines() if line.strip().startswith("solana-verify build ")]
+    assert len(built) == 1 and words(built[0], "$ROOT", "knos_pay") == want["knos_pay"]
+    # what the UNGATED line prints, as bash prints it
+    echo = next(line.strip() for line in script.splitlines() if "UNGATED: the members have only their own rebuild" in line)
+    bash = shutil.which("bash")
+    if bash and os.name != "nt":
+        said = subprocess.run([bash, "-c", f"name=knos_oidc; want=abc; VERIFY_IMAGE={shlex.quote(image)}; {echo}"],
+                              capture_output=True, text=True, timeout=30).stdout
+        told = said[said.index("solana-verify build"):].rstrip().rstrip(".").rstrip(")")
+        assert words(told, "$PWD", "knos_oidc") == want["knos_oidc"], said
+    # the documented commands, one per program, run from the repository's root
+    text = (ROOT / "docs" / "ASSURANCE.md").read_text(encoding="utf-8")
+    documented = [line for line in text.splitlines() if line.startswith("solana-verify build")]
+    assert [words(line, "$PWD", "")[6] for line in documented] == ["knos_pay", "knos_oidc"]
+    assert all(words(line, "$PWD", "") == want[words(line, "$PWD", "")[6]] for line in documented), documented
+    # the notes in the scripts, which name the program <name>
+    step = script[script.index("#   2 build"):script.index("#   3 deploy")]
+    notes = {"deploy_v2.sh": " ".join(line.lstrip("# ").strip() for line in step.splitlines()),
+             "build_programs_v2.sh": (ROOT / "scripts" / "build_programs_v2.sh").read_text(encoding="utf-8")}
+    for where, note in notes.items():
+        assert note.count("solana-verify build") == 1, where
+        assert 'solana-verify build "$PWD" --workspace-path "$PWD/programs-v2" --library-name <name>' in note, where
+    for text in (script, notes["build_programs_v2.sh"], (ROOT / "docs" / "ASSURANCE.md").read_text(encoding="utf-8"), run):
+        assert "solana-verify build ." not in text and "solana-verify build programs" not in text

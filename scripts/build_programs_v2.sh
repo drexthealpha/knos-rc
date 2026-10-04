@@ -25,7 +25,8 @@
 # an attester and a test guardian (programs-v2/knos_oidc/src/pins.rs); a testkeys build of knos_meter opens credits in
 # any mint and takes a test key for SetPlan; it is never deployed. The real build is
 # built LAST for each program, so what is left in $target/deploy is the binary to try on a cluster. The binary that
-# is deployed is the reproducible one (`solana-verify build . --workspace-path programs-v2 --library-name <name>`), not this one.
+# is deployed is the reproducible one, program.yml's command run from the repository's root
+# (`solana-verify build "$PWD" --workspace-path "$PWD/programs-v2" --library-name <name>`), not this one.
 #
 # Each fixture is copied right after its own build: the next build overwrites $target/deploy/<name>.so. The hashes
 # of the fixtures are pinned in tests/fixtures/SHA256SUMS; this script rewrites the lines of the ones it built, so a

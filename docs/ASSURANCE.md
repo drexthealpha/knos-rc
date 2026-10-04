@@ -333,14 +333,17 @@ The fifth, `knos_pay` with default features (the devnet build), is left in `prog
 
 The pins do not tie the deployed program to the source. The script says the deployed binary is not its output but the `solana-verify` build, and `program.yml` says a plain `cargo build-sbf` differs from it because toolchain paths are embedded. So a rebuild on another machine can change the pins without anything being wrong. In CI, the committed test binaries are deleted before the build, so the chain tests load only what that commit's source built.
 
-To compare a deployed program with the source, make the reproducible build the way `scripts/deploy_v2.sh` and the `verified-build` job of `program.yml` do. It needs docker.
+To compare a deployed program with the source, make the reproducible build with the command `scripts/deploy_v2.sh` and the `verified-build` job of `program.yml` run, from the root of a clone. It needs docker.
 
 ```
-solana-verify build . --workspace-path programs-v2 --library-name knos_pay --base-image solanafoundation/solana-verifiable-build:2.3.11
-solana-verify build . --workspace-path programs-v2 --library-name knos_oidc --base-image solanafoundation/solana-verifiable-build:2.3.11
+rm -f programs-v2/target/deploy/knos_pay.so programs-v2/target/deploy/knos_oidc.so
+solana-verify build "$PWD" --workspace-path "$PWD/programs-v2" --library-name knos_pay --base-image solanafoundation/solana-verifiable-build:2.3.11
+solana-verify build "$PWD" --workspace-path "$PWD/programs-v2" --library-name knos_oidc --base-image solanafoundation/solana-verifiable-build:2.3.11
 solana-verify get-executable-hash programs-v2/target/deploy/knos_pay.so
 solana-verify get-program-hash -u devnet 5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k
 ```
+
+The paths are whole (`"$PWD"`), not `.`. solana-verify finds the manifest with `find <mount>` and removes the mount's text from each path it lists, so a mount of `.` removes every dot and hands cargo `programs-v2/knos_pay/Cargotoml`, which it refuses. The repository is mounted, not `programs-v2` alone, because `knos_meter`, a member of that workspace, reads `crates/knos-oidc-interface`. `programs/` holds the first deployment's `knos_pay` and `knos_oidc` under the same names, and solana-verify builds the first manifest `find` lists: its line `Building manifest path` must name `programs-v2/<name>/Cargo.toml`. On a file system that lists `programs` first (NTFS, so WSL under `/mnt/c`), it builds the first deployment's crate, and the `rm -f` line makes `get-executable-hash` fail rather than hash an older file: build from a clone on a Linux file system. `tests/test_program_ci.py` checks that this command, `deploy_v2.sh`'s and `program.yml`'s are the same.
 
 The hash from `get-executable-hash` and the hash from `get-program-hash` must be equal. Do the same for `knos_oidc` and `FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W`. Without `solana-verify`, dump the program and hash it yourself:
 

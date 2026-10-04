@@ -453,3 +453,79 @@ def test_lamports_reads_solanas_whole_answer_so_the_line_after_the_number_never_
     # the reader deploy_v2.sh had before: the stand-in shows the race is real, not something this test made up
     early = afford("lamports() { sol \"$@\" --lamports | awk 'NF >= 2 { print $(NF - 1); exit }'; }")
     assert early.returncode != 0 and early.stdout == ""
+
+
+def _build_world(tmp_path):
+    """deploy_v2.sh's sources_hash() and build() under the script's shell options, in a repository of a few files, with
+    stand-ins for solana-verify and docker. The stand-in builds the crate whose manifest `find <mount>` lists first, as
+    solana-verify does, into that crate's workspace, and then hashes what <workspace-path>/target/deploy holds."""
+    import os
+    import re
+    import shutil
+    import subprocess
+    bash = shutil.which("bash")
+    if os.name == "nt" or not bash:
+        pytest.skip("runs the script's functions with bash")
+    text = (ROOT / "scripts" / "deploy_v2.sh").read_text(encoding="utf-8")
+    funcs = {"sources_hash": next(line for line in text.splitlines() if line.startswith("sources_hash() {")),
+             "build": re.search(r"(?ms)^build\(\) \{.*?^\}$", text).group(0)}
+    repo = tmp_path / "repo"
+    for rel in ("programs-v2/Cargo.toml", "programs-v2/knos_oidc/Cargo.toml", "programs-v2/knos_pay/Cargo.toml",
+                "programs/knos_oidc/Cargo.toml", "programs/knos_pay/Cargo.toml", "crates/knos-oidc-interface/src/lib.rs"):
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text(rel, encoding="utf-8")
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    (bin_ / "docker").write_text("#!/bin/bash\nexit 0\n", encoding="utf-8")
+    # FIRST=programs makes the stand-in list programs/ first, as find does on NTFS (WSL under /mnt/c, Git Bash)
+    (bin_ / "solana-verify").write_text(
+        '#!/bin/bash\necho "$*" >> "$LOG"\nmount="$2"; ws="$4"; lib="$6"\n'
+        'crate="$mount/${FIRST:-programs-v2}/$lib"\nmkdir -p "$(dirname "$crate")/target/deploy"\n'
+        'echo "built from $crate" > "$(dirname "$crate")/target/deploy/$lib.so"\n'
+        '[ -f "$ws/target/deploy/$lib.so" ] || { echo "no $lib.so in $ws/target/deploy" >&2; exit 1; }\n', encoding="utf-8")
+    for f in bin_.iterdir():
+        f.chmod(0o755)
+    log = tmp_path / "log"
+    body = "\n".join(['set -euo pipefail', f'ROOT={repo}', 'PROGRAMS="knos_oidc knos_pay"', 'VERIFY_IMAGE=img',
+                      'die() { echo "stopped: $*" >&2; exit 1; }', 'need() { :; }', 'py() { sha256sum "$2" | cut -c1-8; }',
+                      funcs["sources_hash"], funcs["build"], 'build $PROGRAMS'])
+
+    def run(**env) -> subprocess.CompletedProcess:
+        return subprocess.run([bash, "-c", body], capture_output=True, text=True, timeout=60,
+                              env={"PATH": f"{bin_}:/usr/bin:/bin", "LOG": str(log), **env})
+    return repo, log, run
+
+
+def test_the_verified_build_mounts_the_repository_names_programs_v2_and_rebuilds_when_its_sources_change(tmp_path):
+    repo, log, run = _build_world(tmp_path)
+    first = run()
+    assert first.returncode == 0, first.stderr
+    assert log.read_text().splitlines() == [f"build {repo} --workspace-path {repo}/programs-v2 --library-name {n} --base-image img"
+                                            for n in ("knos_oidc", "knos_pay")]
+    deploy = repo / "programs-v2" / "target" / "deploy"
+    assert (deploy / "knos_pay.so").read_text().strip() == f"built from {repo}/programs-v2/knos_pay"
+    assert (deploy / ".verified-build").read_text().splitlines()[0].endswith(" img")
+    # unchanged sources, or a change under a target folder or in programs/ (which the build does not read): no rebuild
+    (repo / "programs-v2" / "target" / "scratch.txt").write_text("x")
+    (repo / "programs" / "knos_pay" / "Cargo.toml").write_text("changed")
+    again = run()
+    assert again.returncode == 0 and "unchanged since the last verified build" in again.stdout and len(log.read_text().splitlines()) == 2
+    # the interface crate knos_meter reads is a source of the build: a change to it builds again
+    (repo / "crates" / "knos-oidc-interface" / "src" / "lib.rs").write_text("changed")
+    third = run()
+    assert third.returncode == 0 and "unchanged" not in third.stdout and len(log.read_text().splitlines()) == 4
+
+
+def test_a_verified_build_of_the_first_deployments_crate_of_the_same_name_is_refused_not_stamped(tmp_path):
+    """The repository holds programs/knos_pay and programs-v2/knos_pay, and solana-verify builds the first manifest
+    `find` lists. Where programs/ comes first, it builds the first deployment's crate elsewhere and hashes whatever
+    programs-v2/target/deploy holds: a file build_programs_v2.sh left there (plain cargo build-sbf) must not be stamped
+    as the verified build."""
+    repo, log, run = _build_world(tmp_path)
+    deploy = repo / "programs-v2" / "target" / "deploy"
+    deploy.mkdir(parents=True)
+    for n in ("knos_oidc", "knos_pay"):
+        (deploy / f"{n}.so").write_text("cargo build-sbf, not reproducible")
+    wrong = run(FIRST="programs")
+    assert wrong.returncode != 0 and "Building manifest path" in wrong.stderr and "programs/knos_oidc" in wrong.stderr, wrong.stderr
+    assert not (deploy / ".verified-build").exists() and not (deploy / "knos_oidc.so").exists()
