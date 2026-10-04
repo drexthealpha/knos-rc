@@ -29,10 +29,6 @@ from knos.settle.v2 import passkey as passkey2
 from knos.settle.v2 import passkey_fund
 from knos.settle.v2 import pay as pay2
 
-# knos-meter's batch mode (1.1): its client lives in the test harness until knos.settle.v2.meter carries it
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
-import _meter as batch  # noqa: E402
-
 OUT = Path(__file__).resolve().parents[1] / "sdk" / "settle" / "fixtures.json"
 NAMES = ["payer", "funder", "funder_token", "mint", "relayer", "address", "rent_to", "token_account"]
 K = {n: Pubkey(bytes([i + 1]) * 32) for i, n in enumerate(NAMES)}
@@ -270,7 +266,7 @@ def month_bytes(*, month=202610, buyer=OWNER, seller=MAINT, evaluations=9, accep
 def ledger_bytes(*, claim=0, month=202610, buyer=OWNER, seller=MAINT, next_seq=2, evaluations=8, accepted=7, value=14_000_000, fees=150_000,
                  chain: bytes) -> bytes:
     """A Ledger as programs-v2/knos_meter/src/state.rs lays it out: byte 2 says whose count it is (0 the buyer's, 1 the seller's claim)."""
-    d = bytearray(batch.LEDGER_LEN)
+    d = bytearray(meter.LEDGER_LEN)
     d[0], d[2] = 1, claim
     _put(d, 4, month, 4); _put(d, 8, buyer); _put(d, 16, seller); _put(d, 24, next_seq); _put(d, 32, evaluations); _put(d, 40, accepted)
     _put(d, 48, value); _put(d, 56, fees)
@@ -889,11 +885,11 @@ def meter_section(k) -> dict:
     statement = meter.statement(_Ledger(logs), BUYER_ID, SELLER_ID, 202610, METER)
     # the batch mode: four evaluations in one token, the buyer's count and the seller's claim of it
     ids = sorted(meter.parse_audience(meter.eval_audience(BUYER_ID, SELLER_ID, ORDER32, "a" * 40, POLICY32, n, 1, 2_000_000)).key for n in range(5))
-    roots = {str(n): batch.merkle_root(ids[:n]) for n in (1, 2, 3, 5)}
-    b_aud = batch.batch_audience(BUYER_ID, SELLER_ID, 202610, 3, 5, 4, 8_000_000, roots["5"])
-    c_aud = batch.batch_audience(BUYER_ID, SELLER_ID, 202610, 0, 5, 5, 10_000_000, roots["5"], "claim")
-    chain0 = batch.chain_hash(bytes(32), roots["3"], 0, 3, 3, 6_000_000)
-    ledgers = {"ledger": ledger_bytes(chain=batch.chain_hash(chain0, roots["5"], 1, 5, 4, 8_000_000)),
+    roots = {str(n): meter.merkle_root(ids[:n]) for n in (1, 2, 3, 5)}
+    b_aud = meter.batch_audience(BUYER_ID, SELLER_ID, 202610, 3, 5, 4, 8_000_000, roots["5"])
+    c_aud = meter.batch_audience(BUYER_ID, SELLER_ID, 202610, 0, 5, 5, 10_000_000, roots["5"], "claim")
+    chain0 = meter.chain_hash(bytes(32), roots["3"], 0, 3, 3, 6_000_000)
+    ledgers = {"ledger": ledger_bytes(chain=meter.chain_hash(chain0, roots["5"], 1, 5, 4, 8_000_000)),
                "ledger (the seller's claim)": ledger_bytes(claim=1, next_seq=1, evaluations=5, accepted=5, value=10_000_000, fees=0, chain=chain0)}
     return {
         "inputs": {"order": ORDER32.hex(), "policy": POLICY32.hex(), "artifact": "a" * 40, "other_program": str(other)},
@@ -901,14 +897,14 @@ def meter_section(k) -> dict:
                       "MAX_DECIMALS": meter.MAX_DECIMALS, "EXTENSIONS": list(meter.EXTENSIONS), "CREDITS_LEN": meter.CREDITS_LEN, "PLAN_LEN": meter.PLAN_LEN,
                       "MARK_LEN": meter.MARK_LEN, "MARK_LEN_1": meter.MARK_LEN_1, "MARK_PAYER": meter.MARK_PAYER, "MARK_GRACE": meter.MARK_GRACE,
                       "MONTH_LEN": meter.MONTH_LEN, "WORKFLOWS": list(meter.WORKFLOWS), "EVAL": meter.EVAL, "CLOSED": meter.CLOSED,
-                      "LEDGER_LEN": batch.LEDGER_LEN, "MAX_BATCH": batch.MAX_BATCH},
-        "errors": {str(code): words for code, words in (meter.ERRORS | batch.BATCH_ERRORS).items()},
+                      "LEDGER_LEN": meter.LEDGER_LEN, "MAX_BATCH": meter.MAX_BATCH},
+        "errors": {str(code): words for code, words in (meter.ERRORS | meter.BATCH_ERRORS).items()},
         "addresses": {
             "auth": str(meter.auth_pda()), "credits(owner, authority, mint)": str(credits), "credits(owner, authority, mint22)": str(credits22),
             "crtok(credits)": str(meter.crtok_pda(credits)), "plan(owner)": str(meter.plan_pda(OWNER)), "mark(buyer, key)": str(meter.mark_pda(BUYER_ID, e.key)),
             "month(buyer, seller, month)": str(meter.month_pda(BUYER_ID, SELLER_ID, 202610)),
-            "ledger(buyer, seller, month)": str(batch.ledger_pda(BUYER_ID, SELLER_ID, 202610)),
-            "ledger(buyer, seller, month, claim)": str(batch.ledger_pda(BUYER_ID, SELLER_ID, 202610, True)),
+            "ledger(buyer, seller, month)": str(meter.ledger_pda(BUYER_ID, SELLER_ID, 202610)),
+            "ledger(buyer, seller, month, claim)": str(meter.ledger_pda(BUYER_ID, SELLER_ID, 202610, True)),
         },
         "audiences": {"eval": aud, "eval, rejected": aud_rejected, "parse(eval)": plain(e), "parse(rejected)": plain(e_rejected)},
         "hashes": {"eval_key": e.key.hex(), "eval_key (rejected)": e_rejected.key.hex()},
@@ -936,15 +932,15 @@ def meter_section(k) -> dict:
             "record (a fee token account given)": ix(meter.record_ix(k["relayer"], k["token_account"], k["key"], credits, c, aud, NOW, k["dest_token"])),
             "record (token-2022, the fee owner's own)": ix(meter.record_ix(k["relayer"], k["token_account"], k["key"], credits22, c22, aud_rejected, NOW + 40 * 86_400)),
             "close_mark": ix(meter.close_mark_ix(k["relayer"], meter.mark_pda(BUYER_ID, e.key))),
-            "record_batch (a fee token account given)": ix(batch.record_batch_ix(k["relayer"], k["token_account"], k["key"], credits, c, b_aud, k["dest_token"])),
-            "record_batch (token-2022, the fee owner's own)": ix(batch.record_batch_ix(k["relayer"], k["token_account"], k["key"], credits22, c22, b_aud)),
-            "claim_batch": ix(batch.claim_batch_ix(k["relayer"], k["token_account"], k["key"], c_aud)),
-            "version": ix(batch.version_ix()),
+            "record_batch (a fee token account given)": ix(meter.record_batch_ix(k["relayer"], k["token_account"], k["key"], credits, c, b_aud, k["dest_token"])),
+            "record_batch (token-2022, the fee owner's own)": ix(meter.record_batch_ix(k["relayer"], k["token_account"], k["key"], credits22, c22, b_aud)),
+            "claim_batch": ix(meter.claim_batch_ix(k["relayer"], k["token_account"], k["key"], c_aud)),
+            "version": ix(meter.version_ix()),
         },
         "batch": {"keys": [i.hex() for i in ids], "roots": {n: r.hex() for n, r in roots.items()}, "audience": b_aud, "claim audience": c_aud,
                   "chain": {"after the first batch (3, all accepted, 6000000)": chain0.hex(),
-                            "after the second (5, 4 accepted, 8000000)": batch.chain_hash(chain0, roots["5"], 1, 5, 4, 8_000_000).hex()}},
-        "ledgers": {name: {"data": data.hex(), "read": plain(batch.read_ledger(data))} for name, data in ledgers.items()}
+                            "after the second (5, 4 accepted, 8000000)": meter.chain_hash(chain0, roots["5"], 1, 5, 4, 8_000_000).hex()}},
+        "ledgers": {name: {"data": data.hex(), "read": plain(meter.read_ledger(data))} for name, data in ledgers.items()}
         | {"ledger (none)": {"data": None, "read": None}, "ledger (not one)": {"data": bytes(95).hex(), "read": None}},
         "accounts": {name: {"data": data.hex(), "reader": name.split(" ")[0], "read": plain(readers[name.split(" ")[0]](data))} for name, data in accounts.items()}
         | {"credits (not credits)": {"data": bytes(167).hex(), "reader": "credits", "read": plain(meter.read_credits(bytes(167)))},
