@@ -17,6 +17,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import _posix
 import pytest
 
 from knos import audit, commands, terms_templates
@@ -35,13 +36,13 @@ def _script(name: str):
 
 def _site(tmp_path: Path) -> tuple[Path, dict]:
     """The site as the Pages build lays it out, and the environment its tests run in."""
-    if os.name == "nt":
-        pytest.skip("the Pages build runs on ubuntu-latest")
     site = tmp_path / "site"
-    env = {**os.environ, "PYTHON": sys.executable, "PYTHONPATH": str(ROOT / "src")}
+    env = {**os.environ, "PYTHON": _posix.path(sys.executable), "PYTHONPATH": str(ROOT / "src")}
     if "PLAYWRIGHT_BROWSERS_PATH" not in env and Path(BROWSERS).is_dir():
         env["PLAYWRIGHT_BROWSERS_PATH"] = BROWSERS
-    subprocess.run(["bash", str(ROOT / "scripts" / "build_site.sh"), str(site), "c" * 40], check=True, env=env, capture_output=True, timeout=120)
+    built = subprocess.run([_posix.bash(), _posix.path(ROOT / "scripts" / "build_site.sh"), _posix.path(site), "c" * 40],
+                           env=env, capture_output=True, text=True, timeout=120)
+    assert built.returncode == 0, built.stdout + built.stderr
     return site, env
 
 

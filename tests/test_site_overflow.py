@@ -11,6 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import _posix
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,13 +22,13 @@ def test_no_page_scrolls_sideways(tmp_path: Path) -> None:
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not installed")
-    if os.name == "nt":
-        pytest.skip("the Pages build runs on ubuntu-latest")
     site = tmp_path / "site"
-    env = {**os.environ, "PYTHON": sys.executable, "PYTHONPATH": str(ROOT / "src")}
+    env = {**os.environ, "PYTHON": _posix.path(sys.executable), "PYTHONPATH": str(ROOT / "src")}
     if "PLAYWRIGHT_BROWSERS_PATH" not in env and Path(BROWSERS).is_dir():
         env["PLAYWRIGHT_BROWSERS_PATH"] = BROWSERS
-    subprocess.run(["bash", str(ROOT / "scripts" / "build_site.sh"), str(site), "c" * 40], check=True, env=env, capture_output=True, timeout=120)
+    built = subprocess.run([_posix.bash(), _posix.path(ROOT / "scripts" / "build_site.sh"), _posix.path(site), "c" * 40],
+                           env=env, capture_output=True, text=True, timeout=120)
+    assert built.returncode == 0, built.stdout + built.stderr
     run = subprocess.run([node, str(ROOT / "tests" / "web" / "overflow.mjs"), str(site)], env=env, capture_output=True, text=True, timeout=600)
     if run.returncode == 0 and run.stdout.startswith("SKIP"):
         pytest.skip(run.stdout.strip()[5:])

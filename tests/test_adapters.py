@@ -20,6 +20,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import _posix
 import pytest
 import yaml
 
@@ -185,8 +186,8 @@ def test_knos_pay_takes_the_run_an_adapter_starts_and_refuses_the_direct_paths()
 
 # ---- the script itself, against a stand-in for `gh` ---------------------------------------------------------------------
 
-GH = r'''#!/usr/bin/env python3
-import json, os, sys
+GH = r'''import json, os, sys
+sys.stdout.reconfigure(newline="\n")      # LF on every OS, as the runner's gh writes
 a = sys.argv[1:]
 world = json.load(open(os.environ["WORLD"]))
 def log(line):
@@ -215,8 +216,8 @@ if parts[3] == "commits":
     print(world["tags"][parts[4]]); sys.exit(0)
 sys.exit(2)
 '''
-CURL = r'''#!/usr/bin/env python3
-import json, os, sys
+CURL = r'''import json, os, sys
+sys.stdout.reconfigure(newline="\n")
 a = " ".join(sys.argv[1:])
 world = json.load(open(os.environ["WORLD"]))
 open(os.environ["LOG"], "a").write("curl " + next(x for x in sys.argv[1:] if x.startswith("http")) + "\n")
@@ -229,22 +230,31 @@ sys.exit(22)
 
 
 def play(tmp_path: Path, name: str, world: dict, **env) -> list[str]:
-    """Runs the adapter's last step with stand-ins for `gh` and `curl`. Returns what they were asked to do."""
-    if os.name == "nt":         # a bare `bash` there is WSL's launcher; the adapters run on ubuntu-24.04
-        pytest.skip("the adapters run on ubuntu-24.04")
+    """Runs the adapter's last step with stand-ins for `gh` and `curl`, in a POSIX bash (tests/_posix.py: Git's on
+    Windows). Returns what they were asked to do."""
+    bash = _posix.bash()
     bin_ = tmp_path / "bin"
     bin_.mkdir(exist_ok=True)
+    # each stand-in is a Python file run by this interpreter, through a two-line bash script named as the tool
     for tool, body in (("gh", GH), ("curl", CURL)):
-        (bin_ / tool).write_text(body, encoding="utf-8")
+        (bin_ / f"{tool}.py").write_text(body, encoding="utf-8")
+        (bin_ / tool).write_text(f'#!/usr/bin/env bash\nexec "{_posix.path(sys.executable)}" "{_posix.path(bin_ / f"{tool}.py")}" "$@"\n',
+                                 encoding="utf-8", newline="\n")
         (bin_ / tool).chmod(stat.S_IRWXU)
+    if os.name == "nt":         # jq for Windows ends each line with CR LF; the runner's jq (Linux), which the step is
+        jq = _posix.path(shutil.which("jq"))       # written for, with LF: the same jq, its lines ended as there
+        (bin_ / "jq").write_text(f'#!/usr/bin/env bash\nset -o pipefail\n"{jq}" "$@" | tr -d \'\\r\'\n', encoding="utf-8", newline="\n")
     log, state = tmp_path / "log", tmp_path / "world.json"
     log.write_text("", encoding="utf-8")
     if not state.exists():
         state.write_text(json.dumps({"status": {}, "contains": {}, "tags": {}, "tracker": {}, **world}), encoding="utf-8")
     job, last = step(ADAPTERS / name)
     given = {k: str(v) for k, v in job["env"].items() if "${{" not in str(v)}
-    got = subprocess.run(["bash", "-c", last["run"]], cwd=str(tmp_path), capture_output=True, text=True, check=False,
-                         env={"PATH": f"{bin_}:{os.environ['PATH']}", "WORLD": str(state), "LOG": str(log), "R": "acme/app", **given, **env})
+    # what Windows needs to start a program at all (Python reads SYSTEMROOT), and no other variable of this process
+    system = {k: os.environ[k] for k in ("SYSTEMROOT", "WINDIR", "TEMP", "TMP", "PATHEXT", "COMSPEC") if os.name == "nt" and k in os.environ}
+    got = subprocess.run([bash, "-c", last["run"]], cwd=str(tmp_path), capture_output=True, text=True, check=False,
+                         env={**system, "PATH": f"{bin_}{os.pathsep}{os.environ['PATH']}", "WORLD": str(state), "LOG": str(log),
+                              "MSYS_NO_PATHCONV": "1", "R": "acme/app", **given, **env})     # Git's bash: arguments as written
     assert got.returncode == 0, got.stdout + got.stderr
     return [ln for ln in log.read_text(encoding="utf-8").splitlines() if not ln.startswith(("search", "curl"))]
 
@@ -253,7 +263,7 @@ def pull(n: int, **more) -> dict:
     return {"number": n, "title": f"Change {n}", "body": "", "head": {"sha": f"{n:040x}", "ref": f"change-{n}"}, "merge_commit_sha": f"{n + 100:040x}", **more}
 
 
-@pytest.mark.skipif(not shutil.which("bash") or not shutil.which("jq"), reason="needs bash and jq")
+@pytest.mark.skipif(not _posix.find() or not shutil.which("jq"), reason="needs bash and jq")
 def test_a_deployment_marks_and_settles_the_pull_requests_it_contains_once(tmp_path):
     deployed = "d" * 40
     world = {"pulls": {"7": pull(7), "8": pull(8), "9": pull(9)}, "contains": {deployed: [pull(7)["merge_commit_sha"], pull(9)["merge_commit_sha"]]},
@@ -275,7 +285,7 @@ def test_a_deployment_marks_and_settles_the_pull_requests_it_contains_once(tmp_p
         f"workflow run knos-attest.yml --repo acme/app -f repository=acme/app -f pull=7 -f order={'ab' * 32}.2.2000000 -f kind=eval"]
 
 
-@pytest.mark.skipif(not shutil.which("bash") or not shutil.which("jq"), reason="needs bash and jq")
+@pytest.mark.skipif(not _posix.find() or not shutil.which("jq"), reason="needs bash and jq")
 @pytest.mark.parametrize("name,context,named,done,env", [
     ("linear.yml", "tracker/linear-done", dict(title="ENG-12 faster parser"), "completed", dict(LINEAR_API_KEY="k")),
     ("jira.yml", "tracker/jira-done", dict(head={"sha": f"{7:040x}", "ref": "feature/proj-12-parser"}), "done",
