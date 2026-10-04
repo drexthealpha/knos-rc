@@ -243,21 +243,25 @@ instead.
 
 ## GitLab CI
 
-For a GitLab merge request that corresponds to a GitHub pull request, set `KNOS_GITHUB_REPOSITORY` to the GitHub
-`owner/name` and `KNOS_GITHUB_PR_NUMBER` to that pull request's number in the project's CI/CD variables. `knos check`
-reads the pull request and its checks from GitHub; a GitLab merge request with no corresponding GitHub pull request
-cannot be checked by this command.
+A GitLab project that runs CI/CD for a GitHub repository (GitLab's "CI/CD for external repositories") runs a
+pipeline for each GitHub pull request, and hands that pipeline the pull request's number as
+`CI_EXTERNAL_PULL_REQUEST_IID`. Set `KNOS_GITHUB_REPOSITORY` to the GitHub `owner/name` in the project's CI/CD
+variables; the number comes with each pipeline, so each pull request is checked as itself. `knos check owner/name#N` reads
+that pull request from GitHub, its description and the checks GitHub recorded at its head commit, and the job fails
+when the description says tests pass or CI is green and a check failed there. It also fails when GitHub cannot be
+read, rather than pass on a pull request it did not see. A masked `GH_TOKEN` variable, a token that can read the
+repository, lifts GitHub's limit on anonymous reads, which a shared runner's address may have used up. A GitLab merge
+request with no GitHub pull request behind it cannot be checked by this command.
 
 ```yaml
 # .gitlab-ci.yml
 knos:
   image: python:3.12
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "external_pull_request_event"'
   script:
-    - python -m pip install knos
-    - printf '{"pull_request":{"number":%s}}' "$KNOS_GITHUB_PR_NUMBER" > .knos-event.json
-    - knos check --event .knos-event.json --repo "$KNOS_GITHUB_REPOSITORY"
+    - python -m pip install knos==0.3.13
+    - knos check "$KNOS_GITHUB_REPOSITORY#$CI_EXTERNAL_PULL_REQUEST_IID"
 ```
 
 ## Get paid: bind a wallet, by hand
