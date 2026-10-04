@@ -687,9 +687,15 @@ the pinned `prove.yml` run in the order's own repository.
 
 **Challenge (Revert, instruction 19).** While an order is in its warranty, its holdback and the fee on it are
 still in the order. For an order that allows a neutral run, anyone can challenge the payment: he starts the pinned
-`attest.yml` by hand in a repository of his own, it runs the pinned judge again on the head that was paid, and it
-signs `knos3:revert:<order>:<head sha>` only when that head fails the terms. Revert then returns everything the
-order still holds to its funder. After the warranty the same token is refused and Release pays the holdback.
+`attest.yml` by hand (kind `revert`) in a repository of his own. It reads GitHub's record of the order's repository
+and signs `knos3:revert:<order>:<head sha>` only when a commit on the default branch after the merge reverts the paid
+pull request's merge commit (its message says `This reverts commit <merge sha>`, as `git revert` and GitHub's Revert
+button write it). It does not run the acceptance checks on the head again, and it signs nothing for a pull request
+that was not merged, so an `auto` payment, which is made unmerged, cannot be challenged by a neutral run today: only
+the program would take such a token. Revert then returns everything the order still holds to its funder. After the
+warranty the same token is refused and Release pays the holdback. Rehearsed on devnet on the staging programs in
+0.3.14: a `quorum 2` order with a 20% holdback, its merge reverted, a neutral run by an account that was not its
+funder, and Revert returned the holdback and its fee.
 
 - No bond is asked of a challenger. A bond prices false challenges; here a false challenge cannot be made, because
   the token is GitHub's signature over a run of the pinned file at the pinned commit on a GitHub-hosted runner,
