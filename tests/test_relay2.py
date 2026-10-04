@@ -1370,6 +1370,26 @@ def test_a_comment_funds_a_work_order_and_a_proof_pays_its_four_payees_in_two_tr
     assert r["ok"] and c.balance(pay.ata(relayer.pubkey(), c.usdc)) == 300_000 + pay.TIP, r
 
 
+def test_a_used_fund_token_is_not_called_done_when_another_token_funded_its_address_again(oenv):
+    # rehearsed on devnet (0.3.14): two `/knos fund` comments of one maintainer on one issue name one order address;
+    # the first funded it, the order was paid, the second funded it again, and the first token relayed once more was
+    # answered "already", citing the second token's funding
+    c, net = oenv
+    n = issue()
+    first = order_fund_jwt(c, n)
+    r1 = go(oenv, first, TERMS)
+    assert r1["ok"], r1
+    order = Pubkey.from_string(r1["order"])
+    assert go(oenv, order_pay_jwt(c, order, [(user(), 10_000, Keypair().pubkey())]))["ok"] and c.order(order) is None
+    second = order_fund_jwt(c, n)
+    r2 = go(oenv, second, TERMS)
+    assert r2["ok"] and r2["order"] == str(order) and r2["sigs"][-1] != r1["sigs"][-1], r2
+    got = refused(oenv, first, TERMS, "this token was used already: it funded an earlier order at this address")
+    assert r2["sigs"][-1] not in str(got), got
+    n0 = net.txs
+    assert go(oenv, second, TERMS, c.fund()) == {**r2, "sigs": r2["sigs"][-1:], "already": True} and net.txs == n0
+
+
 def test_an_order_is_held_for_a_payee_with_no_wallet_then_settled_and_an_unproven_one_goes_back(oenv):
     c, net = oenv
     n, order = ordered(oenv, 30 * USDC)

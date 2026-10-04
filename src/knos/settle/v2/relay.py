@@ -431,6 +431,24 @@ def _last(ledger, address: Pubkey) -> list[str]:
     return [sig] if sig else []
 
 
+def _funded_by(ledger, order: Pubkey, used: Pubkey, most: int = 20) -> tuple[bool, list[str]]:
+    """Whether the order now at `order` was funded by the fund token whose marker is `used`, and the transaction that
+    funded it: the newest of the order's last few transactions in which knos-pay logged its funding, and whether that
+    transaction also wrote the marker. An address is funded again once its order is paid or refunded, by another token
+    of the same funder for the same issue and terms, so the order's own fields cannot tell the two tokens apart. When
+    the cluster does not say: (True, the last transaction to touch the order), the answer before this was read."""
+    recent, logs = getattr(ledger, "recent", None), getattr(ledger, "logs", None)
+    if not (recent and logs):
+        return True, _last(ledger, order)
+    try:
+        for sig, _when in recent(order, most):
+            if any(line.startswith(f"knos3:funded order={order} ") for line in chain.said(logs(sig), pay.PAY_ID)):
+                return sig in {s for s, _w in recent(used, most)}, [sig]
+    except Exception:  # noqa: BLE001 - not known: as before
+        pass
+    return True, _last(ledger, order)
+
+
 def _said_in(ledger, address: Pubkey, line: str, most: int = 10) -> list[str]:
     """The newest of the last few transactions that named `address` in which knos-pay itself logged exactly `line`.
     The last transaction to name an account is not the one that wrote it: a wallet's Bind is named, read-only, by
@@ -950,7 +968,12 @@ def _plan_order_fund(a: _Ask) -> _Plan:
         return {"ok": True, **result, "sigs": sigs, "amount": made.amount, "fee": made.fee, "faucet": made.faucet, "deadline": made.deadline}
     if o is not None:       # the token's marker is there and the order is as the token says: this very token made it, carried by another relayer
         if (pay.spent(_data(got, used)), o.funder_id, o.terms.hex(), o.mode, o.wf_sha) == (True, actor, named, mode, wf_sha):
-            raise _Stop({**done(_last(ledger, order), o), "already": True})
+            mine, sigs = _funded_by(ledger, order, used)
+            if mine:
+                raise _Stop({**done(sigs, o), "already": True})
+        if pay.spent(_data(got, used)):     # its order was paid or refunded, and another token funded this address again
+            raise _no(kind, f"this token was used already: it funded an earlier order at this address ({order}), since paid or refunded, "
+                            "and a fund token works once; the order there now was funded by another token")
         raise _no(kind, f"this issue already has order number {seq} from this balance (order {order}); fund again with another number")
     if pay.spent(_data(got, used)):
         raise _no(kind, "this token was used already, and a fund token works once")
