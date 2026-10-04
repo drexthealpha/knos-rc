@@ -276,7 +276,9 @@ jobs:
     if: needs.review.outputs.tests != '' && needs.judge.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    concurrency:      # the same line as a merge: it waits its turn
+    # The line of the runs started by hand, each in its turn. A merge waits in the line of its own commit, so it does
+    # not wait for this job: should both prove the same pull request, the chain pays it once.
+    concurrency:
       group: knos-settle
       queue: max
     cache-mode: read

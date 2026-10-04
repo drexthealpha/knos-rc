@@ -777,3 +777,39 @@ def test_a_token_the_chain_shows_done_is_logged_once_whichever_run_carried_it(wo
     [line] = passes(t0)
     assert ghrelay.token_id(theirs) in line and "(another relayer carried it first)" in line and len(relays.calls) == 2
     assert [ln for ln in gh.log() if ghrelay.token_id(ours) in ln] == [gh.log()[0]]
+
+
+# -- two runs overlap: what the loser of a race sees, and which log line answers for which comment ------------------------------
+def test_the_run_that_loses_a_passkey_withdrawal_to_the_other_run_logs_no_failure_for_it(world, monkeypatch):
+    """A passkey withdrawal has no `already`: once one run sent it, the wallet's nonce has moved on and the other run is
+    refused. That refusal is not the request's verdict: the log has the one that sent it."""
+    gh, relays, _state = world
+    t0 = 1_791_021_600.0
+    monkeypatch.delenv("GITHUB_RUN_ID", raising=False)
+    sent, refused = (base64.b64encode(bytes(range(256)) * n).decode() for n in (2, 3))
+    gh.search = ["alice/knos-claim"]
+    gh.comment("alice/knos-claim", 1, f"knos-withdraw: {sent}", who="alice", at=t0 - 5)
+    gh.comment("alice/knos-claim", 2, f"knos-withdraw: {refused}", who="alice", at=t0 - 5)
+    for request in (sent, refused):
+        relays.answers[ghrelay.token_id(request)] = {"ok": False, "kind": "withdraw", "why": "the wallet's nonce is not the request's"}
+    # the run relaying beside this one sent the first a moment ago and logged it
+    gh.comment(HOME, 1, f"knos-relay withdraw alice/knos-claim#1 {ghrelay.token_id(sent)} ok sig=w1 note=sent t=2", at=t0 - 1)
+    lines = passes(t0)
+    assert len(relays.calls) == 2
+    assert [ln.split()[1:5] for ln in lines] == [["withdraw", "alice/knos-claim#2", ghrelay.token_id(refused), "fail"]]     # a refusal of its own is logged
+    assert [ln for ln in gh.log() if ghrelay.token_id(sent) in ln] == [gh.log()[0]]
+
+
+def test_a_copys_log_line_under_another_marker_does_not_answer_for_the_comment_that_posts_the_token_rightly(world, monkeypatch):
+    """A run that takes over skips what the log answers. A copy of a token under another marker is logged with the
+    token's id (a token of nobody's audience is refused only by the relay), and must not answer for the right one."""
+    gh, relays, state = world
+    t0 = time.time()
+    token = jwt("sts.amazonaws.com")
+    gh.comment("octo/widgets", 3, ghrelay.token_comment("verify", token), at=t0 - 5)
+    gh.comment(HOME, 1, f"knos-relay fund mallory/r#1 {ghrelay.token_id(token)} fail not a Knos audience", at=t0 - 3)
+    state.write_text(json.dumps({"run": "41", "repos": {"octo/widgets": t0 - 30}}))
+    monkeypatch.setenv("GITHUB_RUN_ID", "42")
+    lines = passes(t0)
+    assert relays.calls == [("verify", token, None)] and [ln.split()[1:5] for ln in lines] == [["verify", "octo/widgets#3", ghrelay.token_id(token), "ok"]]
+    assert ghrelay.answer("verify", token) != ghrelay.answer("fund", token)

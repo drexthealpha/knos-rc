@@ -577,18 +577,24 @@ def wait_for(token_id: str, log_repo: str, timeout: float, every: float = 3.0, g
         time.sleep(min(every, left))
 
 
+def answer(kind: str, jwt: str) -> str:
+    """What `logged` holds for a comment's token: its marker and the token's id. A copy of the token posted under
+    another marker is another matter (the `seen` notes keep them apart too), so its line never answers for this one."""
+    return f"{kind} {token_id(jwt)}"
+
+
 def logged(since: str, get=None) -> set[str]:
-    """The ids of the tokens this relay's own log has a verdict on: the lines its workflow wrote since `since`.
-    worker.yml starts the next run before this one stops, so a run may start from notes a run old, and two runs relay
-    together for a few seconds: what the log answers already is neither carried nor logged again. Raises when GitHub
-    does not answer."""
+    """The tokens this relay's own log has a verdict on, as `answer` names them (marker and token id): the lines its
+    workflow wrote since `since`. worker.yml starts the next run before this one stops, so two runs relay together for
+    a few seconds: what the log answers already is neither carried nor logged again. Raises when GitHub does not
+    answer."""
     get = get or _api
     n, out = _log_issue(HOME_REPO, get), set[str]()
     for page in range(1, 11) if n is not None else ():
         got = get(f"repos/{HOME_REPO}/issues/{n}/comments?since={since}&per_page=100" + (f"&page={page}" if page > 1 else ""))
         for c in got:
             if (c.get("user") or {}).get("login") == LOG_BOT:
-                out.update(m.group(1) for m in re.finditer(r"^knos-relay \S+ \S+ ([0-9a-f]{16}) ", c.get("body") or "", re.M))
+                out.update(f"{m.group(1)} {m.group(2)}" for m in re.finditer(r"^knos-relay (\S+) \S+ ([0-9a-f]{16}) ", c.get("body") or "", re.M))
         if len(got) < 100:
             break
     return out
@@ -711,7 +717,7 @@ def once(ledger=None, payer=None, now: float | None = None, crank: bool = True) 
             continue
         seen.add(tid)
         order.append(tid)
-        if token_id(jwt) in answered:   # the log has its verdict: the run before this one carried it
+        if answer(kind, jwt) in answered:   # the log has its verdict, under this marker: the run before this one carried it
             continue
         wrong = ("a withdrawal request is read only on an issue of a repository named knos-claim" if astray else None) if kind == "withdraw" \
             else misposted(kind, jwt, terms)
@@ -743,9 +749,11 @@ def once(ledger=None, payer=None, now: float | None = None, crank: bool = True) 
                 continue
             r["why"] = f"{r.get('why')} (gave up after {MAX_TRIES} passes; run the workflow again for a fresh token)"
         tries.pop(tid, None)
-        if r.get("ok") and r.get("already"):
+        # carried already, or refused: when two runs overlap, the loser of the race sees one or the other (a passkey
+        # withdrawal has no `already`: once the winner sent it, the wallet's nonce has moved on and the loser is refused)
+        if not r.get("ok") or r.get("already"):
             try:
-                told = token_id(jwt) in logged(since)
+                told = answer(kind, jwt) in logged(since)
             except Exception:  # noqa: BLE001 - GitHub did not answer: the line says what the chain shows
                 told = False
             if told:

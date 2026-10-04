@@ -705,6 +705,9 @@ def test_runs_for_one_issue_or_pull_request_wait_for_each_other_and_none_is_drop
     one["github"]["sha"], two["github"]["sha"] = "a" * 40, "b" * 40
     assert value(group, one) == "knos-settle-push-" + "a" * 40 and value(group, two) == "knos-settle-push-" + "b" * 40
     assert value(group, _event("workflow_dispatch", {"inputs": {"pull": "7"}})) == "knos-settle"
+    # attest shares the line of the runs started by hand, not a merge's: a merge does not wait for it, and its file says so
+    assert prove["attest"]["concurrency"]["group"] not in (value(group, one), value(group, two))
+    assert "the same line as a merge" not in (WF / "prove.yml").read_text(encoding="utf-8")
     assert value(group, _comment("/knos settle", pull=True)) == "knos-settle-7"
     assert value(group, _comment("/knos settle", pull=True)) not in (value(group, one), value(group, two), "knos-settle")
     who = "${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}"
@@ -1431,30 +1434,95 @@ def test_the_next_worker_run_takes_over_before_this_one_stops_and_the_timer_star
     guard = steps[0]
     assert guard["id"] == "chain" and guard["env"]["AFTER"] == "${{ inputs.after }}"
     assert [s.get("if") for s in steps[1:-1]] == [gate] * (len(steps) - 2) and steps[-1]["if"] == f"always() && {gate}"
-    serve = next(s["run"] for s in steps if "knos relay --serve" in s.get("run", ""))
-    seconds = int(re.search(r"--serve (\d+)", serve).group(1))
-    lead = int(re.search(r"sleep (\d+) && gh workflow run worker\.yml ", serve).group(1))
-    assert 20 <= seconds - lead <= 45       # time for the next run to install (10 to 21 s were seen), and a short overlap
-    assert serve.count('-f after="$GITHUB_RUN_ID"') == 1 and '&& touch "$RUNNER_TEMP/knos-next"' in serve and "wait" in serve
+    serves = [s["run"] for s in steps if "knos relay --serve" in s.get("run", "")]
+    assert len(serves) == 2 and all(s.count("knos relay --serve") == 1 for s in serves)
+    first, tail = (int(re.search(r"--serve (\d+)", s).group(1)) for s in serves)
+    assert 20 <= tail <= 45 and 240 <= first + tail <= 300   # time for the next run to install (10 to 21 s were seen), and a short overlap
+    handover = serves[1]
+    assert "gh workflow run" not in serves[0] and "sleep" not in handover and "&" not in handover.replace("&&", "")
+    assert handover.count('-f after="$GITHUB_RUN_ID"') == 1 and '&& touch "$RUNNER_TEMP/knos-next"' in handover
+    assert handover.index("gh workflow run worker.yml ") < handover.index("knos relay --serve")     # started first, then relayed on
     assert steps[-1]["run"].startswith('[ -f "$RUNNER_TEMP/knos-next" ] || gh workflow run worker.yml ') and '-f after="$GITHUB_RUN_ID"' in steps[-1]["run"]
-    bash = shutil.which("bash")
-    if not bash or os.name == "nt":
-        pytest.skip("the first step's script is bash")
+    go = _chain_step(tmp_path, guard["run"])
+    went = go("")
+    assert went[0] == "go=true" and "run list" in went[1] and "--workflow worker.yml" in went[1]     # the timer, with no run going
+    assert go("", [_run(70, "relay after 69")])[0] == "go=false"     # the timer while the chain runs: that chain goes on alone
+    assert go("", fail="1")[0] == "go=false"                          # GitHub did not list the runs: the next tick asks again
+
+
+def _run(n: int, title: str, status: str = "in_progress") -> dict:
+    return {"databaseId": n, "status": status, "displayTitle": title}
+
+
+def _chain_step(tmp_path, script: str):
+    """The worker's first step, run by bash against a fake `gh` that lists `runs` (this run, 80 unless `me` says
+    otherwise, is listed too)."""
+    bash, jq = shutil.which("bash"), shutil.which("jq")
+    if not bash or not jq or os.name == "nt":
+        pytest.skip("the first step's script is bash, and reads GitHub's answer with jq")
     fake = tmp_path / "bin"
-    fake.mkdir()
-    (fake / "gh").write_text('#!/bin/sh\necho "$*" >> "$CALLS"\n[ -n "$FAIL" ] && exit 1\necho "$OTHERS"\n', encoding="utf-8")
+    fake.mkdir(exist_ok=True)
+    (fake / "gh").write_text('#!/bin/sh\necho "$*" >> "$CALLS"\n[ -n "$FAIL" ] && exit 1\nprintf "%s" "$RUNS"\n', encoding="utf-8")
     (fake / "gh").chmod(0o755)
 
-    def go(after: str, others: str = "0", fail: str = "") -> tuple[str, str]:
+    def go(after: str, runs: list[dict] = (), fail: str = "", attempt: str = "1", me: int = 80) -> tuple[str, str]:
         out, calls = tmp_path / "out", tmp_path / "calls"
         out.write_text("", encoding="utf-8")
         calls.write_text("", encoding="utf-8")
-        env = {**os.environ, "PATH": f"{fake}{os.pathsep}{os.environ['PATH']}", "AFTER": after, "OTHERS": others, "FAIL": fail,
-               "CALLS": str(calls), "GITHUB_OUTPUT": str(out), "GITHUB_RUN_ID": "77", "GITHUB_REPOSITORY": "o/r"}
-        subprocess.run([bash, "-e", "-c", guard["run"]], env=env, check=True, capture_output=True)
+        listed = [_run(me, f"relay after {after}" if after else "relay"), *runs]
+        env = {**os.environ, "PATH": f"{fake}{os.pathsep}{os.environ['PATH']}", "AFTER": after, "RUNS": json.dumps(listed), "FAIL": fail,
+               "CALLS": str(calls), "GITHUB_OUTPUT": str(out), "GITHUB_RUN_ID": str(me), "GITHUB_RUN_ATTEMPT": attempt, "GITHUB_REPOSITORY": "o/r"}
+        subprocess.run([bash, "-e", "-c", script], env=env, check=True, capture_output=True)
         return out.read_text(encoding="utf-8").strip(), calls.read_text(encoding="utf-8")
-    assert go("76", others="1") == ("go=true", "")         # started by the run before it: it takes over and asks nothing
-    went = go("")
-    assert went[0] == "go=true" and "run list" in went[1] and "--workflow worker.yml" in went[1]     # the timer, with no run going
-    assert go("", others="1")[0] == "go=false"                # the timer while the chain runs: that chain goes on alone
-    assert go("", fail="1")[0] == "go=false"                  # GitHub did not list the runs: the next tick asks again
+    return go
+
+
+def test_a_worker_run_takes_over_only_as_the_one_successor_and_a_second_chain_ends_at_its_next_handover(tmp_path):
+    """No concurrency group merges two chains of runs any more, so the first step does: a run started with `after` goes
+    on only as the first run to take over from that run, and only while no run of another chain relays without having
+    handed over. Two ways a second chain began: a re-run of a chain run (it keeps its `after`) and a start GitHub took
+    but answered with an error (the last step asked again)."""
+    doc = _doc(WF / "worker.yml")
+    name = doc["run-name"][3:-2].strip()       # each run's title names the run it takes over from: the first step reads it
+    assert value(name, {**_event("workflow_dispatch", {}), "inputs": {"after": "76"}}) == "relay after 76"
+    assert value(name, _event("schedule", {})) == "relay" and value(name, _event("workflow_dispatch", {})) == "relay"
+    go = _chain_step(tmp_path, _steps(doc["jobs"]["relay"])[0]["run"])
+    # the chain as it should be: the run before still relays for a few seconds, cron runs come and go
+    assert go("76", [_run(76, "relay after 75"), _run(75, "relay after 74", "completed"), _run(79, "relay")])[0] == "go=true"
+    assert "run list" in go("76")[1]
+    # GitHub did not list the runs: a run taken over relays all the same, and the next handover asks again
+    assert go("76", fail="1")[0] == "go=true"
+    # a re-run of a chain run: it neither relays nor starts a run (its first attempt started the next one), asking nothing
+    assert go("76", [_run(81, "relay after 80")], attempt="2") == ("go=false", "")
+    assert go("", attempt="2") == ("go=false", "")
+    # the start that GitHub took but answered with an error: the second run to take over from 76 ends, the first goes on
+    twins = [_run(76, "relay after 75"), _run(78, "relay after 76"), _run(80, "relay after 76")]
+    assert go("76", [r for r in twins if r["databaseId"] != 80], me=80)[0] == "go=false"
+    assert go("76", [r for r in twins if r["databaseId"] != 78], me=78)[0] == "go=true"
+    # two chains: X (76 -> 80) and Y (77 relays). X's next run finds Y relaying and ends there; Y's next run (82), once
+    # X's last run (80) has ended, goes on alone.
+    assert go("76", [_run(76, "relay after 70"), _run(77, "relay after 72")])[0] == "go=false"
+    assert go("77", [_run(77, "relay after 72"), _run(76, "relay after 70", "completed"), _run(80, "relay after 76", "completed")], me=82)[0] == "go=true"
+    # a run of the other chain that has handed over (77 -> 79) is ending and does not stop this one, but the run it handed
+    # over to does while it relays; a newer one (81) decides for itself
+    assert go("76", [_run(76, "relay after 70"), _run(77, "relay after 72"), _run(79, "relay after 77", "completed")])[0] == "go=true"
+    assert go("76", [_run(76, "relay after 70"), _run(77, "relay after 72"), _run(79, "relay after 77")])[0] == "go=false"
+    assert go("76", [_run(76, "relay after 70"), _run(81, "relay after 77")])[0] == "go=true"
+    # a junk `after` (typed by hand) is a start by hand: it goes only when no run is going
+    assert go("x1", [_run(76, "relay after 75")])[0] == "go=false"
+
+
+def test_a_worker_run_saves_its_notes_before_it_starts_the_next_run():
+    """The next run restores the newest notes saved. Saved only when a run ended, they were those of the run before the
+    one handing over, and the relay's notes split into two lines of runs (each with its own day's counts, unposted
+    lines and tries). So a run saves them, then starts the next run, then relays on while that one installs."""
+    steps = _steps(_doc(WF / "worker.yml")["jobs"]["relay"])
+    uses = [str(s.get("uses", "")).split("@")[0] for s in steps]
+    assert "actions/cache" not in uses       # it saves only when the job ends: after the next run restored
+    restore, save = uses.index("actions/cache/restore"), uses.index("actions/cache/save")
+    serve = [i for i, s in enumerate(steps) if "knos relay --serve" in s.get("run", "")]
+    start = [i for i, s in enumerate(steps) if "gh workflow run worker.yml" in s.get("run", "")]
+    assert restore < serve[0] < save < start[0] == serve[1] and start[-1] == len(steps) - 1
+    key = "knos-relay-home-${{ github.run_id }}"
+    assert steps[restore]["with"] == {"path": ".knos-home", "key": key, "restore-keys": "knos-relay-home-"}
+    assert steps[save]["with"] == {"path": ".knos-home", "key": key}
