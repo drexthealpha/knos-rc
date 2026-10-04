@@ -544,7 +544,7 @@ upgradesP.then(({ upgrades, ms, now }) => {
 // ---- the first screen: the recording, the example buttons, a payment by its transaction ---------------------------------
 initFirst({ $, esc, knos, RPC, EXPLORER, money, ids, gh, devnet });
 const showVersion = initPricing({ $, esc, knos, RPC, ids });
-initClaim({ $, esc, knos, RPC, EXPLORER, units, say, money, devnet });
+initClaim({ $, esc, knos, RPC, EXPLORER, units, say, money, devnet, client });
 const showRecords = initRecords({ $, esc });
 const showStatement = initStatements({ $, esc, EXPLORER });
 initTask({ $, esc, knos, gh });

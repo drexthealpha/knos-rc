@@ -1340,6 +1340,36 @@ const BAL = await k.balance(7000001, WALLET, USDC), BALTOK = await k.baltok(BAL)
   check("passkey: the withdrawal number is the wallet's own nonce plus one (4 after 3)", second.nonce === 4n && second.amount === 2_500_000n && verifies(second));
   check("  one signed for another amount does not verify as this one: the challenge names the amount and the number", clientData.challenge !== JSON.parse(Buffer.from(second.clientDataJSON).toString()).challenge);
 
+  // faucet money: a bounty funded by comment on devnet pays the escrow's own test mint (knos_pay's faucet mint), not
+  // Circle's. The card shows it beside Circle's and withdraws it when the person picks it.
+  const FAUCET = await k.faucetMint(), mineFaucet = await passkey.ata(address, FAUCET);
+  check("passkey: the faucet mint is another mint than Circle's, and the wallet's account of it another address", FAUCET !== USDC && mineFaucet !== await passkey.ata(address, USDC));
+  check("  the mint to withdraw is a choice of the two, Circle's first while only Circle's is held", JSON.stringify(await page.$$eval("#pk-mint option", (os) => os.map((o) => o.value))) === JSON.stringify([USDC, FAUCET])
+    && (await page.inputValue("#pk-mint")) === USDC);
+  put(mineFaucet, tokenBytes({ mint: FAUCET, owner: address, amount: 3_000_000 }), knos.TOKEN);
+  await page.click("#pk-refresh");
+  await page.waitForFunction(() => document.getElementById("pk-held")?.textContent.includes("3.00"));
+  const both = await text(page, "#pk-held");
+  check("  the balance shows both: 12.50 test USDC and 3.00 test USDC from the devnet faucet, each at its own account", both.includes("12.50 test USDC, at") && both.includes("3.00 test USDC from the devnet faucet, at")
+    && both.includes(`${mineFaucet.slice(0, 4)}…${mineFaucet.slice(-4)}`) && both.includes("Withdrawals so far: 3"), both);
+  check("  and the choice says what each holds; the person's choice is kept across a refresh", (await text(page, "#pk-mint")).includes("3.00") && (await page.inputValue("#pk-mint")) === USDC);
+  await page.selectOption("#pk-mint", FAUCET);
+  await refused("5", WALLET, "octocat", "holds 3.00 test USDC from the devnet faucet, so 5.00 cannot be withdrawn");
+  await refused("2", WALLET, "octocat", "has no token account of the devnet faucet's test USDC");
+  check("  the choice stays on the faucet's mint after a refusal", (await page.inputValue("#pk-mint")) === FAUCET);
+  const toFaucet = await passkey.ata(WALLET, FAUCET);
+  put(toFaucet, tokenBytes({ mint: FAUCET, owner: WALLET, amount: 0 }), knos.TOKEN);
+  await sign(page, "2", WALLET);
+  await page.waitForSelector("#pk-comment");
+  const faucetReq = passkey.readWithdrawRequest(await page.inputValue("#pk-comment")), faucetAsked = device.gets.at(-1);
+  check("passkey: a faucet withdrawal names the faucet mint and WALLET's account of it, 2.00, number 4, and the device signed exactly that",
+    faucetReq.mint === FAUCET && faucetReq.to === toFaucet && faucetReq.amount === 2_000_000n && faucetReq.nonce === 4n && verifies(faucetReq)
+    && faucetAsked.challenge.equals(Buffer.from(await passkey.challenge(address, FAUCET, toFaucet, 2_000_000, 4))) && (await text(page, "#pk-signed")).includes("Nothing has been sent")
+    && (await text(page, "#pk-request")).includes("2.00 test USDC from the devnet faucet"));
+  const faucetIxs = await passkey.withdrawIxs({ key: faucetReq.key, mint: faucetReq.mint, to: faucetReq.to, amount: faucetReq.amount, nonce: faucetReq.nonce, assertion: { authenticatorData: faucetReq.authenticatorData, clientDataJSON: faucetReq.clientDataJSON, signature: faucetReq.signature } });
+  check("  and a relay's Withdraw from it moves the faucet mint out of the wallet's own account of that mint", faucetIxs[1].accounts[1].pubkey === mineFaucet && faucetIxs[1].accounts[3].pubkey === toFaucet);
+  await page.selectOption("#pk-mint", USDC);
+
   // the line's format, both ways, and what is not one
   const round = passkey.readWithdrawRequest(passkey.withdrawLine({ key, mint: USDC, to, amount: 7, nonce: 9, assertion: { authenticatorData: req.authenticatorData, clientDataJSON: req.clientDataJSON, signature: req.signature } }));
   check("passkey: the request's format reads back what was written, and nothing else is read as a request", round.amount === 7n && round.nonce === 9n && round.to === to && Buffer.from(round.signature).equals(Buffer.from(req.signature))

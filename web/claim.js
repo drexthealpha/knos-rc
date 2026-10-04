@@ -20,10 +20,18 @@ const unhex = (s) => (/^([0-9a-f]{2})+$/i.test(s) ? Uint8Array.from(s.match(/../
 // bytes. This page shows the line withdrawLine makes, and never reads one back.
 
 export function initClaim(ctx) {
-  const { $, esc, knos, RPC, EXPLORER, units, say, money } = ctx;
-  const rpId = location.hostname, MINT = knos.USDC_DEVNET;
+  const { $, esc, knos, RPC, EXPLORER, units, say, money, client } = ctx;
+  const rpId = location.hostname;
   $("pk-rp").textContent = rpId;
-  let me = null;                 // { credentialId: Uint8Array | null, key: Uint8Array(33), wallet: address, balance, nonce }
+  let me = null;                 // { credentialId: Uint8Array | null, key: Uint8Array(33), wallet: address, held: [what each mint's account holds], nonce }
+  // The two test mints a payment reaches a passkey wallet in on devnet: Circle's devnet USDC (a bounty funded from a
+  // wallet), and the escrow's own faucet mint (a bounty funded by comment from the devnet faucet), whose address follows
+  // from the knos_pay of program_ids.json. knos_passkey and the relay take any mint: the person picks which to withdraw.
+  let mintsP = null;
+  const mints = () => (mintsP ||= (async () => [
+    { mint: knos.USDC_DEVNET, unit: "test USDC", name: "Circle's devnet USDC" },
+    { mint: await (await client()).faucetMint(), unit: "test USDC from the devnet faucet", name: "the devnet faucet's test USDC (a bounty funded by comment)" },
+  ])().catch((e) => { mintsP = null; throw e; }));
 
   // the details a person keeps, in this browser if it lets the page, and as one line of text they can hold themselves
   const remember = () => { try { localStorage.setItem(STORE, JSON.stringify({ credentialId: me.credentialId ? b64(me.credentialId) : null, key: hex(me.key) })); } catch { /* no storage: the page works the same */ } };
@@ -47,22 +55,30 @@ export function initClaim(ctx) {
     await balance();
   }
 
-  // what the wallet holds of the test token, and its next withdrawal number: the wallet's account holds the last one used
+  // what the wallet holds of each test mint, and its next withdrawal number: the wallet's account holds the last one used
   async function read() {
     await ctx.devnet();
-    const mine = await passkey.ata(me.wallet, MINT);
-    const [held, opened] = await Promise.all([knos.account(RPC, mine), knos.accountInfo(RPC, me.wallet)]);
-    const token = knos.readTokenAccount(held);
-    me.balance = token && token.mint === MINT ? token.amount : 0;
+    const list = await mints();
+    const accounts = await Promise.all(list.map((m) => passkey.ata(me.wallet, m.mint)));
+    const [opened, ...held] = await Promise.all([knos.accountInfo(RPC, me.wallet), ...accounts.map((a) => knos.account(RPC, a))]);
+    me.held = list.map((m, i) => {
+      const token = knos.readTokenAccount(held[i]);
+      return { ...m, account: accounts[i], has: Boolean(token), amount: token && token.mint === m.mint ? token.amount : 0 };
+    });
     me.nonce = (opened?.owner === passkey.PASSKEY ? passkey.readWallet(opened.data)?.nonce : 0) ?? 0;
-    return { mine, has: Boolean(token) };
+    // the choice of what to withdraw: kept as the person left it, else the first mint the wallet holds any of
+    const pick = $("pk-mint"), was = pick.value;
+    pick.innerHTML = me.held.map((h) => `<option value="${esc(h.mint)}">${esc(h.name)}: ${esc(money(h.amount))}</option>`).join("");
+    pick.value = me.held.some((h) => h.mint === was) ? was : (me.held.find((h) => h.amount > 0) || me.held[0]).mint;
+    return me.held;
   }
   async function balance() {
     const out = $("pk-balance");
     try {
-      const { mine, has } = await read();
-      out.innerHTML = `<p class="status" id="pk-held">${has ? `The wallet holds <strong>${esc(money(me.balance))}</strong> test USDC` : "The wallet holds no test USDC yet: it has no token account"}, at
-        <a class="mono" href="${esc(EXPLORER("address", mine))}" target="_blank" rel="noopener">${esc(mine.slice(0, 4))}…${esc(mine.slice(-4))}</a>. Withdrawals so far: ${esc(String(me.nonce))}.</p>`;
+      const held = await read(), where = (h) => `<a class="mono" href="${esc(EXPLORER("address", h.account))}" target="_blank" rel="noopener">${esc(h.account.slice(0, 4))}…${esc(h.account.slice(-4))}</a>`;
+      const some = held.filter((h) => h.has);
+      out.innerHTML = `<p class="status" id="pk-held">${some.length ? `The wallet holds ${some.map((h) => `<strong>${esc(money(h.amount))}</strong> ${esc(h.unit)}, at ${where(h)}`).join(", and ")}`
+        : `The wallet holds no test USDC yet: it has no token account, at ${where(held[0])}`}. Withdrawals so far: ${esc(String(me.nonce))}.</p>`;
     } catch (e) { out.innerHTML = `<p class="status bad">Could not read devnet just now: ${esc(e.message)}</p>`; }
   }
 
@@ -98,17 +114,22 @@ export function initClaim(ctx) {
     if (!LOGIN.test(login)) return bad("Your GitHub login is letters, digits and single hyphens, up to 39.");
     try {
       say(out, "Reading devnet…");
-      await read();
-      if (amount > me.balance) return bad(`The wallet holds ${esc(money(me.balance))} test USDC, so ${esc(money(amount))} cannot be withdrawn. Nothing was signed.`);
+      const h = (await read()).find((x) => x.mint === $("pk-mint").value);     // read() keeps the person's choice of mint
+      if (amount > h.amount) return bad(`The wallet holds ${esc(money(h.amount))} ${esc(h.unit)}, so ${esc(money(amount))} cannot be withdrawn. Nothing was signed.`);
+      const MINT = h.mint;
       const to = await passkey.ata(dest, MINT), there = await knos.accountInfo(RPC, to), token = there?.owner === knos.TOKEN ? knos.readTokenAccount(there.data) : null;
-      if (!token || token.mint !== MINT) return bad(`${esc(dest.slice(0, 4))}…${esc(dest.slice(-4))} has no test USDC token account on devnet, so there is nowhere for the money to land. Make one there first (any wallet that has received test USDC has one). Nothing was signed.`);
+      if (!token || token.mint !== MINT) {
+        return bad(MINT === knos.USDC_DEVNET
+          ? `${esc(dest.slice(0, 4))}…${esc(dest.slice(-4))} has no test USDC token account on devnet, so there is nowhere for the money to land. Make one there first (any wallet that has received test USDC has one). Nothing was signed.`
+          : `${esc(dest.slice(0, 4))}…${esc(dest.slice(-4))} has no token account of the devnet faucet's test USDC (mint <span class="mono">${esc(MINT)}</span>), so there is nowhere for the money to land. Make one there first (any wallet a bounty funded by comment has paid has one). Nothing was signed.`);
+      }
       const nonce = me.nonce + 1;
       say(out, "Asking your device to sign this withdrawal…");
       const assertion = await passkey.sign(await passkey.challenge(me.wallet, MINT, to, amount, nonce), { rpId, credentialId: me.credentialId });
       const comment = passkey.withdrawLine({ key: me.key, mint: MINT, to, amount, nonce, assertion });
       const link = `https://github.com/${login}/knos-claim/issues/new?title=${encodeURIComponent("knos withdraw")}&body=${encodeURIComponent(comment)}`;
       out.innerHTML = `<p class="status ok" id="pk-signed">Signed on your device. Nothing has been sent.</p>
-        <p>The signature is for this and nothing else: <strong>${esc(money(amount))} test USDC</strong> from your wallet to the token account of
+        <p>The signature is for this and nothing else: <strong>${esc(money(amount))} ${esc(h.unit)}</strong> from your wallet to the token account of
           <span class="mono">${esc(dest)}</span>, as withdrawal number ${esc(String(nonce))}. It cannot be used for another amount, another destination or a second time.</p>
         <label for="pk-comment">The request, one line</label>
         <textarea id="pk-comment" readonly rows="6" spellcheck="false">${esc(comment)}</textarea>
