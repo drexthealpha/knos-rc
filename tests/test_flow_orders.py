@@ -729,3 +729,68 @@ def test_every_settlement_is_remembered_and_a_funding_proposes_terms_from_that_m
     w.hub.issue(10)
     assert flow.command(w.run(w.hub.commented(10, HUBOT, "/knos fund 20"))) == 0
     assert "changes under `docs/guide` failed `lint` 4 times: add it?" in w.hub.knos(10)[-1] and "as a work order" in w.hub.knos(10)[-1]
+
+
+def _assign_bytes(order, payee_id: int, to, since: int) -> bytes:
+    """An assignment as knos_pay 24 Assign lays it out (order_terms.rs A_*): the wallet an order pays in a payee's place."""
+    d = bytearray(88)
+    d[0] = 1
+    d[8:16], d[16:48], d[48:80], d[80:88] = payee_id.to_bytes(8, "little"), bytes(order), bytes(to), since.to_bytes(8, "little", signed=True)
+    return bytes(d)
+
+
+def test_replies_count_days_say_where_an_assigned_payment_went_and_do_not_ask_for_a_comment_that_cannot_help(tmp_path):
+    """C2 (fixes/05): "held back for 1 days"; a payment made to the wallet its payee assigned it to said only "It went to
+    `...`"; and a `/knos cancel` of a wallet's order, or a funding over a Balance's limit, ended "post the comment
+    again", which changes nothing."""
+    # one day is a day
+    w = world(tmp_path)
+    got = said(w, 7, HUBOT, "/knos fund 20 warranty 1 holdback 20")
+    assert "Warranty: 20% of each payment is held back for 1 day after it is paid;" in got and "1 days" not in got
+    assert "Warranty: 1 day, with nothing held back." in said(w, 7, HUBOT, "/knos fund 20 warranty 1")
+    assert "Warranty: 2 days, with nothing held back." in said(w, 7, HUBOT, "/knos fund 20 warranty 2")
+    w = ordered(tmp_path / "held", holdback_bps=2000, warranty_days=1)
+    w.chain.bind(MONA)
+    got = settled(w)
+    assert "4.00 more (20%) is held back as the warranty for 1 day: after that" in got and "1 days" not in got
+    assert [flow._days(n) for n in (0, 1, 2, 14)] == ["0 days", "1 day", "2 days", "14 days"]
+    # a payment the payee assigned: where it went, and why
+    w = ordered(tmp_path / "assigned")
+    w.chain.bind(MONA)
+    lender = Keypair().pubkey()
+    (_a, o), = w.chain.orders(7)
+    w.chain.accounts[str(pay.assign_pda(ORDER, MONA["id"]))] = _assign_bytes(ORDER, MONA["id"], lender, o.not_before)
+    got = settled(w)
+    assert got.startswith(f"Knos: paid. @mona received 20.00 {MONEY} for issue #7, in full: its funder paid Knos's fee of 0.50 on top. It went to "
+                          f"`{lender}`, the wallet @mona assigned this order's payment to (knos_pay Assign: whoever advanced them the money is "
+                          "paid in their place) ("), got
+    # an assignment made for an earlier order at the same address counts for nothing: the bound wallet is paid, and said so
+    w = ordered(tmp_path / "stale")
+    w.chain.bind(MONA)
+    w.chain.accounts[str(pay.assign_pda(ORDER, MONA["id"]))] = _assign_bytes(ORDER, MONA["id"], lender, o.not_before - 86_400)
+    assert f"It went to `{WALLET}`, the wallet bound to @mona's GitHub account (" in settled(w)
+    # a wallet's order: only the wallet cancels it, so nothing is signed and nobody is told to post the comment again
+    w = world(tmp_path / "wallet")
+    funder = Keypair().pubkey()
+    address = w.chain.order(7, 20_000_000, BOUGHT, source=funder, flags=pay.F_NEUTRAL, kind=0)
+    got = said(w, 7, HUBOT, "/knos cancel")
+    assert got == (f"Knos: nothing was cancelled, and posting the comment again would change nothing. The work order on issue #7 "
+                   f"([order on Solana]({EXPLORER}/address/{address}?cluster=devnet)) was funded from the wallet `{funder}`, and only that wallet can "
+                   "cancel it: it signs knos_pay's Cancel (`knos.settle.v2.pay.cancel_ix` builds the instruction). A comment cannot sign for a "
+                   "wallet. `/knos status` shows the order.")
+    assert w.signer.asked == [] and not w.chain.orders(7)[0][1].cancel_at and "again." not in got
+    # a Balance's limit: the relay refused before sending, and the same comment would be refused the same way
+    w = world(tmp_path / "limit")
+    w.relay.refusals = [{"ok": False, "kind": "fund", "why": f"{pay.ERRORS[100]}: 0.00 of 0.00 spent today, 0.00 of 1.00 in all (a limit of 0.00 is no limit)"}]
+    got = said(w, 7, HUBOT, "/knos fund 5", code=1)
+    assert got == ("Knos: nothing was funded. GitHub signed the request, and the relay refused it before anything was sent to Solana: more than "
+                   "this balance may spend in one day or in total; its wallet can raise the limit, or fund less: 0.00 of 0.00 spent today, 0.00 of "
+                   "1.00 in all (a limit of 0.00 is no limit). Posting the comment again changes nothing until its wallet raises the limit (it signs "
+                   "knos_pay's SetBalanceX: `knos.settle.v2.pay.set_balance_x_ix` builds the instruction), or a smaller `/knos fund` fits under it.")
+    w.relay.refusals = [{"ok": False, "kind": "fund", "why": "that balance lists the repositories that may spend it, and this one is not among them"}]
+    got = said(w, 7, HUBOT, "/knos fund 5", code=1)
+    assert "the relay refused it before anything was sent to Solana: that balance lists the repositories" in got and "until its wallet changes what it allows" in got
+    assert "smaller" not in got and "post the comment again" not in got.lower()
+    # a refusal that may clear still says to try again
+    w.relay.refusals = [{"ok": False, "kind": "fund", "why": pay.ERRORS[94]}]
+    assert said(w, 7, HUBOT, "/knos fund 5", code=1).endswith("To try again, post the comment again.")

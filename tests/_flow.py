@@ -394,7 +394,8 @@ class Relay:
         paid = []
         for pid, _bps, named in payees:
             bind = pay.read_bind(ledger.accounts.get(str(pay.bind_pda(pid))))
-            to = pay.order_destination(bind, named)
+            assigned = ledger.accounts.get(str(pay.assign_pda(Pubkey.from_string(str(address)), pid)))      # knos_pay 24 Assign comes first
+            to = pay.payee_wallet(assigned, o, bind, named)
             if to is None and len(payees) > 1:
                 return {"ok": False, "kind": "pay", "why": "a payee of a split has no wallet"}
             paid.append({"id": pid, "to": str(to) if to else None, "held_until": None if to else int(self.clock()) + pay.HOLD})

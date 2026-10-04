@@ -1076,6 +1076,28 @@ def _relayed(run: Run, c: Case, r: dict, after: str, how: str) -> str:
     return " ".join([*out, *c.said])
 
 
+# A Balance's side account refuses a funding for one of these (knos.settle.v2.relay._limits, and knos_pay error 100), and
+# the same comment is refused the same way until the Balance's wallet changes them. The words reach a reply the same
+# from this job's own relay and from the public worker's log line, so they are matched here, not flagged by the relay.
+_BALANCE_LIMITS = (pay.ERRORS[100], "that balance lists the repositories that may spend it", "that balance is spent only by the workflows")
+
+
+def _assigned(run: Run, c: Case, to) -> bool:
+    """Whether the one payee of an order was paid at `to` because they assigned this order's payment there (knos_pay
+    Assign): the program pays an assignee before the bound wallet and the address, and the assignment stays on chain."""
+    address, o = c.jobs[0]
+    try:
+        data = run.ledger.account(pay.assign_pda(Pubkey.from_string(str(address)), int(c.payees[0][0])))
+        return str(pay.read_assign(data, o)) == str(to)
+    except Exception:  # noqa: BLE001 - not read: the reply names the wallet and gives no reason, as before
+        return False
+
+
+def _days(n: int) -> str:
+    """`n` whole days, as a reply says it: "1 day", "14 days"."""
+    return f"{n} day{'' if n == 1 else 's'}"
+
+
 def _paid_order(run: Run, c: Case, r: dict, tx: str, took: str) -> str:
     """What a pay token did to a work order: each payee's full share (the funder paid the fee on top), what is held
     back for the warranty, and for a standing offer what is left. The relay's rows ({"id", "to", "held_until"}) say
@@ -1099,13 +1121,15 @@ def _paid_order(run: Run, c: Case, r: dict, tx: str, took: str) -> str:
     elif len(people) == 1:
         login, share, _bps, to, _until = people[0]
         src = {"bound": f", the wallet bound to @{login}'s GitHub account", "comment": f", the address in @{login}'s `/knos address` comment"}
-        out = [f"paid. @{login} received {_amount(share)} {money} for issue #{c.issue}, in full: {fee}. It went to `{to}`"
-               f"{src.get(c.where.get('from'), '') if to == c.where.get('address') else ''} ({tx}, {took})."]
+        why = (src.get(c.where.get("from"), "") if to == c.where.get("address") else
+               f", the wallet @{login} assigned this order's payment to (knos_pay Assign: whoever advanced them the money is paid in their place)"
+               if _assigned(run, c, to) else "")
+        out = [f"paid. @{login} received {_amount(share)} {money} for issue #{c.issue}, in full: {fee}. It went to `{to}`{why} ({tx}, {took})."]
     else:
         each = ", ".join(f"@{login} {_amount(share)} ({bps // 100}%) to `{to}`" for login, share, bps, to, _u in people)
         out = [f"paid. The work order on issue #{c.issue} paid {_amount(gross - back)} {money} in full ({fee}): {each} ({tx}, {took})."]
     if back:
-        out.append(f"{_amount(back)} more ({o.holdback_bps / 100:g}%) is held back as the warranty for {o.warranty_s // 86_400} days: after that "
+        out.append(f"{_amount(back)} more ({o.holdback_bps / 100:g}%) is held back as the warranty for {_days(o.warranty_s // 86_400)}: after that "
                    "anyone can release it to the same people; if the work is reverted before then, it goes back to the funder.")
     if standing:
         left = max(0, o.amount - o.paid - gross)
@@ -1373,7 +1397,15 @@ def _fund(run: Run, cmd, said: dict, on: dict, pull: dict | None, att=None) -> s
             return (f"Knos: not confirmed yet. GitHub signed the request (it is posted {'in ' + att.run.repo if att is not None else 'above'}) and no relayer carried it to Solana "
                     f"within {RELAY_WAIT // 60} minutes. Solana takes the signed token until an hour after it expires: if one carries it, {what} is funded"
                     + (f", and {att.run.repo} pays it like any other. " if att is not None else ", and `/knos status` shows it. ") + f"Otherwise {again}.")
-        return (f"Knos: nothing was funded. GitHub signed the request and Solana did not take it: {r['why'].rstrip('. ')}. To try "
+        why = r["why"].rstrip(". ")
+        if any(why.startswith(x) for x in _BALANCE_LIMITS):     # the Balance's own limits: the same comment is refused the same way
+            before = any(x in why for x in _BALANCE_LIMITS[1:]) or "spent today" in why     # the relay's check (relay._limits), before any transaction
+            fix = "its wallet raises the limit" if why.startswith(pay.ERRORS[100]) else "its wallet changes what it allows"
+            return (f"Knos: nothing was funded. GitHub signed the request, and "
+                    + ("the relay refused it before anything was sent to Solana" if before else "Solana did not take it") + f": {why}. Posting the "
+                    f"comment again changes nothing until {fix} (it signs knos_pay's SetBalanceX: `knos.settle.v2.pay.set_balance_x_ix` builds "
+                    "the instruction)" + (", or a smaller `/knos fund` fits under it." if why.startswith(pay.ERRORS[100]) else "."))
+        return (f"Knos: nothing was funded. GitHub signed the request and Solana did not take it: {why}. To try "
                 f"again, {again}.")
     money = f"{_amount(r.get('amount') or cmd.units)} {_money(run, mint_)}"
     took = f"{r['seconds']} s after {after}"
@@ -1476,11 +1508,11 @@ def _funded_order(run: Run, cmd, rp: dict, number: int, balance, mint_, faucet: 
     if plan["from_policy"]:
         told[0] = told[0].replace("(the checks you named)", f"(the checks `{policy.PATH}` names)")
     if plan.get("attestor") and built.terms.get("reserve"):     # nothing answers `/knos take` in a repository that runs no Knos workflow
-        told[-1] = (f"A maintainer who assigns the issue to someone reserves it for them for {built.terms['reserve']} days; `/knos take` is not "
+        told[-1] = (f"A maintainer who assigns the issue to someone reserves it for them for {_days(built.terms['reserve'])}; `/knos take` is not "
                     "answered here, because this repository runs no Knos workflow.")
-    warranty = (f"Warranty: {plan['holdback'] / 100:g}% of each payment is held back for {plan['warranty']} days after it is paid; if the work "
+    warranty = (f"Warranty: {plan['holdback'] / 100:g}% of each payment is held back for {_days(plan['warranty'])} after it is paid; if the work "
                 "is reverted in that time, that part goes back to the funder." if plan["holdback"] else
-                f"Warranty: {plan['warranty']} days, with nothing held back." if plan["warranty"] else
+                f"Warranty: {_days(plan['warranty'])}, with nothing held back." if plan["warranty"] else
                 "No warranty: a payment is final when it is made.")
     arbiter = f"Arbiter: @{plan['arbiter']} rules if a payment is disputed." if plan["arbiter"] else "No arbiter is named."
     neutral = ("After a merge the seller can have it paid without this repository's workflow: `knos settle --neutral <the pull request's "
@@ -1567,6 +1599,10 @@ def _order_word(run: Run, cmd, said: dict, on: dict) -> str:
     if o.cancel_at:
         return (f"Knos: the work order on issue #{number} ({link}) was cancelled on {who.when(o.cancel_at)} already. It pays what is "
                 f"accepted until {who.when(o.deadline)}; then the money and the fee go back to where they came from.")
+    if not o.from_balance:          # knos_pay takes no token for it (relay: "only that wallet's own signature cancels it"): nothing to sign
+        return (f"Knos: nothing was cancelled, and posting the comment again would change nothing. The work order on issue #{number} ({link}) "
+                f"was funded from the wallet `{o.source}`, and only that wallet can cancel it: it signs knos_pay's Cancel "
+                "(`knos.settle.v2.pay.cancel_ix` builds the instruction). A comment cannot sign for a wallet. `/knos status` shows the order.")
     if str(run.env.get("GITHUB_RUN_ATTEMPT") or "1") != "1":
         return f"Knos: nothing was cancelled. This is a re-run, and GitHub's signature counts only on the first run of a comment. {again}"
     try:
@@ -2636,7 +2672,7 @@ def attest(run: Run, order: str, kind: str, pull: int | None = None, payees: str
         held = [a.get("login") for a in issue.get("assignees") or [] if isinstance(a, dict) and a.get("id") != actor["id"]]
         if not got.assign and not (not held and any(isinstance(a, dict) and a.get("id") == actor["id"] for a in issue.get("assignees") or [])):
             return no(got.reply.split("Knos: ", 1)[-1])
-        aud, said = f"knos3:take:{address}:{actor['id']}:{o.reserve_days}", f"{what} is reserved for @{actor['login']} for {o.reserve_days} days"
+        aud, said = f"knos3:take:{address}:{actor['id']}:{o.reserve_days}", f"{what} is reserved for @{actor['login']} for {_days(o.reserve_days)}"
     elif kind == "rule":
         if not o.arbiter_id or actor["id"] != o.arbiter_id:
             return no(f"{what[0].upper()}{what[1:]} " + (f"names GitHub user id {o.arbiter_id} as its arbiter, and this run was started by "
