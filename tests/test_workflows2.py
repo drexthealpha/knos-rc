@@ -933,8 +933,13 @@ def test_attest_takes_facts_never_code_reads_the_public_record_and_asks_for_one_
     assert "${{" not in "".join(_scripts(job)) and "KNOS_RELAY_KEY" not in json.dumps(doc)
     said = _comments(WF / ATTEST)
     for words in ("No checkout", "No secret", "nothing a caller passes can change which code runs here", "pay (the terms were met)", "take (reserve",
-                  "revert (inside the warranty", "rule (the arbiter", "why a run in a seller's own repository is trusted", "a personal account cannot give a machine of its own that label"):
+                  "revert (inside the warranty", "rule (the arbiter", "why a run in a seller's own repository is trusted", "a personal account cannot give a machine of its own that label",
+                  "The kind eval is a buyer's, for knos_meter", "posts it as `knos-eval:`", "from the run's first attempt only"):
         assert words in said, words
+    # the published path to a meter evaluation: kind eval, whose `order` carries the evaluation (`knos attest` reads it)
+    from knos import flow
+    assert "eval" in flow.KINDS and "pay, take, revert, rule and eval" in called["kind"]["description"]
+    assert "For eval, the evaluation instead, as order.milestone.rate" in called["order"]["description"]
     assert not re.search(r"\bimmutable\b|nobody can change", (WF / ATTEST).read_text(encoding="utf-8"), re.I)
     # the command line the brief names is the one that runs, with the payees only when there are some
     assert ATTEST_COMMAND.startswith('knos attest --repository "$R" --pull "$P" --order "$O" --kind "$K"')
@@ -951,7 +956,7 @@ def test_the_seller_calls_attest_by_hand_from_a_repository_of_his_own_and_it_ask
     # the same inputs the called workflow takes, handed over one for one; kind is a choice of the four
     mine, theirs = doc["on"]["workflow_dispatch"]["inputs"], _doc(WF / ATTEST)["on"]["workflow_call"]["inputs"]
     assert set(mine) == set(theirs) and {k: v["required"] for k, v in mine.items()} == {k: v["required"] for k, v in theirs.items()}
-    assert mine["kind"]["type"] == "choice" and mine["kind"]["options"] == ["pay", "take", "revert", "rule"]
+    assert mine["kind"]["type"] == "choice" and mine["kind"]["options"] == ["pay", "take", "revert", "rule", "eval"]       # eval: a buyer's, for knos_meter
     assert job["with"] == {k: f"${{{{ inputs.{k} }}}}" for k in ATTEST_INPUTS}
     text = (EXAMPLES / "knos-attest.yml").read_text(encoding="utf-8")
     said = _comments(EXAMPLES / "knos-attest.yml")

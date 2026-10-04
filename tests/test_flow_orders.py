@@ -385,7 +385,7 @@ class Sellers:
     def wait_for(self, tid: str, log_repo: str, timeout: float, every: float = 3.0, get=None) -> str | None:
         import re
         for c in self.comments:
-            for marker, jwt in re.findall(r"^knos-(proof|take|revert|rule): (eyJ[\w-]+\.[\w-]+\.[\w-]+)$", c["body"], re.M):
+            for marker, jwt in re.findall(r"^knos-(proof|take|revert|rule|eval): (eyJ[\w-]+\.[\w-]+\.[\w-]+)$", c["body"], re.M):
                 assert "knosrelay" in c["body"]                 # the word the public worker's search finds
                 if self.token_id(jwt) == tid:
                     r = self.w.relay.submit(self.w.chain, None, jwt, None)
@@ -429,6 +429,66 @@ def test_attest_with_no_relay_key_posts_its_token_on_the_knos_tokens_issue_of_th
     w = w2
     code, run, text = attest(sellers)
     assert code == 0 and len(sellers.issues) == 1 and [c["issue"] for c in sellers.comments] == [1, 1] and run.outputs["comment"].endswith("#issuecomment-2")
+
+
+class Buyers(Sellers):
+    """hubot/knos-evals: a repository of the buyer (hubot also owns o/r), where its evaluations run."""
+    HERE = "hubot/knos-evals"
+
+
+def test_attest_eval_signs_one_evaluation_for_the_meter_from_the_buyers_own_record_and_posts_it_as_knos_eval(tmp_path):
+    """kind eval, knos_meter's, from the published attest.yml: run in a repository of the buyer (hubot) for a pull request
+    of a repository of that same owner (o/r). GitHub's record of what the buyer did with it is the verdict: merged is
+    accepted, closed unmerged rejected, open not evaluated yet. The seller is its author, the artifact its head commit,
+    the policy the hash of the one rule the command applies. Posted as `knos-eval:`, the marker the relay reads."""
+    import hashlib
+
+    from knos.proof import ghrelay
+    from knos.settle.v2 import meter
+    w = world(tmp_path)
+    w.hub.pull(12, MONA, "Slugify, as the work order asks")
+    head = w.hub.pulls[12]["head"]["sha"]
+    work = bytes(range(32))
+    spec = f"{work.hex()}.3.2500000"
+    buyer = {"GITHUB_REPOSITORY_OWNER_ID": str(HUBOT["id"])}
+    # what is not an evaluation, or not yet one, is said, and nothing is signed
+    for order, env, want in ((ORDER, buyer, "`--order` is `<work order>.<milestone>.<rate>`"),
+                             (f"{work.hex()}.{2 ** 32}.1", buyer, "`--order` is `<work order>.<milestone>.<rate>`"),
+                             (f"{work.hex()[:-2]}.3.1", buyer, "the work order as its 32-byte id in hex"),
+                             (spec, {**buyer, "GITHUB_RUN_ATTEMPT": "2"}, "knos_meter counts only a run's first attempt"),
+                             (spec, {"GITHUB_REPOSITORY_OWNER_ID": str(MONA["id"])}, f"(GitHub id {MONA['id']}), and o/r belongs to GitHub id {HUBOT['id']}"),
+                             (spec, {}, "(GitHub id unknown)"),
+                             (spec, buyer, "Pull request #12 of o/r is open: it is evaluated once it is merged (accepted) or closed unmerged (rejected)")):
+        code, run, text = attested(w, "eval", order=order, **env)
+        assert code == 1 and w.signer.asked == [] and text.startswith("Knos attest: nothing was signed.") and want in text, text
+    # merged: accepted. The World relays with its own key; the relay's answer is the meter's
+    w.hub.merge(12)
+    w.relay.refusals.append({"ok": True, "kind": "eval", "sigs": ["sigE"], "accepted": True, "fee": 0})
+    code, run, text = attested(w, "eval", order=spec, **buyer)
+    accepted = f"knosm:eval:{HUBOT['id']}:{MONA['id']}:{work.hex()}:{head}:{flow.EVAL_POLICY.hex()}:3:1:2500000"
+    assert code == 0 and w.signer.asked == [accepted] and run.outputs["audience"] == accepted, text
+    assert accepted == meter.eval_audience(HUBOT["id"], MONA["id"], work, head, flow.EVAL_POLICY, 3, 1, 2_500_000)
+    assert flow.EVAL_POLICY == hashlib.sha256(flow.EVAL_RULE).digest() and b"merged" in flow.EVAL_RULE and b"closed it unmerged" in flow.EVAL_RULE
+    assert (f"GitHub signed that pull request #12 of o/r by @mona (commit `{head[:7]}`) was merged: accepted, for work order "
+            f"`{work.hex()[:12]}` milestone 3 at rate 2500000, and Solana took it") in text
+    # closed unmerged: rejected. With no relay key the token goes on the buyer's "knos tokens" issue as `knos-eval:`,
+    # where the public worker's reader finds it under the eval marker
+    w.hub.pull(13, MONA, "Slugify, another way")
+    w.hub.pulls[13]["state"] = "closed"
+    w.env.pop("KNOS_RELAY_KEY")
+    buyers = Buyers(w)
+    w.relay.refusals.append({"ok": True, "kind": "eval", "sigs": ["sigR"], "accepted": False, "fee": 0})
+    summary = w.tmp / "eval-rejected.md"
+    run = w.run({}, GITHUB_REPOSITORY=Buyers.HERE, GITHUB_STEP_SUMMARY=str(summary), **buyer)
+    run._github, run._ghrelay = buyers, buyers
+    assert flow.attest(run, spec, "eval", 13) == 0
+    rejected = f"knosm:eval:{HUBOT['id']}:{MONA['id']}:{work.hex()}:{w.hub.pulls[13]['head']['sha']}:{flow.EVAL_POLICY.hex()}:3:0:2500000"
+    assert w.signer.asked[-1] == rejected and [(i["number"], i["title"]) for i in buyers.issues] == [(1, "knos tokens")]
+    body = buyers.comments[0]["body"]
+    assert body.startswith(f"knos-eval: {run.outputs['token']}\n") and "knosrelay" in body and run.outputs["comment"].startswith("https://github.com/hubot/knos-evals/issues/1")
+    [found] = ghrelay.tokens([{"body": body, "issue_url": "https://api.github.com/repos/hubot/knos-evals/issues/1", "user": {"login": "github-actions[bot]"}}])
+    assert tuple(found) == ("eval", 1, run.outputs["token"], "github-actions[bot]") and ghrelay.misposted("eval", run.outputs["token"]) is None
+    assert "closed unmerged: rejected" in summary.read_text(encoding="utf-8") and "and Solana took it" in summary.read_text(encoding="utf-8")
 
 
 def test_settle_neutral_starts_the_attest_workflow_in_the_sellers_own_repository_through_gh(tmp_path, capsys):

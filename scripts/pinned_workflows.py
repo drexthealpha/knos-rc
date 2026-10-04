@@ -122,7 +122,7 @@ repository at that same commit can pay it.
 | `.github/workflows/fund.yml` | a `/knos` comment, or a new issue that funds itself; in an organisation's attestor repository, a run by hand or a timer | `knos command` |
 | `.github/workflows/prove.yml` | a merge, a run started by hand, `/knos settle`, and the review after the check; in an attestor repository, a timer | `knos settle`, `knos review`, `knos proof judge` |
 | `.github/workflows/check.yml` | every pull request (optional, read-only) | `knos check` |
-| `.github/workflows/attest.yml` | a seller, by hand, after a merge: GitHub signs that a work order's terms were met | `knos attest` |
+| `.github/workflows/attest.yml` | a seller, by hand, after a merge: GitHub signs that a work order's terms were met; a buyer, by hand: one evaluation for `knos_meter` (kind `eval`, posted as `knos-eval:`) | `knos attest` |
 
 Call them by a full commit sha, never by a branch or a tag. The first three take no inputs; `attest.yml` takes a
 repository, a pull request, an order, a kind and optional payees, which name facts and never code. Every job installs

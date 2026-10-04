@@ -19,7 +19,8 @@ summary: none is silent.
                    exits 1 only for a false claim or a broken rule.
     knos attest    attest.yml, started by hand in any repository: reads GitHub's public record of another repository's
                    merged pull request and a work order on Solana, applies settle's own rules, and asks GitHub to
-                   sign a pay, take, revert or rule token only when that record supports it.
+                   sign a pay, take, revert or rule token only when that record supports it; or, in a buyer's
+                   repository, an evaluation for knos_meter (eval: merged is accepted, closed unmerged rejected).
     knos canary    one full round on devnet (fund, pull request, merge, payment), each leg timed.
 
 Where knos_pay is 2.1 (`Run.version()`), `/knos fund` opens a WORK ORDER instead of a job: its funder pays the fee on
@@ -2514,11 +2515,67 @@ def _proposed(run: Run, asked, built) -> str:
 
 # ---- knos attest: the same decision, from anyone's repository --------------------------------------------------------
 
-KINDS = ("pay", "take", "revert", "rule")
+KINDS = ("pay", "take", "revert", "rule", "eval")
+# kind eval (knos_meter): the one rule this command reaches a verdict by, named in every evaluation it signs by its hash (the policy)
+EVAL_RULE = (b"knos attest eval 1: accepted when the buyer merged the pull request into a repository of its own, "
+             b"rejected when the buyer closed it unmerged")
+EVAL_POLICY = hashlib.sha256(EVAL_RULE).digest()
+
+
+def _evaluation(text: str) -> tuple[bytes, int, int] | None:
+    """`--order` of kind eval, `<work order>.<milestone>.<rate>`: (the work order's 32-byte id, the milestone, the
+    rate), or None when it is not that."""
+    m = re.fullmatch(r"([0-9a-f]{64})\.([0-9]{1,10})\.([0-9]{1,20})", str(text).strip())
+    if not m or int(m.group(2)) >= 2 ** 32 or int(m.group(3)) >= 2 ** 64:
+        return None
+    return bytes.fromhex(m.group(1)), int(m.group(2)), int(m.group(3))
+
+
+def _attest_eval(run: Run, order: str, pull: int | None, no) -> int:
+    """`knos attest --kind eval`: one evaluation for knos_meter to count, run in a repository of the BUYER (the owner the
+    run is in), of a pull request in a repository of that same owner. The verdict is GitHub's record of what the buyer
+    did with it (EVAL_RULE, whose hash is the audience's policy): accepted when it was merged, rejected when it was
+    closed unmerged; an open one is not evaluated yet. The seller is its author, the artifact its head commit:
+
+        knosm:eval:<buyer>:<seller>:<work order>:<head>:<policy>:<milestone>:<verdict>:<rate>
+
+    knos_meter counts it once per (buyer, work order, artifact, policy, milestone), from the run's first attempt, and
+    only against credits the buyer opened for this workflow at this commit (OpenCredits pins drexthealpha/knos-workflows
+    and its commit). Posted as `knos-eval:` for a relayer, like every token of this command."""
+    got = _evaluation(order)
+    if got is None:
+        return no("An evaluation names its work order, milestone and rate: `--order` is `<work order>.<milestone>.<rate>`, the work order as "
+                  "its 32-byte id in hex (64 characters), the milestone a number below 2^32, and the rate what the seller bills when it is "
+                  "accepted, in the smallest units of what the two settle in.")
+    work, milestone, rate = got
+    if str(run.env.get("GITHUB_RUN_ATTEMPT") or "1") != "1":
+        return no("This is a re-run, and knos_meter counts only a run's first attempt: start the workflow again.")
+    buyer = str(run.env.get("GITHUB_REPOSITORY_OWNER_ID") or "")
+    rp, pull_ = _repo(run), (_pull(run, pull) if pull else None)
+    if rp is None or pull_ is None:
+        return no(f"GitHub did not answer for pull request #{pull} of {run.repo}. Run the workflow again." if pull else "`--pull` is the pull request's number.")
+    if not buyer.isdigit() or int(buyer) != rp["owner"]:
+        return no(f"An evaluation is the buyer's own: the pull request must be in a repository of the owner this run is in (GitHub id "
+                  f"{buyer or 'unknown'}), and {run.repo} belongs to GitHub id {rp['owner']}.")
+    number, head = int(pull_["number"]), str((pull_.get("head") or {}).get("sha") or "")
+    author = pull_.get("user") or {}
+    if pull_.get("merged_at"):
+        verdict = 1
+    elif pull_.get("state") == "closed":
+        verdict = 0
+    else:
+        return no(f"Pull request #{number} of {run.repo} is open: it is evaluated once it is merged (accepted) or closed unmerged (rejected).")
+    if not re.fullmatch(r"[0-9a-f]{40}", head) or not int(author.get("id") or 0):
+        return no(f"GitHub's record of pull request #{number} of {run.repo} names no head commit or no author. Run the workflow again.")
+    from .settle.v2 import meter
+    aud = meter.eval_audience(int(buyer), int(author["id"]), work, head, EVAL_POLICY, milestone, verdict, rate)
+    said = (f"pull request #{number} of {run.repo} by @{author.get('login')} (commit `{head[:7]}`) was "
+            + ("merged: accepted" if verdict else "closed unmerged: rejected") + f", for work order `{work.hex()[:12]}` milestone {milestone} at rate {rate}")
+    return _attest_sign(run, "eval", aud, said, "", number, None, no)
 
 
 def attest(run: Run, order: str, kind: str, pull: int | None = None, payees: str = "") -> int:
-    """`knos attest --repository R --pull P --order O --kind pay|take|revert|rule [--payees ...]`: what attest.yml runs,
+    """`knos attest --repository R --pull P --order O --kind pay|take|revert|rule|eval [--payees ...]`: what attest.yml runs,
     in ANY repository. `run.repo` is R, the repository the work order is for, and nothing is read of it but GitHub's
     public record: the pull request and its merge, each required check of the order's terms at its last commit, the
     issues it closes, the default branch's history (a revert). The rules are settle's own (`_decide`); when they
@@ -2528,6 +2585,8 @@ def attest(run: Run, order: str, kind: str, pull: int | None = None, payees: str
         take     knos3:take:<order>:<the starter's id>:<days>                the issue is free to reserve
         revert   knos3:revert:<order>:<head>                                 the merge was reverted on the default branch
         rule     knos3:rule:<order>:<payees>                                 the starter is the order's arbiter
+        eval     knosm:eval:<buyer>:<seller>:<work order>:<head>:...         knos_meter: the buyer merged it, or closed it unmerged
+                                                                             (`--order` is then `<work order>.<milestone>.<rate>`: _attest_eval)
 
     The chain, not this command, decides whose signature counts (the order's repository; a run started by hand in a
     repository its starter owns, for a NEUTRAL order; the arbiter). When it refuses, it says what it found, in plain
@@ -2542,6 +2601,8 @@ def attest(run: Run, order: str, kind: str, pull: int | None = None, payees: str
     actor = {"id": int(run.env.get("GITHUB_ACTOR_ID") or 0), "login": str(run.env.get("GITHUB_ACTOR") or ""), "type": "User"}
     if kind not in KINDS:
         return no(f"`--kind` is one of {', '.join(KINDS)}.")
+    if kind == "eval":
+        return _attest_eval(run, order, pull, no)
     try:
         address = Pubkey.from_string(str(order).strip())
         o = pay.read_order(run.ledger.account(address))
@@ -2615,16 +2676,22 @@ def attest(run: Run, order: str, kind: str, pull: int | None = None, payees: str
             if payees.strip() and payees.strip() != aud.split(":")[-1]:
                 return no(f"`--payees {_plain(payees.strip())}` is not who GitHub's record says is paid ({aud.split(':')[-1]}). Leave it empty.", found)
             said = f"pull request #{number} takes {what}: it pays {', '.join('@' + str(x[3]) for x in c.payees)}"
+    return _attest_sign(run, kind, aud, said, found, pull or o.issue, o, no)
+
+
+def _attest_sign(run: Run, kind: str, aud: str, said: str, found: str | None, number: int, o, no) -> int:
+    """The end of `knos attest`, whatever it asks for: GitHub signs `aud`, and the token is relayed here or posted for
+    a relayer. `o`: the work order the token is for (None for an evaluation, which names none on chain)."""
     try:
         jwt = run.mint(aud)
     except Exception as why:  # noqa: BLE001
         return no(f"GitHub did not sign ({_short(why)}). Run the workflow again.", found or "")
     pin = _pin(jwt)
-    if pin and (bytes(o.wf_repo_hash), o.wf_sha) != pin:
+    if pin and o is not None and (bytes(o.wf_repo_hash), o.wf_sha) != pin:
         return no(f"The order was funded through Knos's workflows at commit `{o.wf_sha[:7]}`, and only a run at that commit is accepted for "
                   f"it; this run used `{pin[1][:7]}`. Point your knos-attest.yml at commit `{o.wf_sha}`.", found or "")
     run.output("audience", aud)
-    number, where = pull or o.issue, None
+    where = None
     carried = ("It is no secret: it can do only what it names, once. Any relayer carries it to Solana: `knos relay` with a funded key, or "
                "Knos's public relay.")
     if not run.env.get("KNOS_RELAY_KEY"):
@@ -2643,7 +2710,8 @@ def attest(run: Run, order: str, kind: str, pull: int | None = None, payees: str
     if r.get("comment"):
         run.output("comment", r["comment"])
     posted = f" The token is posted for any relayer at {r['comment']}." if r.get("comment") else ""
-    late = " Solana takes it until an hour after it expires: when a relayer carries it, the payment is made." if r.get("timeout") else ""
+    late = (" Solana takes it until an hour after it expires: when a relayer carries it, "
+            + ("the evaluation is counted." if kind == "eval" else "the payment is made.")) if r.get("timeout") else ""
     run.note(f"Knos attest: GitHub signed that {said}" + (f", and Solana took it ({_link(run, 'transaction', 'tx', r['sigs'][-1]) if r['sigs'] else r['note']})."
                                                          if r["ok"] else f", but Solana did not take it: {r['why'].rstrip('. ')}.") + posted + late + (found or ""))
     return 0 if r["ok"] else 1
@@ -3097,10 +3165,11 @@ def _parser():
                        description="What attest.yml runs, in any repository: reads GitHub's public record of --repository and the work order on "
                                    "Solana, applies the rules `knos settle` applies, and asks GitHub to sign only what that record supports.")
     s.add_argument("--repository", required=True, help="the repository the work order is for, as owner/name")
-    s.add_argument("--order", required=True, help="the work order's address")
+    s.add_argument("--order", required=True, help="the work order's address (eval: <work order's 32-byte id in hex>.<milestone>.<rate>)")
     s.add_argument("--kind", required=True, choices=KINDS, help="pay: the merge met the terms; take: reserve it; revert: the merge was reverted "
-                                                                "inside the warranty; rule: you are its arbiter")
-    s.add_argument("--pull", type=int, default=0, help="the pull request's number (pay, revert)")
+                                                                "inside the warranty; rule: you are its arbiter; eval: one evaluation for knos_meter, "
+                                                                "run in a repository of the buyer (merged: accepted, closed unmerged: rejected)")
+    s.add_argument("--pull", type=int, default=0, help="the pull request's number (pay, revert, eval)")
     s.add_argument("--payees", default="", help="rule: who is paid, as id.bps.address entries separated by commas")
     s = sub.add_parser("canary", help="One timed round on devnet: fund, pull request, merge, payment",
                        description="One full round on devnet from the faucet in the repository it runs in (GITHUB_REPOSITORY, with GH_TOKEN a token "

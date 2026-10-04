@@ -11,6 +11,10 @@
 #         take    reserve the order for you, so nobody else starts the same work.
 #         revert  the work failed inside the warranty window: the held-back part goes back to the funder.
 #         rule    you are the arbiter the order named, and you decide.
+#         eval    (a buyer, for knos_meter) one evaluation of a pull request in a repository of yours: accepted when you
+#                 merged it, rejected when you closed it unmerged. `order` is then `<work order>.<milestone>.<rate>`: the
+#                 work order's 32-byte id in hex, the milestone, and what the seller bills when it is accepted. It counts
+#                 against credits you opened for Knos's attest.yml at the commit named below.
 #       `payees` is optional. Leave it empty and Knos works out who is paid from GitHub's record of the pull request.
 #       Nothing else starts it: not a push, not a comment, not a schedule, and not another person.
 #
@@ -49,14 +53,14 @@ on:
         required: true
         type: number
       order:
-        description: The work order's address
+        description: "The work order's address (eval: order.milestone.rate)"
         required: true
         type: string
       kind:
         description: What to ask GitHub to sign
         required: true
         type: choice
-        options: [pay, take, revert, rule]
+        options: [pay, take, revert, rule, eval]
       payees:
         description: "Optional: who is paid, as id.bps.address entries separated by commas"
         required: false
