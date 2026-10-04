@@ -564,7 +564,10 @@ mod tests {
         // The one way to be fooled: read_any, then the claims alone. Each of the two checks alone stops it.
         let forgetful = |t: &Token| t.claim("iss").is_some_and(|i| i.is(ISSUERS[0])) && t.audience().is_some_and(|a| a.is("gate:release"));
         assert!(forgetful(&tok));
-        assert!(!(forgetful(&tok) && !tok.is_private()) && !(forgetful(&tok) && tok.issuer() == ISSUER_GITHUB));
+        let fooled_past_is_private = forgetful(&tok) && !tok.is_private();
+        let fooled_past_the_issuer = forgetful(&tok) && tok.issuer() == ISSUER_GITHUB;
+        assert!(!fooled_past_is_private);
+        assert!(!fooled_past_the_issuer);
         // the other two checks of read_any are read's
         assert_eq!(Token::read_any_from(&v2::ID, &[1; 32], d, 1000).unwrap_err(), Error::NotOidc);
         assert_eq!(Token::read_any_from(&v2::ID, &v2::ID, d, 1000 + LATE).unwrap_err(), Error::Stale);

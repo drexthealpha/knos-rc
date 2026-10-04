@@ -9,6 +9,7 @@
 //!     holds a character outside printable ASCII that was written as an escape;
 //!   - a number the reader returns is serde_json's (a JSON integer, or a string of digits); it returns one for
 //!     every integer below 10^18 and every plain string of at most 18 digits with no leading zero.
+//!
 //! For anything else (not JSON, not an object) the reader may answer what it likes, and must not panic.
 #![allow(dead_code)]
 use serde::de::{Deserialize, Deserializer, MapAccess, Visitor};

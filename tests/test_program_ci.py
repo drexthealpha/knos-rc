@@ -132,17 +132,21 @@ def test_every_rust_build_starts_from_the_pinned_cache_action():
     verified = doc["jobs"]["verified-build"]
     assert sorted(verified["strategy"]["matrix"]["workspace"]) == ["programs", "programs-v2"]
     assert verified["strategy"]["matrix"]["program"] == ["knos_oidc", "knos_pay"]
-    # the second deployment's other two programs are built the same way; the meter's dependency on the interface
-    # crate is outside its workspace, so its build mounts the repository and names the workspace
-    assert verified["strategy"]["matrix"]["include"] == [{"workspace": "programs-v2", "program": "knos_meter", "mount": "repository"},
-                                                         {"workspace": "programs-v2", "program": "knos_passkey"}]
+    # the second deployment's other two programs and upgrade_gate are built the same way; the meter's dependency on the
+    # interface crate is outside its workspace, and cargo reads every member of a workspace to build any one, so every
+    # build of programs-v2 mounts the repository and names the workspace; upgrade_gate reads the same crate
+    assert verified["strategy"]["matrix"]["include"] == [{"workspace": "programs-v2", "mount": "repository"},
+                                                         {"workspace": "programs-v2", "program": "knos_meter", "mount": "repository"},
+                                                         {"workspace": "programs-v2", "program": "knos_passkey", "mount": "repository"},
+                                                         {"workspace": "examples/upgrade_gate", "program": "upgrade_gate", "mount": "repository"}]
     assert verified["env"] == {"WORKSPACE": "${{ matrix.workspace }}", "PROGRAM": "${{ matrix.program }}", "MOUNT": "${{ matrix.mount }}"}
     run = _runs(verified)
     assert 'solana-verify build "$GITHUB_WORKSPACE" --workspace-path "$GITHUB_WORKSPACE/$WORKSPACE" --library-name "$PROGRAM"' in run
     assert 'solana-verify build "$GITHUB_WORKSPACE/$WORKSPACE" --library-name "$PROGRAM"' in run and "matrix." not in run
     outside = [name for name in ("knos_oidc", "knos_pay", "knos_meter", "knos_passkey")
                if re.search(r'path = "\.\./\.\./', (ROOT / "programs-v2" / name / "Cargo.toml").read_text(encoding="utf-8"))]
-    assert outside == ["knos_meter"]                                       # the only one that needs the wider mount
+    assert outside == ["knos_meter"]                                       # one member reads outside: the workspace needs the wider mount
+    assert re.search(r'path = "\.\./\.\./crates/knos-oidc-interface"', (ROOT / "examples" / "upgrade_gate" / "Cargo.toml").read_text(encoding="utf-8"))
 
 
 def test_the_gate_job_has_github_sign_the_hash_of_each_verified_build_and_runs_nothing_a_commit_wrote(tmp_path):
@@ -176,7 +180,7 @@ def test_the_gate_job_has_github_sign_the_hash_of_each_verified_build_and_runs_n
     assert named == {name: ids[name] for name in ("knos_oidc", "knos_pay", "knos_meter", "knos_passkey")}
     verified = doc["jobs"]["verified-build"]
     built = {(w, p) for w in verified["strategy"]["matrix"]["workspace"] for p in verified["strategy"]["matrix"]["program"]}
-    built |= {(e["workspace"], e["program"]) for e in verified["strategy"]["matrix"]["include"]}
+    built |= {(e["workspace"], e["program"]) for e in verified["strategy"]["matrix"]["include"] if "program" in e}
     assert {p for w, p in built if w == "programs-v2"} == set(named)
     [upload] = [s for s in verified["steps"] if str(s.get("uses", "")).startswith("actions/upload-artifact@")]
     assert upload["with"]["name"] == "${{ matrix.program }}${{ matrix.workspace == 'programs-v2' && '-v2' || '' }}-verified.so"

@@ -37,7 +37,7 @@ name: program
 #                   programs-v2/knos_pay: the harnesses of src/proofs.rs). Only on the nightly run and when started by
 #                   hand. A harness that fails fails the job.
 #   verified-build  `solana-verify build` (pinned docker image) for each program, knos-meter and knos-passkey of
-#                   the second deployment among them: the reproducible binary. These
+#                   the second deployment among them, and the upgrade gate example: the reproducible binary. These
 #                   artifacts are what gets deployed; `knos mainnet-check` compares the on-chain bytes with them.
 #                   Only on main, on a release tag (v*), on the nightly run and when started by hand: it compiles
 #                   everything in a container with no cache (a reproducible build must not start from one), which no
@@ -384,11 +384,15 @@ jobs:
         workspace: [programs, programs-v2]
         program: [knos_oidc, knos_pay]
         include:
-          # The second deployment's other two programs. knos-meter reads a token through crates/knos-oidc-interface,
-          # which is outside programs-v2: its build mounts the repository and names the workspace (where the
-          # lockfile is). The others mount their workspace alone.
+          # The second deployment's other two programs, and upgrade_gate (examples/upgrade_gate), which 0.3.13 deploys
+          # with them and which nothing else builds verified. knos-meter reads a token through
+          # crates/knos-oidc-interface, which is outside programs-v2, and cargo reads every member of a workspace to
+          # build any one of them: so every build of programs-v2 mounts the repository and names the workspace (where
+          # the lockfile is). upgrade_gate reads the same crate. The first deployment mounts its workspace alone.
+          - {workspace: programs-v2, mount: repository}
           - {workspace: programs-v2, program: knos_meter, mount: repository}
-          - {workspace: programs-v2, program: knos_passkey}
+          - {workspace: programs-v2, program: knos_passkey, mount: repository}
+          - {workspace: examples/upgrade_gate, program: upgrade_gate, mount: repository}
     env:
       WORKSPACE: ${{ matrix.workspace }}
       PROGRAM: ${{ matrix.program }}

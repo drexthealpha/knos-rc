@@ -336,8 +336,8 @@ The pins do not tie the deployed program to the source. The script says the depl
 To compare a deployed program with the source, make the reproducible build the way `scripts/deploy_v2.sh` and the `verified-build` job of `program.yml` do. It needs docker.
 
 ```
-solana-verify build programs-v2 --library-name knos_pay --base-image solanafoundation/solana-verifiable-build:2.3.11
-solana-verify build programs-v2 --library-name knos_oidc --base-image solanafoundation/solana-verifiable-build:2.3.11
+solana-verify build . --workspace-path programs-v2 --library-name knos_pay --base-image solanafoundation/solana-verifiable-build:2.3.11
+solana-verify build . --workspace-path programs-v2 --library-name knos_oidc --base-image solanafoundation/solana-verifiable-build:2.3.11
 solana-verify get-executable-hash programs-v2/target/deploy/knos_pay.so
 solana-verify get-program-hash -u devnet 5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k
 ```

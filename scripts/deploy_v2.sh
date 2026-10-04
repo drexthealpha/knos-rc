@@ -44,9 +44,11 @@
 # Steps (each reads the chain first; a step that is already done says so and sends nothing)
 #   1 multisigs  both Squads multisigs exist as the design fixes them (governance.mjs show --check); created with
 #                governance.mjs create when they do not (it takes the member keys of the key folder, threshold 2)
-#   2 build      the verified build of both programs: solana-verify build programs-v2 --library-name knos_oidc, then
-#                knos_pay, in the docker image program.yml pins; the default features, which is the devnet build.
-#                Prints each executable hash. Not repeated while programs-v2 is unchanged since the last build.
+#   2 build      the verified build of both programs: solana-verify build . --workspace-path programs-v2
+#                --library-name knos_oidc, then knos_pay, in the docker image program.yml pins, the repository
+#                mounted (knos_meter, a member of the workspace, reads crates/knos-oidc-interface); the default
+#                features, which is the devnet build. Prints each executable hash. Not repeated while programs-v2
+#                and the interface crate are unchanged since the last build.
 #   3 deploy     solana program deploy, each program under its own keypair, with a buffer keypair kept in the key
 #                folder (the same command continues a deploy that failed half way), --max-sign-attempts 60 and a
 #                compute unit price. Skipped for a program whose on-chain bytes are already this build.
@@ -202,7 +204,7 @@ multisigs() {
   governance show --check >/dev/null || die "the multisigs are not right on chain: node scripts/governance.mjs show --rpc $RPC says what is wrong."
 }
 
-sources_hash() { (cd "$ROOT/programs-v2" && find . -type f -not -path './target/*' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1); }
+sources_hash() { (cd "$ROOT" && find programs-v2 crates/knos-oidc-interface -type f -not -path '*/target/*' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1); }
 
 # build <names>: the verified build of each (or the files of KNOS_SO_DIR), and its executable hash
 build() {
@@ -213,7 +215,7 @@ build() {
   else
     SO_DIR="$ROOT/programs-v2/target/deploy"
     for name in "$@"; do
-      [ "$name" != upgrade_gate ] || die "upgrade_gate is not built here (examples/upgrade_gate reads a crate outside its folder, which the verified build's container does not hold). Download program.yml's artifacts and name their folder with KNOS_SO_DIR."
+      [ "$name" != upgrade_gate ] || die "upgrade_gate is not built here (its verified build is program.yml's: examples/upgrade_gate is its own workspace, built into its own folder). Download program.yml's artifacts and name their folder with KNOS_SO_DIR."
       files="$files $name.so"
     done
     stamp="$SO_DIR/.verified-build"
@@ -226,7 +228,7 @@ build() {
       docker info >/dev/null 2>&1 || die "docker is not running, and the verified build runs in it. Start docker; or deploy files built elsewhere with KNOS_SO_DIR."
       rm -f "${stamp:?}"
       for name in "$@"; do
-        solana-verify build "$ROOT/programs-v2" --library-name "$name" --base-image "$VERIFY_IMAGE"
+        solana-verify build "$ROOT" --workspace-path "$ROOT/programs-v2" --library-name "$name" --base-image "$VERIFY_IMAGE"
       done
       # shellcheck disable=SC2086  # files is a list of names
       { echo "$want"; (cd "$SO_DIR" && sha256sum $files); } > "$stamp"
@@ -423,7 +425,7 @@ propose() {
         die "the upgrade gate holds no record of this build of $name after $wait seconds. program.yml records the builds it makes on main and on a release tag: push the commit this build is of, let its gate job finish, and run this again (or put its token in KNOS_GATE_TOKENS/$name.jwt). If the hash above is not the one that run printed, this file is not the build GitHub made: take the run's artifacts (KNOS_SO_DIR). The buffer is written and stays. (In an emergency only: --propose --ungated.)"
       fi
       echo "  UNGATED: NO RECORD AT THE UPGRADE GATE VOUCHES FOR THIS BUILD OF $name. It is proposed because --ungated was passed:"
-      echo "  UNGATED: the members have only their own rebuild to compare $want with (solana-verify build programs-v2 --library-name $name)."
+      echo "  UNGATED: the members have only their own rebuild to compare $want with (solana-verify build . --workspace-path programs-v2 --library-name $name)."
       flag="--ungated"
     fi
     if [ "$held" != "$vault" ]; then
