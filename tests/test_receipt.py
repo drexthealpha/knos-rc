@@ -268,6 +268,52 @@ def test_the_attestation_is_on_by_default_and_fails_soft(monkeypatch, tmp_path):
     assert "--init" in script and "[1, 2].includes(r.version)" in script and '"already": true' in script.replace("already: true", '"already": true')
 
 
+def test_a_script_that_crashes_after_sending_is_checked_on_chain_and_its_own_error_is_said(monkeypatch, tmp_path):
+    # rehearsed on devnet (0.3.14): web3.js crashed on a 429 after the attestation's transaction had landed; the relay
+    # logged a failure, and the line it logged was the "Node.js v22..." Node ends a crash with
+    r = VECTORS["valid_v2"][0]["receipt"]
+    for name in ("KNOS_NO_SAS", "KNOS_SAS_SCRIPT", "KNOS_RPC"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("KNOS_SAS_KEYPAIR", str(tmp_path / "key.json"))
+    monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/node")
+    crash = ("file:///x/node_modules/@solana/web3.js/lib/index.cjs.js:1\n        throw err;\n        ^\n\n"
+             "SolanaJSONRPCError: failed to get signature status: 429 Too Many Requests\n    at Connection.getSignatureStatuses (index.cjs.js:7)\n\nNode.js v22.23.3\n")
+    asked = []
+
+    class Done:
+        def __init__(self, code, out="", errs=""):
+            self.returncode, self.stdout, self.stderr = code, out, errs
+
+    def run(args, **kw):
+        if "--send" in args:
+            return Done(1, errs=crash)
+        assert args[3:] == ["--keypair", str(tmp_path / "key.json")]            # the dry run, with the same key: nothing is sent
+        return Done(0, json.dumps({"dry_run": True, "program": "SAS1", "attestation": "ATT"}))
+
+    def call(holds):
+        def ask(url, method, params):
+            asked.append((url, method, params[0]))
+            return {"value": {"owner": "SAS1"} if len(asked) >= holds else None}
+        return ask
+    slept = []
+    said = receipt.attest(r, run=run, call=call(2), sleep=slept.append)
+    assert said == {"attested": True, "attestation": "ATT", "why": "attested: the attestation is on chain, though the script failed "
+                    "(SolanaJSONRPCError: failed to get signature status: 429 Too Many Requests)"}, said
+    assert asked == [("https://api.devnet.solana.com", "getAccountInfo", "ATT")] * 2 and slept == [0, 2]
+    asked.clear()
+    said = receipt.attest(r, rpc="http://cluster", run=run, call=call(99), sleep=lambda s: None)
+    assert said == {"attested": False, "why": "SolanaJSONRPCError: failed to get signature status: 429 Too Many Requests"}, said
+    assert len(asked) == 4 and {a[0] for a in asked} == {"http://cluster"}
+    # the script's own words are kept as they are, and a refusal (nothing was sent) asks nothing of the chain
+    asked.clear()
+    failed = receipt.attest(r, run=lambda *a, **k: Done(1, errs="failed: Error: blockhash not found\n    at main (sas_receipt.mjs:1)")
+                            if "--send" in a[0] else Done(0, json.dumps({"program": "SAS1", "attestation": "ATT"})), call=call(99), sleep=lambda s: None)
+    assert failed == {"attested": False, "why": "failed: Error: blockhash not found"} and len(asked) == 4
+    asked.clear()
+    assert receipt.attest(r, run=lambda *a, **k: Done(1, errs="refused: the cluster at --rpc is not devnet"), call=call(1)) == {
+        "attested": False, "why": "refused: the cluster at --rpc is not devnet"} and asked == []
+
+
 def test_the_page_prints_the_first_vector_and_says_what_was_not_confirmed():
     page = (ROOT / "docs" / "RECEIPT.md").read_text(encoding="utf-8")
     shown = json.loads(re.search(r"## Version 1\n\n```json\n(.*?)\n```", page, re.S).group(1))

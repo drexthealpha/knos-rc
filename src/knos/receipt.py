@@ -425,11 +425,14 @@ def mirror_find(where: str, target: str, get=None) -> list[dict]:
 
 
 # ---- the Solana Attestation Service attestation, at settlement ---------------------------------------------------------------
-def attest(r: dict, keypair: str | None = None, rpc: str | None = None, timeout: float = 60.0, run=None) -> dict:
+def attest(r: dict, keypair: str | None = None, rpc: str | None = None, timeout: float = 60.0, run=None, call=None, sleep=None) -> dict:
     """Write `r` as an attestation (scripts/sas_receipt.mjs --send). On by default wherever a receipt is issued; the
     caller's opt-out is its own flag, or KNOS_NO_SAS=1. It fails soft: nothing here raises and a payment never waits
     on it, since it runs after the paying transaction is confirmed. Returns {"attested": bool, "why": words, ...}.
-    `keypair`: the credential authority's devnet key file (default: KNOS_SAS_KEYPAIR)."""
+    `keypair`: the credential authority's devnet key file (default: KNOS_SAS_KEYPAIR). When the script fails after it
+    may have sent (a public endpoint's 429 can crash its client after the transaction landed), the cluster is asked
+    whether the attestation is there before a failure is reported, and the failure is the script's own error line.
+    `call` and `sleep` stand in for knos.chain.call and time.sleep in tests."""
     import os
     import shutil
     import subprocess
@@ -450,12 +453,51 @@ def attest(r: dict, keypair: str | None = None, rpc: str | None = None, timeout:
             path.write_bytes(canonical(r))
             done = (run or subprocess.run)([node, str(script), str(path), "--send", "--keypair", keypair, *(["--rpc", rpc] if rpc else [])],
                                            capture_output=True, text=True, timeout=timeout)
-        if done.returncode != 0:
-            return {"attested": False, "why": (done.stderr or done.stdout or "the script failed").strip().splitlines()[-1]}
+            if done.returncode != 0:
+                why = _script_error(done)
+                if why.startswith("refused:"):          # refused before anything was sent
+                    return {"attested": False, "why": why}
+                url = rpc or os.environ.get("KNOS_RPC") or "https://api.devnet.solana.com"
+                there = _attestation_on_chain([node, str(script), str(path), "--keypair", keypair], url, run or subprocess.run, timeout, call, sleep)
+                if there:
+                    return {"attested": True, "why": f"attested: the attestation is on chain, though the script failed ({why})", "attestation": there}
+                return {"attested": False, "why": why}
         said = json.loads(done.stdout)
         return {"attested": True, "why": "already attested" if said.get("already") else "attested", **{k: said[k] for k in ("attestation", "signature") if said.get(k)}}
     except Exception as e:  # noqa: BLE001 - failing soft is the point: the payment is done and the receipt is in the mirror
         return {"attested": False, "why": f"the attestation was not written: {e}"}
+
+
+def _script_error(done) -> str:
+    """The error a failed run of the script stated: its own `refused:` or `failed:` line, else the error Node printed for
+    an exception nothing caught (not the stack under it, nor the `Node.js v...` line Node ends with)."""
+    import re
+    lines = [line.strip() for line in (done.stderr or done.stdout or "").splitlines() if line.strip()]
+    lines = [line for line in lines if not re.match(r"Node\.js v\d", line) and not line.startswith("at ") and line != "^"]
+    said = [line for line in lines if line.startswith(("refused:", "failed:"))]
+    if said:
+        return said[-1]
+    errors = [line for line in lines if re.match(r"(\w*Error|Error)\b", line)]
+    return errors[0] if errors else (lines[-1] if lines else "the script failed")
+
+
+def _attestation_on_chain(dry: list[str], url: str, run, timeout: float, call=None, sleep=None, waits=(0, 2, 4, 8)) -> str | None:
+    """The attestation's address when the cluster at `url` holds it (an account of the attestation program there), else
+    None. Its address is the script's dry run with the same key: nothing is sent for it."""
+    import time
+    from . import chain
+    plan = json.loads(run(dry, capture_output=True, text=True, timeout=timeout).stdout)
+    address, program = plan["attestation"], plan["program"]
+    ask = call or (lambda u, method, params: chain.call(u, method, params, timeout=30))
+    for wait in waits:
+        (sleep or time.sleep)(wait)
+        try:
+            got = (ask(url, "getAccountInfo", [address, {"encoding": "base64", "commitment": "confirmed"}]) or {}).get("value")
+        except Exception:  # noqa: BLE001, S112 - not known yet: ask again
+            continue
+        if got and got.get("owner") == program:
+            return address
+    return None
 
 
 def settled(ledger, result: dict, log=None, limit: int = 200) -> dict | None:
