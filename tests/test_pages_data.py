@@ -84,7 +84,8 @@ def pull(author_id, login, merged, body, sha):
 
 
 def github():
-    ok = lambda at: {"check_runs": [{"name": "test", "status": "completed", "conclusion": "success", "completed_at": iso(at), "details_url": ""}]}
+    def ok(at):
+        return {"check_runs": [{"name": "test", "status": "completed", "conclusion": "success", "completed_at": iso(at), "details_url": ""}]}
     data = {"repos/octo/widgets/pulls/11": pull(601, "alice", T0 + 990, "Fixes #1", "a" * 40), f"repos/octo/widgets/commits/{'a' * 40}/check-runs?per_page=100": ok(T0 + 900),
             "repos/octo/widgets/pulls/12": pull(602, "bob", T0 + 4000, "Fixes #2", "b" * 40), f"repos/octo/widgets/commits/{'b' * 40}/check-runs?per_page=100": ok(T0 + 3900),
             "repos/octo/widgets/pulls/13": pull(601, "alice", T0 + 4100, "Fixes #9", "c" * 40), f"repos/octo/widgets/commits/{'c' * 40}/check-runs?per_page=100": {"check_runs": []},

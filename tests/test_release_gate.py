@@ -4,10 +4,7 @@ tagged commit and every publishing job needs that job. One mechanism, and no oth
 from __future__ import annotations
 
 import json
-import os
 import re
-import shutil
-import subprocess
 from pathlib import Path
 
 import pytest

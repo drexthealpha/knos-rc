@@ -13,7 +13,6 @@ generated inputs drawn from os.urandom, in one run of the submission inside the 
 from __future__ import annotations
 
 import json
-import random
 from pathlib import Path
 from typing import NamedTuple
 

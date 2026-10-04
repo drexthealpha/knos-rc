@@ -64,7 +64,9 @@ TASK=KnosUpgrade
 die() { echo "stopped: $*" >&2; exit 1; }
 field() { node -e 'const s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); const v = process.argv[2] === "indexes" ? s.proposals.map((p) => p.index).join(" ") : s[process.argv[2]]; if (v === undefined || v === null || v === "") process.exit(1); console.log(v);' "$SCHEDULE" "$1"; }
 wsl() { [ -n "${WSL_DISTRO_NAME:-}" ] || grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; }
-utc() { date -u -d "@$1" "+%Y-%m-%d %H:%M:%S UTC"; }
+# a unix time as date prints it: GNU date reads it with -d @t, the BSD date of macOS with -r t
+date_at() { local t="$1"; shift; date -d "@$t" "$@" 2>/dev/null || date -r "$t" "$@"; }
+utc() { date_at "$1" -u "+%Y-%m-%d %H:%M:%S UTC"; }
 
 # the run is started by a timer, with a bare environment: what the arranging shell had comes first
 # shellcheck disable=SC1090  # written by this script when the run was arranged
@@ -142,7 +144,7 @@ arrange() {
   case "$kind" in
     systemd)
       id="$UNIT"
-      systemd-run --user --unit "$id" --description "Knos: execute the proposed upgrades" --on-calendar "$(date -u -d "@$at" "+%Y-%m-%d %H:%M:%S UTC")" \
+      systemd-run --user --unit "$id" --description "Knos: execute the proposed upgrades" --on-calendar "$(utc "$at")" \
         --timer-property=AccuracySec=1s --timer-property=Persistent=true --setenv=KNOS_KEYS="$KEYS" /bin/bash "$ROOT/scripts/schedule_upgrade.sh" --run >/dev/null \
         || die "systemd-run did not make the timer. Try another: --with at, or --with schtasks."
       echo "$kind $id" > "$STATE"
@@ -150,7 +152,7 @@ arrange() {
       echo "  see it:    systemctl --user list-timers $id.timer"
       echo "  cancel it: bash scripts/schedule_upgrade.sh --cancel     (or: systemctl --user stop $id.timer)" ;;
     at)
-      id="$(echo "KNOS_KEYS=$(printf '%q' "$KEYS") /bin/bash $command --run" | at -t "$(date -d "@$at" "+%Y%m%d%H%M.%S")" 2>&1 | sed -n 's/^job \([0-9][0-9]*\) .*/\1/p' | tail -1)"
+      id="$(echo "KNOS_KEYS=$(printf '%q' "$KEYS") /bin/bash $command --run" | at -t "$(date_at "$at" "+%Y%m%d%H%M.%S")" 2>&1 | sed -n 's/^job \([0-9][0-9]*\) .*/\1/p' | tail -1)"
       [ -n "$id" ] || die "at did not take the job. Try another: --with systemd, or --with schtasks."
       echo "$kind $id" > "$STATE"
       echo "arranged with at: job $id runs the upgrade at $(utc "$at")."
@@ -162,7 +164,7 @@ arrange() {
       # user's locale and time zone, which this script cannot know. UTF-16 with a mark, as the Task Scheduler wants it
       { printf '<?xml version="1.0" encoding="UTF-16"?>\n<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">\n'
         printf '  <RegistrationInfo><Description>Knos: execute the proposed upgrades, then knos status</Description></RegistrationInfo>\n'
-        printf '  <Triggers><TimeTrigger><StartBoundary>%s</StartBoundary><Enabled>true</Enabled></TimeTrigger></Triggers>\n' "$(date -u -d "@$at" "+%Y-%m-%dT%H:%M:%SZ")"
+        printf '  <Triggers><TimeTrigger><StartBoundary>%s</StartBoundary><Enabled>true</Enabled></TimeTrigger></Triggers>\n' "$(date_at "$at" -u "+%Y-%m-%dT%H:%M:%SZ")"
         printf '  <Settings><StartWhenAvailable>true</StartWhenAvailable><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>'
         printf '<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><WakeToRun>true</WakeToRun><ExecutionTimeLimit>PT1H</ExecutionTimeLimit></Settings>\n'
         printf '  <Actions><Exec><Command>wsl.exe</Command><Arguments>-d %s -- env KNOS_KEYS=%s /bin/bash %s --run</Arguments></Exec></Actions>\n</Task>\n' \

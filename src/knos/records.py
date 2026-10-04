@@ -83,7 +83,8 @@ def events_of(tx: dict | None, programs: dict[str, int] | None = None) -> list[d
     meta, message = tx.get("meta") or {}, tx["transaction"]["message"]
     loaded = meta.get("loadedAddresses") or {}
     keys = [k if isinstance(k, str) else k.get("pubkey") for k in message["accountKeys"]] + list(loaded.get("writable") or []) + list(loaded.get("readonly") or [])
-    out, stack = [], []
+    out: list[dict] = []
+    stack: list = []
     for line in meta.get("logMessages") or []:
         m = _INVOKE.match(line)
         if m:
@@ -158,10 +159,11 @@ def jobs_of(events: list[dict]) -> tuple[list[dict], dict]:
     told, by repository and issue, oldest open job first."""
     jobs: list[dict] = []
     live: dict[int, dict] = {}       # id(job) -> job, while it is open, held or proven
-    balances: dict[str, dict] = {}   # a Balance's address -> its owner id and authority (second deployment)
+    balances: dict[str | None, dict] = {}   # a Balance's address -> its owner id and authority (second deployment)
     other = {"refunded": 0, "unmatched_paid": 0, "claimed": 0, "claimed_amount": 0, "vetoed": 0, "bound": 0, "balances": 0, "withdrawn": 0, "paused": 0}
     faucet_mint = {1: str(pay.faucet_mint()), 2: str(pay2.faucet_mint())}
     faucet_authority = str(pay2.auth_pda())
+    job: dict | None
 
     def which(ev: dict) -> dict | None:
         mine = [j for j in live.values() if j["v"] == ev["v"]]
@@ -175,7 +177,8 @@ def jobs_of(events: list[dict]) -> tuple[list[dict], dict]:
             whole = ev["amount"] + ev.get("fee", 0)
             exact = [j for j in (named or mine) if j["amount"] == whole]
             return (exact or named or mine)[0]
-        return (named or mine or [None])[0]
+        found = named or mine
+        return found[0] if found else None
 
     for ev in events:
         v, name = ev["v"], ev["event"]
@@ -260,6 +263,7 @@ def orders_of(events: list[dict]) -> tuple[list[dict], dict]:
     other = {"refunded": 0, "bound": 0, "reverted": 0, "released": 0, "cancelled": 0, "reserved": 0, "assigned": 0, "topped_up": 0, "kill_fees": 0,
              "unmatched_paid": 0}
     tx_rows: dict[tuple, list[dict]] = {}        # (order, transaction) -> the payment rows of that transaction, for its fee
+    o: dict | None
     for ev in events:
         name = ev["event"]
         if name == "org_bound":
@@ -358,9 +362,9 @@ def orders_of(events: list[dict]) -> tuple[list[dict], dict]:
     return orders, other
 
 
-def _balances(events: list[dict]) -> dict[str, dict]:
+def _balances(events: list[dict]) -> dict[str | None, dict]:
     """Every Balance the second escrow's log shows opened: {its address: {owner, authority, mint}}."""
-    out: dict[str, dict] = {}
+    out: dict[str | None, dict] = {}
     for ev in events:
         if ev["event"] == "balance" and ev["v"] == 2:
             address = _address(lambda e=ev: pay2.balance_pda(e["owner"], _key(e["authority"]), _key(e["mint"])))
@@ -469,7 +473,8 @@ class Names:
     what went wrong is in `problems`, and a name it could not get is empty."""
 
     def __init__(self, get: Callable[[str], dict] | None = None):
-        self._get, self._seen, self._stopped = get, {}, False
+        self._get, self._stopped = get, False
+        self._seen: dict[str, dict] = {}
         self.problems: list[str] = []
 
     def _ask(self, path: str) -> dict:

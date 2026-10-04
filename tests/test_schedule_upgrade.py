@@ -64,7 +64,7 @@ def test_systemd_is_taken_first_and_the_timer_is_for_the_schedules_time_in_utc(b
     assert done.returncode == 0, done.stderr
     [made] = [c for c in _calls(calls) if c.startswith("systemd-run")]
     stamp = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(plan["run_at"]))
-    assert f"--user --unit knos-upgrade" in made and f"--on-calendar {stamp}" in made and made.endswith(f"/bin/bash {SCRIPT} --run")
+    assert "--user --unit knos-upgrade" in made and f"--on-calendar {stamp}" in made and made.endswith(f"/bin/bash {SCRIPT} --run")
     assert f"arranged with systemd: the user timer knos-upgrade.timer runs the upgrade at {stamp}" in done.stdout
     assert "cancel it: bash scripts/schedule_upgrade.sh --cancel     (or: systemctl --user stop knos-upgrade.timer)" in done.stdout
     assert "node scripts/governance.mjs upgrade execute <index>, then knos status" in done.stdout and str(keys / "upgrade-run.log") in done.stdout

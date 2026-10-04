@@ -14,6 +14,8 @@ _ = object()
 cli._main, cli.bounty, cli.due, cli.mainnet_check_cmd, cli.status_cmd
 cli.balance_show, cli.balance_open, cli.balance_deposit, cli.balance_set, cli.balance_withdraw      # knos balance show | open | deposit | set | withdraw
 cli.fund_wallet                                                                                     # knos fund-wallet
+cli.receipt_check, cli.receipts, cli.export, cli.accept_init                                        # knos receipt check | receipts | export | accept init
+_.rich_help_panel       # set on each registered command by the help's grouping in knos.cli; Typer reads it when it prints --help
 _.judge_cmd, _.checks_hash, _.observe, _.lint, _.learn, _.gate, _.check, _.run
 _.terms_cmd, _.evidence_cmd, _.memory_pull, _.memory_push, _.comment_cmd, _.closes_cmd
 _.command, _.settle, _.review       # knos command | settle | review | check: what a repository's workflow runs (knos.flow)
@@ -52,3 +54,15 @@ from knos.proof import ghrelay
 from knos.settle.v2 import relay as settle_relay2
 
 settle_relay2.register_missing, ghrelay.post_token
+
+# http.server calls these on the request handler of scripts/acceptance_examples.py (the black-box service it stands up).
+_.do_POST, _.log_message
+
+# Public names read outside src/knos: scripts/network_stats.py imports records.PREFIX; records.SIEM_FIELDS is the field
+# list of `knos export --siem` (tests/test_records.py holds every line to it); meter.FEE_MINTS mirrors the program's
+# constant (tests/test_meter_chain.py compares the two); policy.label_amount reads the policy file's `labels` rule
+# (tests/test_policy.py).
+from knos import policy, records
+from knos.settle.v2 import meter as settle_meter2
+
+records.PREFIX, records.SIEM_FIELDS, settle_meter2.FEE_MINTS, policy.label_amount

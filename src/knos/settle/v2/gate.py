@@ -68,7 +68,7 @@ def words(account, program: str | None, buffer: str | None, gate: Pubkey = GATE_
     """What `knos status` says about the buffer of a pending upgrade. `account(address)` gives (owner, data) or None,
     as knos.mainnet_check's fetch does."""
     got = account(buffer) if program and buffer else None
-    if not got or len(got[1]) < BUFFER_HEADER or got[1][:4] != (1).to_bytes(4, "little"):
+    if not program or not got or len(got[1]) < BUFFER_HEADER or got[1][:4] != (1).to_bytes(4, "little"):
         return "; its buffer could not be read, so whether GitHub built it is not known"
     h = executable_hash(got[1][BUFFER_HEADER:])
     at = record_pda(Pubkey.from_string(program), h, gate)

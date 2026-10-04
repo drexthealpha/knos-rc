@@ -16,8 +16,8 @@ from solders.account import Account  # noqa: E402
 from solders.keypair import Keypair  # noqa: E402
 from solders.pubkey import Pubkey  # noqa: E402
 
-from _order import AUTHOR, DAY, HEAD, MAINT, OWNER, REPO, TERMS, TH, USDC, OrderChain, code, issue, swap, transfer, user  # noqa: E402
-from _pay2 import PLAN_SIGNER, WF_REPO, WF_SHA  # noqa: E402
+from _order import DAY, HEAD, MAINT, OWNER, REPO, TERMS, TH, USDC, OrderChain, code, issue, swap, transfer, user  # noqa: E402
+from _pay2 import WF_REPO, WF_SHA  # noqa: E402
 
 from knos.settle.v2 import pay  # noqa: E402
 

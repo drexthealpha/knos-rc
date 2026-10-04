@@ -5,7 +5,6 @@ label) and one 0 or 1 per payment comes out on stdout. The score is accuracy aga
 Two sets of 1,500 payments: the hidden set the risk team labelled by hand (hidden.csv), and a set drawn fresh on every
 run. To be paid, a submission must reach ACCURACY on each of the two."""
 import csv
-import io
 import os
 import random
 import subprocess

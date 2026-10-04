@@ -462,7 +462,7 @@ def test_any_rs256_issuer_is_admitted_on_githubs_signature_and_step_checks_its_i
     url, sn = ISSUER_URLS[bits], modulus(signing_key())
     key, n = new_key(bits)
     assert c.register(GH, sn), c.err
-    ih, p = oidc.issuer_hash(url), c.payer.pubkey()
+    ih = oidc.issuer_hash(url)
     assert oidc.rotate_audience(url, n) == f"knos-oidc:ikey:{ih.hex()}:{oidc.key_hash(n).hex()}"
     # what does not admit it: the audience of a numbered issuer's key, another issuer's, another key's, anyone's run,
     # an attestation by a GitLab key, and RegisterKey (the two numbered issuers only)

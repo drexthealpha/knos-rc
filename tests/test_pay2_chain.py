@@ -1554,7 +1554,6 @@ def test_a_random_walk_keeps_every_vault_equal_to_its_open_jobs():
     funded == paid + fees + refunded."""
     c = Chain()
     rng = random.Random(FUZZ_SEED)
-    issuer = c.payer.pubkey()
     mints = [c.new_mint(), c.new_mint22(confidential=True, close_authority=True)]
     owner = c.fund(1_000)
     funder = c.fund(1_000)

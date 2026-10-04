@@ -64,7 +64,8 @@ def inputs(kind: str, n: int, seed: int) -> list[str]:
     """`n` distinct input lines of this kind, edge cases first, then random ones: the same for the same seed."""
     if kind not in KINDS:
         raise Refused(f"--input is one of {', '.join(KINDS)}; {kind!r} is none of them.")
-    rng, seen = random.Random(seed), {}
+    rng = random.Random(seed)
+    seen: dict[str, None] = {}
     for edge in _EDGES[kind]:
         seen.setdefault(edge)
     tries = 0

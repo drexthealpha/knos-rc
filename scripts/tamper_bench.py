@@ -341,7 +341,6 @@ def accept_section(results: dict, repeat: int) -> list[str]:
     """The block of docs/TAMPER.md for the three tasks that are not code, from run_accept()."""
     cheats = [(t, r) for t, got in results.items() for r in got["cheats"]]
     honest = [(t, r) for t, got in results.items() for r in got["honest"]]
-    misses = [(t, r) for t, got in results.items() for r in got["near_misses"]]
     false_accepts = [f"{t}: {r['name']}" for t, r in cheats if r["accepts"]]
     false_refusals = [t for t, r in honest if r["accepts"] < HONEST_DRAWS]
     out = ["<!-- accept:begin -->", "## Tasks that are not code", "",

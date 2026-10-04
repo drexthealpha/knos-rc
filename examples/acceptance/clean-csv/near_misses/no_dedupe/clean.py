@@ -50,7 +50,7 @@ def main() -> None:
     rows = [r for r in csv.reader(io.StringIO(text)) if any(c.strip() for c in r)]
     head = [h.strip().lower() for h in rows[0]]
     at = {key: next(i for i, h in enumerate(head) if h in names) for key, names in COLUMNS.items()}
-    out, seen = [], set()
+    out = []
     for r in rows[1:]:
         email = r[at["email"]].strip().lower()
         if not email:

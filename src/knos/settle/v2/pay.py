@@ -980,7 +980,11 @@ def reserve_ix(relayer: Pubkey, take_token: Pubkey, key: Pubkey, order: Pubkey, 
 def cancel_ix(signer: Pubkey, order: Pubkey, cancel_token: Pubkey | None = None, key: Pubkey | None = None, program: Pubkey = PAY_ID) -> Instruction:
     """Gives notice: the deadline becomes min(deadline, now + NOTICE). A wallet's order: `signer` is the funding
     wallet. A Balance's order: anyone signs and `cancel_token` (with its `key`) carries cancel_audience(order)."""
-    tok = [] if cancel_token is None else [AccountMeta(cancel_token, False, False), AccountMeta(key, False, False)]
+    tok: list[AccountMeta] = []
+    if cancel_token is not None:
+        if key is None:
+            raise ValueError("cancel_ix: a cancel token is read with its key; give `key` too")
+        tok = [AccountMeta(cancel_token, False, False), AccountMeta(key, False, False)]
     return Instruction(program, b"\x15", [AccountMeta(signer, True, False), AccountMeta(order, False, True), *tok])
 
 

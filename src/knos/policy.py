@@ -214,7 +214,9 @@ class _Reader:
     def flow(self, text: str, at: int, n: int):
         """A one-line `[a, b]` or `{a: 1}` starting at text[at]; (value, the index after it)."""
         close = "]" if text[at] == "[" else "}"
-        out_list, out_map, at = [], {}, at + 1
+        out_list: list = []
+        out_map: dict = {}
+        at += 1
         while True:
             at = self.skip(text, at)
             if at >= len(text):
@@ -428,7 +430,7 @@ def _labels(value, lines: dict) -> tuple[tuple[str, Decimal], ...]:
 def _offers(value, lines: dict, vendors: tuple[str, ...] | None) -> tuple[Offer, ...]:
     if not isinstance(value, list) or not value:
         raise Refused(f"{_where(lines, 'offers')}: offers is a list; each item has a vendor and a rate.")
-    out = []
+    out: list[Offer] = []
     for i, item in enumerate(value):
         at = f"offers.{i}"
         if not isinstance(item, dict):
@@ -528,7 +530,7 @@ def allows(policy: Policy, actor_id, amount, month_spent, login: str = "") -> tu
     amount, spent = _money(amount), _money(month_spent)
     if not _listed(policy.who_may_fund, actor_id, login):
         who = f"{login} ({actor_id})" if login else str(actor_id)
-        return False, f"{_at(policy, 'who_may_fund')}: only {', '.join(policy.who_may_fund)} may fund; {who} is not one of them."
+        return False, f"{_at(policy, 'who_may_fund')}: only {', '.join(policy.who_may_fund or ())} may fund; {who} is not one of them."
     if policy.cap_per_order is not None and amount > policy.cap_per_order:
         return False, f"{_at(policy, 'cap_per_order')}: an order may take at most {_plain(policy.cap_per_order)}, and this one is {_plain(amount)}."
     if policy.monthly_budget is not None and spent + amount > policy.monthly_budget:
@@ -542,7 +544,7 @@ def payee_allowed(policy: Policy, payee_id, login: str = "") -> tuple[bool, str]
     """May this account be paid at all? Under `payees` only those listed."""
     if _listed(policy.payees, payee_id, login):
         return True, ""
-    return False, f"{_at(policy, 'payees')}: only {', '.join(policy.payees)} may be paid; {login or payee_id} is not one of them."
+    return False, f"{_at(policy, 'payees')}: only {', '.join(policy.payees or ())} may be paid; {login or payee_id} is not one of them."
 
 
 def offer_for(policy: Policy, vendor, login: str = "") -> Offer | None:
@@ -610,5 +612,5 @@ def order_opts(policy: Policy, vendor=None, login: str = "") -> dict:
     offer = offer_for(policy, vendor, login) if vendor is not None else None
     return {"private": policy.private, "arbiter": policy.arbiter, "warranty_days": policy.warranty_days or 0,
             "holdback_bps": policy.holdback_bps or 0,
-            "checks": list(offer.checks if offer and offer.checks is not None else policy.checks) if (offer and offer.checks is not None) or policy.checks is not None else None,
+            "checks": list((offer.checks if offer and offer.checks is not None else policy.checks) or ()) if (offer and offer.checks is not None) or policy.checks is not None else None,
             "standing": offer is not None, "rate": offer.rate if offer else None, "budget": offer.budget if offer else None}

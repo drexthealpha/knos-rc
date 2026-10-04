@@ -473,7 +473,7 @@ def key_expires_after_30_days(new: Callable[[], Svm], _tokens) -> str:
         why = used(svm, kid, n, name)
         if why is None or code_of(why) != 77:
             raise Failed(f"{name} the key should be refused with error 77, and was {why or 'used'}")
-    if (again := svm.register(oidc.GITHUB, n)) is None:
+    if svm.register(oidc.GITHUB, n) is None:
         raise Failed("an expired key was registered a second time for a new life")
     return (f"a genesis key registered at {day(t0)} expires exactly {oidc.KEY_TTL // DAY} days later; the verifier works with it on day 0 and "
             "in its last second (an unsigned token is stepped, then refused as not GitHub's, error 70); from its expiry on the first step is "

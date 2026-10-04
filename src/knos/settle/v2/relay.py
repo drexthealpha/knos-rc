@@ -1741,11 +1741,6 @@ def _handler_of(jwt: str) -> Kind | None:
         return None
 
 
-def _kind(jwt: str) -> str | None:
-    found = _handler_of(jwt)
-    return found.name if found else None
-
-
 def _first(ledger, payer: Keypair, jwt: str, jwks: dict | None, now: float | None) -> dict:
     """A key token on the first deployment, as ever (knos.settle.relay), with the key sets this module already has."""
     docs = dict(jwks or {})

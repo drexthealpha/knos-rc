@@ -48,5 +48,5 @@ def test_the_example_runs_a_server_and_a_client():
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not installed: install Node 20 or later")
-    done = subprocess.run([node, "--test", "examples/x402_attested/test.mjs"], cwd=ROOT, capture_output=True, text=True, timeout=120)
+    done = subprocess.run([node, "--test", "--test-reporter=tap", "examples/x402_attested/test.mjs"], cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert done.returncode == 0 and re.search(r"^# pass 4$", done.stdout, re.M) and re.search(r"^# fail 0$", done.stdout, re.M), done.stdout[-3000:]

@@ -59,7 +59,6 @@ CLUSTERS = {"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG": "devnet", "4uhcVJyU9
 
 
 NEW = ("knos_meter", "knos_passkey", "upgrade_gate")         # what 0.3.13 deploys for the first time
-UPGRADED = ("knos_oidc", "knos_pay")                         # what 0.3.13 upgrades through the multisig
 LOADER = "BPFLoaderUpgradeab1e11111111111111111111111"
 
 

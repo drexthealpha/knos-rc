@@ -411,12 +411,13 @@ def test_the_shell_script_takes_one_new_mode_a_run_and_each_does_what_the_releas
     assert pr.count('flag="--ungated"') == 1 and "In an emergency only: --propose --ungated" in gated and "$flag |" in pr
     assert '--buffer "$buffer" --buffer-authority "$PAYER"' in pr and "--max-sign-attempts 60" in pr
     assert "KNOS_PROGRAM_IDS is set" in text            # the script never works on staging ids by accident
-    if shutil.which("bash"):
-        assert subprocess.run(["bash", "-n", str(ROOT / "scripts" / "deploy_v2.sh")]).returncode == 0
-        two = subprocess.run(["bash", str(ROOT / "scripts" / "deploy_v2.sh"), "--new", "--rc"], capture_output=True, text=True)
+    # the bash on PATH: on Windows a bare "bash" is looked up in System32 first, which is WSL's launcher, not Git's bash
+    if bash := shutil.which("bash"):
+        assert subprocess.run([bash, "-n", str(ROOT / "scripts" / "deploy_v2.sh")]).returncode == 0
+        two = subprocess.run([bash, str(ROOT / "scripts" / "deploy_v2.sh"), "--new", "--rc"], capture_output=True, text=True)
         assert two.returncode == 2 and "one of --new, --rc, --rc-close, --propose in a run" in two.stderr
-        alone = subprocess.run(["bash", str(ROOT / "scripts" / "deploy_v2.sh"), "--ungated"], capture_output=True, text=True)
+        alone = subprocess.run([bash, str(ROOT / "scripts" / "deploy_v2.sh"), "--ungated"], capture_output=True, text=True)
         assert alone.returncode == 2 and "--ungated goes with --propose" in alone.stderr
-        said = subprocess.run(["bash", str(ROOT / "scripts" / "deploy_v2.sh"), "--help"], capture_output=True, text=True).stdout
+        said = subprocess.run([bash, str(ROOT / "scripts" / "deploy_v2.sh"), "--help"], capture_output=True, text=True).stdout
         assert all(flag in said for flag in ("--new", "--rc ", "--rc-close", "--propose [--ungated]", "KNOS_GATE_TOKENS", "KNOS_RC_SO_DIR",
                                              "KNOS_GATE_WAIT", "--ungated is for an emergency only"))
