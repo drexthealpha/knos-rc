@@ -21,7 +21,9 @@
 #   systemd   systemd-run --user --on-calendar: a transient timer of the user's systemd (unit knos-upgrade)
 #   at        the at command, when its daemon (atd) is running
 #   schtasks  a Windows scheduled task (KnosUpgrade), made with schtasks.exe from inside WSL, that starts
-#             `wsl.exe -d <this distribution>` at the time: it runs even if no WSL window is open then
+#             `wsl.exe -d <this distribution>` at the time: it runs even if no WSL window is open then. schtasks.exe
+#             is taken from PATH, or from Windows' System32 when this WSL does not put Windows' PATH on its own
+#             ([interop] appendWindowsPath=false in /etc/wsl.conf)
 # Under WSL schtasks is tried FIRST: a systemd or at timer of WSL fires only while the distribution is running at that
 # time (a WSL with no open window stops after a few seconds; after a restart nothing runs until a window opens), and the
 # Windows task starts it. When schtasks.exe cannot be reached from WSL, the other two are taken and the script says
@@ -47,6 +49,7 @@
 #   KNOS_WSL_DISTRO    schtasks: the distribution wsl.exe starts (default: $WSL_DISTRO_NAME, else Ubuntu-24.04)
 #   KNOS_OSRELEASE     the file that names the kernel (default /proc/sys/kernel/osrelease): Microsoft's means WSL even
 #                      where WSL_DISTRO_NAME is not set (sudo, a timer)
+#   KNOS_SCHTASKS      schtasks.exe when it is not on PATH (default /mnt/c/Windows/System32/schtasks.exe)
 #
 # Needs: node 20 or later with `npm ci --prefix scripts` done, `knos` on PATH (pip install -e . or pipx install knos),
 # and one of the three timers.
@@ -78,6 +81,12 @@ TASK=KnosUpgrade
 die() { echo "stopped: $*" >&2; exit 1; }
 field() { node -e 'const s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); const v = process.argv[2] === "indexes" ? s.proposals.map((p) => p.index).join(" ") : s[process.argv[2]]; if (v === undefined || v === null || v === "") process.exit(1); console.log(v);' "$SCHEDULE" "$1"; }
 wsl() { [ -n "${WSL_DISTRO_NAME:-}" ] || grep -qi microsoft "${KNOS_OSRELEASE:-/proc/sys/kernel/osrelease}" 2>/dev/null; }
+# schtasks.exe: on PATH, or in Windows' System32 for a WSL that keeps Windows' PATH off its own (appendWindowsPath=false)
+schtasks_exe() {
+  command -v schtasks.exe 2>/dev/null && return 0
+  local exe="${KNOS_SCHTASKS:-/mnt/c/Windows/System32/schtasks.exe}"
+  if [ -x "$exe" ]; then echo "$exe"; else return 1; fi
+}
 # a unix time as date prints it: GNU date reads it with -d @t, the BSD date of macOS with -r t
 date_at() { local t="$1"; shift; date -d "@$t" "$@" 2>/dev/null || date -r "$t" "$@"; }
 utc() { date_at "$1" -u "+%Y-%m-%d %H:%M:%S UTC"; }
@@ -149,7 +158,7 @@ cancel() {
   case "$kind" in
     systemd) systemctl --user stop "$id.timer" >/dev/null 2>&1 || true; systemctl --user reset-failed "$id.timer" "$id.service" >/dev/null 2>&1 || true ;;
     at) atrm "$id" >/dev/null 2>&1 || true ;;
-    schtasks) schtasks.exe /Delete /TN "$id" /F >/dev/null 2>&1 || true ;;
+    schtasks) "$(schtasks_exe)" /Delete /TN "$id" /F >/dev/null 2>&1 || true ;;
     *) die "$STATE names a timer this script does not know ($kind)." ;;
   esac
   rm -f "${STATE:?}"
@@ -161,7 +170,7 @@ works() {
   case "$1" in
     systemd) command -v systemd-run >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1 ;;
     at) command -v at >/dev/null 2>&1 && { pgrep -x atd >/dev/null 2>&1 || systemctl is-active --quiet atd 2>/dev/null; } ;;
-    schtasks) command -v schtasks.exe >/dev/null 2>&1 && command -v wslpath >/dev/null 2>&1 ;;
+    schtasks) [ -n "$(schtasks_exe)" ] && command -v wslpath >/dev/null 2>&1 ;;
   esac
 }
 
@@ -179,7 +188,7 @@ arrange() {
   for k in ${WITH:-$order}; do
     if works "$k"; then kind="$k"; break; fi
   done
-  [ -n "$kind" ] || die "no timer works here${WITH:+ (--with $WITH was asked)}: systemd's user manager does not answer, atd is not running, and schtasks.exe is not on PATH. Under WSL: add [boot] systemd=true to /etc/wsl.conf and restart WSL, or install at (sudo apt install at), or run this from a WSL whose PATH has Windows' System32. Or run it by hand after $(utc "$at"): bash scripts/schedule_upgrade.sh --run"
+  [ -n "$kind" ] || die "no timer works here${WITH:+ (--with $WITH was asked)}: systemd's user manager does not answer, atd is not running, and schtasks.exe is neither on PATH nor at ${KNOS_SCHTASKS:-/mnt/c/Windows/System32/schtasks.exe}. Under WSL: add [boot] systemd=true to /etc/wsl.conf and restart WSL, or install at (sudo apt install at), or run this from a WSL whose PATH has Windows' System32. Or run it by hand after $(utc "$at"): bash scripts/schedule_upgrade.sh --run"
   [ ! -f "$STATE" ] || cancel | sed 's/^/replacing the earlier arrangement: /'
   # what the run needs of this shell, kept beside the keys: where node and knos are, and where the keys are. Paths only,
   # never a key: the key folder, the fee payer's file and the members' (as governance.mjs would find them now)
@@ -222,7 +231,7 @@ arrange() {
         printf '  <Actions><Exec><Command>wsl.exe</Command><Arguments>-d %s -- env KNOS_KEYS=%s /bin/bash -l %s --run</Arguments></Exec></Actions>\n</Task>\n' \
           "$distro" "$(printf '%q' "$KEYS" | sed 's/&/\&amp;/g; s/</\&lt;/g')" "$(printf '%s' "$command" | sed 's/&/\&amp;/g; s/</\&lt;/g')"
       } | { printf '\xff\xfe'; iconv -f UTF-8 -t UTF-16LE; } > "$xml"
-      schtasks.exe /Create /TN "$id" /XML "$(wslpath -w "$xml")" /F >/dev/null || die "schtasks.exe did not make the task (the lines above say why)."
+      "$(schtasks_exe)" /Create /TN "$id" /XML "$(wslpath -w "$xml")" /F >/dev/null || die "schtasks.exe did not make the task (the lines above say why)."
       echo "$kind $id" > "$STATE"
       echo "arranged with the Windows Task Scheduler: the task $id starts wsl.exe -d $distro at $(utc "$at"), whether or not a WSL window is open."
       echo "  see it:    schtasks.exe /Query /TN $id /V /FO LIST"
@@ -243,7 +252,8 @@ show() {
   if [ -f "$STATE" ]; then echo "timer: $(cat "$STATE")"; else echo "timer: none arranged"; fi
   local missing
   missing="$(unreadable)"
-  if [ -z "$missing" ]; then echo "keys: the $(key_files | wc -l) key files the run signs with can be read now"
+  # $(( )) around wc: the BSD wc of macOS pads its count with spaces
+  if [ -z "$missing" ]; then echo "keys: the $(( $(key_files | wc -l) )) key files the run signs with can be read now"
   else echo "keys: the run could NOT start now: it cannot read $(printf '%s\n' "$missing" | paste -sd ' ' -)"; fi
   if [ -f "$LOG" ]; then echo "log ($LOG), its last lines:"; tail -n 12 "$LOG" | sed 's/^/  /'; else echo "log: nothing has run yet"; fi
 }

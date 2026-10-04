@@ -27,6 +27,8 @@ STANDINS = {
     "schtasks.exe": 'echo "schtasks.exe $*" >> "$CALLS"\n',
     "wslpath": 'echo "C:\\\\keys\\\\$(basename "$2")"\n',
     "knos": 'echo "knos $* rpc=$KNOS_RPC" >> "$CALLS"\necho "12 of 12 checks pass"\n',
+    # the BSD wc of macOS pads its count with spaces: on every OS the script meets that wc here
+    "wc": 'printf "%8s\\n" "$(/usr/bin/wc "$@" | tr -d " ")"\n',
 }
 NODE = ('#!/bin/sh\ncase "$1" in */governance.mjs) echo "node governance $2 $3 $4 $5 $6 keys=$KNOS_KEYS payer=$KNOS_FEE_PAYER members=${KNOS_MEMBERS:-default}" >> "$CALLS"\n'
         '  if [ "$4" = "$FAIL_INDEX" ]; then echo "refused: its time lock ends later" >&2; exit 1; fi\n'
@@ -56,8 +58,9 @@ def box(tmp_path):
     calls.write_text("", encoding="utf-8")
     kernel = tmp_path / "osrelease"              # the tests decide whether this is WSL, whatever machine runs them
     kernel.write_text("6.8.0-45-generic\n", encoding="utf-8")
+    # and no schtasks.exe off PATH: on a real WSL the one in Windows' System32 would make a real task
     env = {"PATH": f"{bin_dir}:/usr/bin:/bin", "KNOS_KEYS": str(keys), "CALLS": str(calls), "SYSTEMD": "0", "ATD": "0", "HOME": str(tmp_path), "TZ": "UTC",
-           "KNOS_OSRELEASE": str(kernel)}
+           "KNOS_OSRELEASE": str(kernel), "KNOS_SCHTASKS": str(tmp_path / "no-windows" / "schtasks.exe")}
 
     def run(*args: str, **more: str):
         return subprocess.run(["bash", str(SCRIPT), *args], env={**env, **more}, capture_output=True, text=True)
@@ -135,12 +138,21 @@ def test_under_wsl_a_windows_task_comes_first_and_starts_wsl_at_a_utc_instant_th
     assert "NOTE: this is WSL. A systemd timer fires only if this distribution is running at that time" in warned.stdout and "--with schtasks" in warned.stdout
     forced = run("--with", "schtasks", SYSTEMD="1", WSL_DISTRO_NAME="Ubuntu-24.04")
     assert forced.returncode == 0 and "arranged with the Windows Task Scheduler" in forced.stdout
+    # a WSL that keeps Windows' PATH off its own (appendWindowsPath=false): schtasks.exe is taken from Windows' System32
+    system32 = tmp_path / "Windows" / "System32"
+    system32.mkdir(parents=True)
+    (bin_dir / "schtasks.exe").rename(system32 / "schtasks.exe")
+    off_path = run(SYSTEMD="1", WSL_DISTRO_NAME="Ubuntu-24.04", KNOS_SCHTASKS=str(system32 / "schtasks.exe"))
+    assert off_path.returncode == 0 and "arranged with the Windows Task Scheduler" in off_path.stdout, off_path.stderr
+    assert _calls(calls)[-1] == "schtasks.exe /Create /TN KnosUpgrade /XML C:\\keys\\upgrade-run.task.xml /F"
+    gone = run("--cancel", KNOS_SCHTASKS=str(system32 / "schtasks.exe"))
+    assert gone.returncode == 0 and _calls(calls)[-1] == "schtasks.exe /Delete /TN KnosUpgrade /F"
     # no schtasks.exe reachable from this WSL: systemd, said aloud; and with no timer at all, what to do
-    (bin_dir / "schtasks.exe").unlink()
     fallback = run(SYSTEMD="1", WSL_DISTRO_NAME="Ubuntu-24.04")
     assert fallback.returncode == 0 and "arranged with systemd" in fallback.stdout and "NOTE: this is WSL. A systemd timer fires only if" in fallback.stdout
     none = run()
     assert none.returncode == 1 and "no timer works here" in none.stderr and "bash scripts/schedule_upgrade.sh --run" in none.stderr
+    assert "schtasks.exe is neither on PATH nor at" in none.stderr
 
 
 def test_a_time_that_has_passed_or_a_missing_schedule_arranges_nothing(box):
