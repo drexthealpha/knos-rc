@@ -120,6 +120,11 @@ is arranged and what the log holds; `--cancel` takes the timer back. If the mach
 hand: `bash scripts/schedule_upgrade.sh --run`. An execution before its time is refused by the Squads program
 itself, and one that already happened is left alone.
 
+Under WSL the run is a Windows scheduled task, which starts the distribution: a timer inside WSL fires only while it
+runs. Every timer starts the run through a login shell, and the run reads the key paths arranging wrote
+(`<key folder>/upgrade-run.env`: paths, never a key); a key file it cannot read then (a drive that is not mounted)
+stops it before anything is sent, and the log says which file.
+
 ## What can go wrong, and what then
 
 | What | What it means | What to do |
@@ -130,3 +135,4 @@ itself, and one that already happened is left alone.
 | `release.yml` pypi: PyPI does not serve the wheel | the push happened before `publish` | run `release.py publish` from the machine that holds `dist/`, then re-run the failed jobs |
 | `deploy_v2.sh` stops half way | a transaction was lost | run the same command again: the same buffer continues |
 | the scheduled run says a proposal was NOT executed | too early, cancelled, or the machine was off | read the log; `bash scripts/schedule_upgrade.sh --run` |
+| the scheduled run CANNOT START: a key file cannot be read | the drive or mount that holds it was not there | mount it (open a terminal: the profile does), then `bash scripts/schedule_upgrade.sh --run` |

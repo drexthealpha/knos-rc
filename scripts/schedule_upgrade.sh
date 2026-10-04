@@ -22,17 +22,31 @@
 #   at        the at command, when its daemon (atd) is running
 #   schtasks  a Windows scheduled task (KnosUpgrade), made with schtasks.exe from inside WSL, that starts
 #             `wsl.exe -d <this distribution>` at the time: it runs even if no WSL window is open then
-# Under WSL the first two fire only while the distribution is running at that time (a WSL with no open window stops
-# after a few seconds), and the script says so: keep a window open, or pass --with schtasks.
+# Under WSL schtasks is tried FIRST: a systemd or at timer of WSL fires only while the distribution is running at that
+# time (a WSL with no open window stops after a few seconds; after a restart nothing runs until a window opens), and the
+# Windows task starts it. When schtasks.exe cannot be reached from WSL, the other two are taken and the script says
+# what they need: keep a window open.
+#
+# The run starts 48 hours later with a bare environment, perhaps after a restart, so it does not lean on this shell:
+#   - every timer starts it through a login shell (bash -l), so the user's profile does what it does for a terminal:
+#     mounts the drive that holds the keys, puts node and knos on PATH;
+#   - then it reads <key folder>/upgrade-run.env, which arranging wrote (mode 600): PATH and the PATHS of the keys
+#     (KNOS_KEYS, KNOS_FEE_PAYER, KNOS_MEMBERS), never a key;
+#   - before it sends anything it checks that every key file the execution signs with (the fee payer's and each
+#     member's) can be read. If one cannot (a drive that is not mounted, a file that moved), the log says which, and
+#     nothing is sent. Arranging checks the same at once, and `--show` says whether they can be read now.
 #
 # Running it again replaces the arrangement with one for the time the schedule file names now, so it is safe after a
 # second --propose. Nothing here sends a transaction before --run.
 #
 # What it reads
-#   KNOS_KEYS, KNOS_FEE_PAYER, KNOS_MEMBERS, KNOS_RPC    as scripts/governance.mjs reads them. They, and PATH, are
-#                      written to <key folder>/upgrade-run.env (mode 600) so that the run has what this shell has
+#   KNOS_KEYS, KNOS_FEE_PAYER, KNOS_MEMBERS, KNOS_RPC    as scripts/governance.mjs reads them. The key folder, the
+#                      fee payer's file and the members' files, and PATH, are written to <key folder>/upgrade-run.env
+#                      (mode 600) so that the run has what this shell has
 #   KNOS_SCHEDULE      the schedule file (default: upgrade-schedule.json in the key folder)
 #   KNOS_WSL_DISTRO    schtasks: the distribution wsl.exe starts (default: $WSL_DISTRO_NAME, else Ubuntu-24.04)
+#   KNOS_OSRELEASE     the file that names the kernel (default /proc/sys/kernel/osrelease): Microsoft's means WSL even
+#                      where WSL_DISTRO_NAME is not set (sudo, a timer)
 #
 # Needs: node 20 or later with `npm ci --prefix scripts` done, `knos` on PATH (pip install -e . or pipx install knos),
 # and one of the three timers.
@@ -63,22 +77,50 @@ TASK=KnosUpgrade
 
 die() { echo "stopped: $*" >&2; exit 1; }
 field() { node -e 'const s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); const v = process.argv[2] === "indexes" ? s.proposals.map((p) => p.index).join(" ") : s[process.argv[2]]; if (v === undefined || v === null || v === "") process.exit(1); console.log(v);' "$SCHEDULE" "$1"; }
-wsl() { [ -n "${WSL_DISTRO_NAME:-}" ] || grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; }
+wsl() { [ -n "${WSL_DISTRO_NAME:-}" ] || grep -qi microsoft "${KNOS_OSRELEASE:-/proc/sys/kernel/osrelease}" 2>/dev/null; }
 # a unix time as date prints it: GNU date reads it with -d @t, the BSD date of macOS with -r t
 date_at() { local t="$1"; shift; date -d "@$t" "$@" 2>/dev/null || date -r "$t" "$@"; }
 utc() { date_at "$1" -u "+%Y-%m-%d %H:%M:%S UTC"; }
 
-# the run is started by a timer, with a bare environment: what the arranging shell had comes first
+# the run is started by a timer, with a bare environment: what the arranging shell had comes first (and --show says
+# what the run will have)
 # shellcheck disable=SC1090  # written by this script when the run was arranged
-if [ "$ACTION" = run ] && [ -f "$ENVFILE" ]; then . "$ENVFILE"; fi
+if { [ "$ACTION" = run ] || [ "$ACTION" = show ]; } && [ -f "$ENVFILE" ]; then . "$ENVFILE"; fi
 command -v node >/dev/null 2>&1 || die "node is not on PATH. Install Node 20 or later."
+
+# ---- the keys the run signs with ---------------------------------------------------------------------------------------
+# the key files an execution signs with, one per line, as scripts/governance.mjs finds them: the fee payer's, then
+# each member's (KNOS_MEMBERS, else member-N.json in the key folder). Paths only: no key is ever read here
+key_files() {
+  local m found=0
+  echo "${KNOS_FEE_PAYER:-$KEYS/payer.json}"
+  if [ -n "${KNOS_MEMBERS:-}" ]; then
+    for m in $KNOS_MEMBERS; do echo "$m"; done
+  else
+    for m in "$KEYS"/member-*.json; do if [ -e "$m" ]; then echo "$m"; found=1; fi; done
+    [ "$found" = 1 ] || echo "$KEYS/member-1.json"
+  fi
+}
+# those that cannot be read now, one per line
+unreadable() { local f; key_files | while IFS= read -r f; do if [ ! -f "$f" ] || [ ! -r "$f" ]; then echo "$f"; fi; done; }
 
 # ---- the run itself ---------------------------------------------------------------------------------------------------
 run() {
-  local index failed=0 rpc
+  local index failed=0 rpc missing
   [ -f "$SCHEDULE" ] || die "$SCHEDULE is missing: nothing was proposed, or the key folder is another one (KNOS_KEYS)."
   rpc="$(field rpc)" || die "$SCHEDULE names no cluster."
   mkdir -p "$(dirname "$LOG")"
+  # a key the execution signs with that cannot be read would fail each proposal one by one: said once, loudly, first
+  missing="$(unreadable)"
+  if [ -n "$missing" ]; then
+    { echo "==== $(date -u "+%Y-%m-%d %H:%M:%S UTC")  the scheduled upgrade run CANNOT START (cluster $rpc; proposals $(field indexes)): a key file it signs with cannot be read:"
+      printf '%s\n' "$missing" | sed 's/^/       /'
+      echo "     Nothing was sent. The paths come from $ENVFILE (written when the run was arranged). Is the drive or mount that holds them there?"
+      echo "     (A mount made by your profile is made by a login shell: the timer starts the run with bash -l.) Then run it by hand: bash scripts/schedule_upgrade.sh --run"
+    } >> "$LOG"
+    tail -n "$(( $(printf '%s\n' "$missing" | wc -l) + 3 ))" "$LOG" >&2
+    return 1
+  fi
   {
     echo "==== $(date -u "+%Y-%m-%d %H:%M:%S UTC")  the scheduled upgrade run starts (cluster $rpc; proposals $(field indexes))"
     for index in $(field indexes); do
@@ -124,35 +166,45 @@ works() {
 }
 
 arrange() {
-  local at kind="" k command id xml distro
+  local at kind="" k command id xml distro order="systemd at schtasks" missing
   [ -f "$SCHEDULE" ] || die "$SCHEDULE is missing. Propose the upgrades first: bash scripts/deploy_v2.sh --propose"
   at="$(field run_at)" || die "$SCHEDULE names no time (run_at): propose the upgrades again."
   field indexes >/dev/null || die "$SCHEDULE names no proposal."
   [ "$at" -gt "$(date +%s)" ] || die "the time in $SCHEDULE ($(utc "$at")) has passed already. Run it now: bash scripts/schedule_upgrade.sh --run"
-  for k in ${WITH:-systemd at schtasks}; do
+  # the run signs with these: one that cannot be read now will not be readable then
+  missing="$(unreadable)"
+  [ -z "$missing" ] || die "the run signs with key files that cannot be read now: $(printf '%s\n' "$missing" | paste -sd ' ' -). Set KNOS_FEE_PAYER and KNOS_MEMBERS to the fee payer's and the members' keypair files (or put payer.json and member-N.json in $KEYS), and arrange it again. Nothing was arranged."
+  # under WSL the Windows task first: it starts the distribution, which a timer inside it cannot
+  if wsl; then order="schtasks systemd at"; fi
+  for k in ${WITH:-$order}; do
     if works "$k"; then kind="$k"; break; fi
   done
   [ -n "$kind" ] || die "no timer works here${WITH:+ (--with $WITH was asked)}: systemd's user manager does not answer, atd is not running, and schtasks.exe is not on PATH. Under WSL: add [boot] systemd=true to /etc/wsl.conf and restart WSL, or install at (sudo apt install at), or run this from a WSL whose PATH has Windows' System32. Or run it by hand after $(utc "$at"): bash scripts/schedule_upgrade.sh --run"
   [ ! -f "$STATE" ] || cancel | sed 's/^/replacing the earlier arrangement: /'
-  # what the run needs of this shell, kept beside the keys: where node and knos are, and which keys and cluster
+  # what the run needs of this shell, kept beside the keys: where node and knos are, and where the keys are. Paths only,
+  # never a key: the key folder, the fee payer's file and the members' (as governance.mjs would find them now)
   ( umask 077
-    { printf 'export PATH=%q\n' "$PATH"
-      for k in KNOS_KEYS KNOS_FEE_PAYER KNOS_MEMBERS KNOS_SCHEDULE; do
+    { echo "# written by scripts/schedule_upgrade.sh when the upgrade run was arranged: paths only, never a key"
+      printf 'export PATH=%q\n' "$PATH"
+      printf 'export KNOS_KEYS=%q\n' "$KEYS"
+      printf 'export KNOS_FEE_PAYER=%q\n' "${KNOS_FEE_PAYER:-$KEYS/payer.json}"
+      for k in KNOS_MEMBERS KNOS_SCHEDULE; do
         if [ -n "${!k:-}" ]; then printf 'export %s=%q\n' "$k" "${!k}"; fi
       done; } > "$ENVFILE" )
   command="$(printf '%q' "$ROOT/scripts/schedule_upgrade.sh")"
+  # every timer starts the run through a login shell (bash -l): the profile mounts and exports what a terminal has
   case "$kind" in
     systemd)
       id="$UNIT"
       systemd-run --user --unit "$id" --description "Knos: execute the proposed upgrades" --on-calendar "$(utc "$at")" \
-        --timer-property=AccuracySec=1s --timer-property=Persistent=true --setenv=KNOS_KEYS="$KEYS" /bin/bash "$ROOT/scripts/schedule_upgrade.sh" --run >/dev/null \
+        --timer-property=AccuracySec=1s --timer-property=Persistent=true --setenv=KNOS_KEYS="$KEYS" /bin/bash -l "$ROOT/scripts/schedule_upgrade.sh" --run >/dev/null \
         || die "systemd-run did not make the timer. Try another: --with at, or --with schtasks."
       echo "$kind $id" > "$STATE"
       echo "arranged with systemd: the user timer $id.timer runs the upgrade at $(utc "$at")."
       echo "  see it:    systemctl --user list-timers $id.timer"
       echo "  cancel it: bash scripts/schedule_upgrade.sh --cancel     (or: systemctl --user stop $id.timer)" ;;
     at)
-      id="$(echo "KNOS_KEYS=$(printf '%q' "$KEYS") /bin/bash $command --run" | at -t "$(date_at "$at" "+%Y%m%d%H%M.%S")" 2>&1 | sed -n 's/^job \([0-9][0-9]*\) .*/\1/p' | tail -1)"
+      id="$(echo "KNOS_KEYS=$(printf '%q' "$KEYS") /bin/bash -l $command --run" | at -t "$(date_at "$at" "+%Y%m%d%H%M.%S")" 2>&1 | sed -n 's/^job \([0-9][0-9]*\) .*/\1/p' | tail -1)"
       [ -n "$id" ] || die "at did not take the job. Try another: --with systemd, or --with schtasks."
       echo "$kind $id" > "$STATE"
       echo "arranged with at: job $id runs the upgrade at $(utc "$at")."
@@ -167,7 +219,7 @@ arrange() {
         printf '  <Triggers><TimeTrigger><StartBoundary>%s</StartBoundary><Enabled>true</Enabled></TimeTrigger></Triggers>\n' "$(date_at "$at" -u "+%Y-%m-%dT%H:%M:%SZ")"
         printf '  <Settings><StartWhenAvailable>true</StartWhenAvailable><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>'
         printf '<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><WakeToRun>true</WakeToRun><ExecutionTimeLimit>PT1H</ExecutionTimeLimit></Settings>\n'
-        printf '  <Actions><Exec><Command>wsl.exe</Command><Arguments>-d %s -- env KNOS_KEYS=%s /bin/bash %s --run</Arguments></Exec></Actions>\n</Task>\n' \
+        printf '  <Actions><Exec><Command>wsl.exe</Command><Arguments>-d %s -- env KNOS_KEYS=%s /bin/bash -l %s --run</Arguments></Exec></Actions>\n</Task>\n' \
           "$distro" "$(printf '%q' "$KEYS" | sed 's/&/\&amp;/g; s/</\&lt;/g')" "$(printf '%s' "$command" | sed 's/&/\&amp;/g; s/</\&lt;/g')"
       } | { printf '\xff\xfe'; iconv -f UTF-8 -t UTF-16LE; } > "$xml"
       schtasks.exe /Create /TN "$id" /XML "$(wslpath -w "$xml")" /F >/dev/null || die "schtasks.exe did not make the task (the lines above say why)."
@@ -180,6 +232,7 @@ arrange() {
     echo "NOTE: this is WSL. A $kind timer fires only if this distribution is running at that time: keep a WSL window open until then,"
     echo "      or arrange it with Windows instead: bash scripts/schedule_upgrade.sh --with schtasks"
   fi
+  echo "The run starts with bash -l and reads $ENVFILE: the fee payer's and $(( $(key_files | wc -l) - 1 )) member key file(s), each readable now."
   echo "It will run, for proposals $(field indexes) on $(field rpc): node scripts/governance.mjs upgrade execute <index>, then knos status."
   echo "The log: $LOG     (the upgrades can be executed from $(utc "$(field executable_from)"); the run is ten minutes later)"
 }
@@ -188,6 +241,10 @@ show() {
   if [ -f "$SCHEDULE" ]; then echo "schedule: proposals $(field indexes) on $(field rpc), executable from $(utc "$(field executable_from)"), run at $(utc "$(field run_at)")"
   else echo "schedule: none ($SCHEDULE does not exist)"; fi
   if [ -f "$STATE" ]; then echo "timer: $(cat "$STATE")"; else echo "timer: none arranged"; fi
+  local missing
+  missing="$(unreadable)"
+  if [ -z "$missing" ]; then echo "keys: the $(key_files | wc -l) key files the run signs with can be read now"
+  else echo "keys: the run could NOT start now: it cannot read $(printf '%s\n' "$missing" | paste -sd ' ' -)"; fi
   if [ -f "$LOG" ]; then echo "log ($LOG), its last lines:"; tail -n 12 "$LOG" | sed 's/^/  /'; else echo "log: nothing has run yet"; fi
 }
 
