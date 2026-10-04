@@ -27,7 +27,34 @@ import * as squads from "@sqds/multisig";
 
 const { ComputeBudgetProgram, Connection, Keypair, PublicKey, SystemProgram, TransactionInstruction, TransactionMessage, VersionedTransaction } = web3;
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-export const IDS = JSON.parse(fs.readFileSync(path.join(ROOT, "programs-v2", "program_ids.json"), "utf8"));
+const PINNED = JSON.parse(fs.readFileSync(path.join(ROOT, "programs-v2", "program_ids.json"), "utf8"));
+const PROGRAMS = ["knos_oidc", "knos_pay", "knos_meter", "knos_passkey"];      // the only ids a staging file may replace
+
+/** The pinned ids, or with KNOS_PROGRAM_IDS set, the same with the PROGRAM addresses of that file: a staging deployment
+ *  (scripts/deploy_v2.sh --rc writes it), read by the rule of knos.settle.v2.load_ids. The vaults, the fee owner and the
+ *  workflow pins are constants of the programs, so a file that changes one is refused. Said on stderr. */
+export function loadIds(env = process.env) {
+  const named = (env.KNOS_PROGRAM_IDS ?? "").trim();
+  if (!named) return PINNED;
+  let other;
+  try { other = JSON.parse(fs.readFileSync(named, "utf8")); } catch (e) {
+    throw new Error(`KNOS_PROGRAM_IDS names ${named}, which cannot be read as JSON (${e.message}). Unset it to use the pinned deployment.`);
+  }
+  if (other === null || typeof other !== "object" || Array.isArray(other)) {
+    throw new Error(`KNOS_PROGRAM_IDS names ${named}, which is not a JSON object of program ids. Unset it to use the pinned deployment.`);
+  }
+  for (const [name, value] of Object.entries(other)) {
+    if (PROGRAMS.includes(name)) {
+      try { new PublicKey(value); } catch { throw new Error(`${named}: ${name} is not an address (${JSON.stringify(value)}). Unset KNOS_PROGRAM_IDS to use the pinned deployment.`); }
+    } else if (name !== "staging" && JSON.stringify(PINNED[name]) !== JSON.stringify(value)) {
+      throw new Error(`${named}: only ${PROGRAMS.join(", ")} can be replaced, and it changes ${name}, which the programs themselves fix. Unset KNOS_PROGRAM_IDS to use the pinned deployment.`);
+    }
+  }
+  const swapped = PROGRAMS.filter((n) => other[n] !== undefined && other[n] !== PINNED[n]);
+  if (swapped.length) console.error(`KNOS_PROGRAM_IDS is set: using the STAGING programs of ${named} (${swapped.map((n) => `${n} ${other[n]}`).join(", ")}), not the pinned deployment.`);
+  return Object.freeze({ ...PINNED, ...Object.fromEntries(swapped.map((n) => [n, other[n]])) });
+}
+export const IDS = loadIds();
 export const TOKEN = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 export const TOKEN_2022 = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
 const ATA_PROGRAM = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
