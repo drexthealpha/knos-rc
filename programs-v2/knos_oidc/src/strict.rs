@@ -53,7 +53,7 @@ pub fn b64url_in_place(d: &mut [u8], from: usize, len: usize) -> Result<usize, P
     if r < len {
         let v = last(&d[r..])?;
         d[w] = (v >> 16) as u8; w += 1;
-        if len - r > 2 { d[w] = (v >> 8) as u8; w += 1; }
+        if len - r > 2 { d[w] = (v >> 8) as u8; }
     }
     Ok(out_len)
 }
