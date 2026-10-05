@@ -190,7 +190,9 @@ def test_the_demo_is_one_buyers_story_in_seven_moments_that_end_at_two_minutes()
              "a replay cannot pay twice; both sides derive the same statement", "verifies with no chain; the remaining trust is shown",
              "what is true today about outside use, and the offer"]
     assert [what for (_m, _a, _b, what), want in zip(rows, story) if want not in what] == []
-    assert "**It is recorded on the public program ids, and nowhere else.**" in demo and "No moment is recorded on staging ids." in " ".join(demo.split())
+    # 0.3.16 is released before the pending upgrade executes: what needs the newer builds ran on staging ids, and says so
+    assert "**Every moment says on which program ids it ran.**" in demo and "No moment is shown as a run on the public program ids that did not run there." in " ".join(demo.split())
+    assert '"Staging program ids on Solana devnet"' in " ".join(demo.split()) and "**A moment whose capability has run nowhere is cut, not staged.**" in demo
     assert '"Replay of a run recorded earlier"' in demo and '"Recorded at N times speed"' in " ".join(demo.split())
 
 
@@ -199,7 +201,8 @@ def test_the_shot_list_is_the_script_and_captions_every_replay_and_every_faster_
     demo = read("docs/submission/demo_script.md")
     rows = re.findall(r"(?m)^\| (\w+) \| \((\d:\d\d)\) \| \((\d:\d\d)\) \|", demo)
     assert [(s["moment"], s["start"], s["end"]) for s in shots["shots"]] == rows
-    assert shots["limit_seconds"] == 120 == seconds(shots["shots"][-1]["end"]) and shots["program_ids"] == "public"
+    assert shots["limit_seconds"] == 120 == seconds(shots["shots"][-1]["end"]) and shots["program_ids"] == "staging"
+    assert shots["captions"]["staging"] in " ".join(demo.split())                       # the staging caption is the script's own words
     for shot in shots["shots"]:
         assert set(shot["captions"]) <= set(shots["captions"])
         assert ("replay" in shot["captions"]) == (shot["kind"] == "replay") and ("faster" in shot["captions"]) == shot["faster"], shot["moment"]

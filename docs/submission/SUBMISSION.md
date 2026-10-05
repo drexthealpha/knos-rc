@@ -15,7 +15,7 @@ What is in this folder:
 | this file | the text for each field of the form, each under its limit of a thousand characters, and the checklist for the day of submission |
 | [NUMBERS.md](NUMBERS.md) | the nine numbers about outside use, each with today's true value and the slot the release fills |
 | [pitch_script.md](pitch_script.md) | the pitch video, two minutes in five beats: the buyer and the problem first |
-| [demo_script.md](demo_script.md) | the demo video, two minutes: one buyer's story in seven moments, recorded on the public program ids |
+| [demo_script.md](demo_script.md) | the demo video, two minutes: one buyer's story in seven moments, each captioned with the program ids it ran on |
 | [CRITERIA.md](CRITERIA.md) | one paragraph for each factor Colosseum lists, founder and market fit included, and for each criterion in the rules |
 | [../PILOT.md](../PILOT.md) | the one offer for money: a 30-day pilot for one buyer and its suppliers, and what blocks it |
 | [../TEAM.md](../TEAM.md) | who builds Knos today, and the three roles the plan needs first, none hired |
@@ -36,15 +36,16 @@ each says so, and the founder confirms it before pasting.
       in that track.
 - [ ] Both videos open for someone who is not signed in, and neither is longer than two minutes.
 - [ ] Every shot that is a replay, or is played faster than it happened, carries its caption for its whole length.
-- [ ] The demo was recorded on the public program ids, after `web/upgrades.json` showed the upgrades executed.
+- [ ] Every moment of the demo is captioned with the program ids it ran on: staging program ids until
+      `web/upgrades.json` shows the pending upgrade executed and a moment has run on the public ones.
 - [ ] Every slot of [NUMBERS.md](NUMBERS.md) holds the number its source gives on the day, zeros included.
 - [ ] The repository link opens for someone who is not signed in.
 - [ ] `python scripts/bench_docs.py --slots` prints no open slot, and `python scripts/claims_check.py` passes.
 - [ ] `python scripts/capabilities.py check --rpc` passes, and every field and every shot says of a capability
       only the stage `docs/capabilities.json` gives it on the day, on the program ids `web/upgrades.json` says are
       live. No field states a count of capabilities: [../CAPABILITIES.md](../CAPABILITIES.md) is the count.
-- [ ] `web/upgrades.json` has been read on the day. A moment of the demo whose capability has not run on the
-      public ids is cut, not staged.
+- [ ] `web/upgrades.json` has been read on the day. A moment of the demo shows only what ran, on the program ids
+      its caption names; a moment whose capability has run nowhere is cut, not staged.
 - [ ] The three fields marked "the founder confirms this" have been read and are true on the day.
 - [ ] The last beat of the pitch and the last moment of the demo have been read against the chain on the day: if an outside account has
       funded an order since this was written, the count is updated from `docs/facts.json`; if a conversation has

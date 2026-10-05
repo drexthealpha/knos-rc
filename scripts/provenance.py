@@ -139,11 +139,11 @@ def chain_of(data: dict, program: str) -> dict:
         out["execution transaction"] = link(
             sig if executed else None, "docs/provenance.json",
             "the proposal executed and no read of its transaction is on file (run with --rpc --record)" if executed
-            else "the proposal has not executed")
+            else "the proposal had not executed when web/upgrades.json was generated")
     h = seen.get("on_chain_hash")
     same = bool(entry) and h is not None and h == entry.get("build_hash")
     if h and _HEX64.fullmatch(str(h)):
-        note = "the build above" if same else ("NOT the build above: its proposal has not executed" if entry and entry.get("status") != "executed"
+        note = "the build above" if same else ("NOT the build above: its proposal had not executed" if entry and entry.get("status") != "executed"
                                                  else "NOT the build above")
         out["hash on chain"] = link(f"{h} ({note}; when it was read is `read` in docs/provenance.json)", "docs/provenance.json")
         out["hash on chain"]["same"] = same
@@ -226,22 +226,23 @@ def render(data: dict) -> str:
               ". docs/provenance.json does not exist: no read of the cluster is on file."),
            f"Cluster: {up.get('cluster', MISSING)}. Upgrade multisig: `{up.get('multisig', MISSING)}`, {up.get('threshold', '?')} of "
            f"{up.get('members', '?')}, time lock {time_lock(data)}.", "",
-           "| program | public id | devnet runs | the chain is about | links recorded | complete |", "|---|---|---|---|---|---|"]
+           "| program | public id | devnet runs, as docs/capabilities.json records it | the chain is about | links recorded | complete |", "|---|---|---|---|---|---|"]
     for c in got:
         e = c["entry"]
-        about = MISSING if e is None else f"proposal {e['index']} ({e['status']})" + (f", {c['program']} {c['version']}" if c["version"] else "")
+        about = MISSING if e is None else f"proposal {e['index']} ({e['status']} in web/upgrades.json)" + (f", {c['program']} {c['version']}" if c["version"] else "")
         out.append(f"| {c['program']} | `{c['address']}` | {c['runs'] or MISSING} | {about} | "
                    f"{len(LINKS) - len(missing(c))} of {len(LINKS)} | {'yes' if complete(c) else 'no'} |")
     out.append("")
     for c in got:
         e = c["entry"]
         out += [f"### {c['program']}", "",
-                f"Public id `{c['address']}`. devnet runs version {c['runs'] or MISSING} there (docs/capabilities.json). "
+                f"Public id `{c['address']}`. docs/capabilities.json records version {c['runs'] or MISSING} running there. "
                 + ("No upgrade proposal is on record." if e is None else
                    f"The chain below is the build of proposal {e['index']}" + (f", {c['program']} {c['version']}" if c["version"] else "")
-                   + (", which runs there now." if e["status"] == "executed" else ", which is approved and has not executed: "
-                      "the public id still runs the older build until it does." if e.get("squads_status") == "Approved"
-                      else ", which is pending."))
+                   + (", which runs there now." if e["status"] == "executed" else ", which was approved and had not executed when "
+                      "web/upgrades.json was generated: the public id runs the older build until it does, and the live state is in "
+                      "web/upgrades.json." if e.get("squads_status") == "Approved"
+                      else ", which was pending when web/upgrades.json was generated."))
                 + (f" Release note: CHANGELOG.md, {c['release']}." if c["release"] else f" Release note: **{MISSING}**: no section of CHANGELOG.md names this build."),
                 "", _now(c),
                 "", "| # | link | what is recorded | recorded in |", "|---|---|---|---|"]

@@ -12,13 +12,13 @@ The spoken words are the lines that start with `>`: about 300 words at most, whi
 
 ## Four rules for the recording
 
-- **It is recorded on the public program ids, and nowhere else.** The release is made after the approved upgrades
-  have executed, so the builds that carry work orders, the single-use rule and the batched count are then the
-  programs at the public addresses. `web/upgrades.json` is read on the day, not this page. No moment is recorded
-  on staging ids.
-- **A moment whose capability has not run on the public ids on the day is cut, not staged.** The table below gives
-  each capability's stage from `docs/capabilities.json`. The narration of the moments that remain is not changed
-  to cover for a cut one.
+- **Every moment says on which program ids it ran.** Knos 0.3.16 is released before the pending upgrade executes,
+  so the builds that carry work orders, the single-use rule and the batched count have run on the staging program
+  ids of the 0.3.14 rehearsal, and a moment that shows them carries the caption "Staging program ids on Solana
+  devnet" for its whole length. `web/upgrades.json` is read on the day, not this page. No moment is shown as a run
+  on the public program ids that did not run there.
+- **A moment whose capability has run nowhere is cut, not staged.** The table below gives each capability's stage
+  from `docs/capabilities.json`. The narration of the moments that remain is not changed to cover for a cut one.
 - **A replay says it is a replay, and a faster recording says how much faster.** Any shot that shows a run made
   earlier carries the caption "Replay of a run recorded earlier", with the run's address, for its whole length.
   Any shot played faster than it happened carries "Recorded at N times speed" for its whole length. A workflow

@@ -198,7 +198,7 @@
      "names": "test_any_rs256_issuer_is_admitted_on_githubs_signature"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed. More evidence: tests/test_issuers.py verifies a token of each of ten documented issuers' shapes (the capability `verifier_issuer_matrix`)."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json). More evidence: tests/test_issuers.py verifies a token of each of ten documented issuers' shapes (the capability `verifier_issuer_matrix`)."
   },
   {
    "id": "key_guardian",
@@ -466,7 +466,7 @@
      "names": "test_a_holdback_stays_in_the_order_through_the_warranty"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "warranty_revert",
@@ -498,7 +498,7 @@
      "names": "test_a_seller_pays_himself_after_the_buyers_repository_deleted_its_workflow"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "neutral_attest",
@@ -514,7 +514,7 @@
      "names": "test_what_a_neutral_run_cannot_do"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "arbiter_rule",
@@ -530,7 +530,7 @@
      "names": "test_the_arbiter_an_order_named_rules_who_is_paid"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "reserve_cancel",
@@ -562,7 +562,7 @@
      "names": "test_top_up_adds_to_the_amount_and_the_fee_from_where_the_money_came"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "assign",
@@ -578,7 +578,7 @@
      "names": "test_a_payee_assigns_an_orders_payment_and_only_the_assignee_can_change_it"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "advance_by_assignment",
@@ -594,7 +594,7 @@
      "names": "test_an_assignment_before_acceptance_pays_the_financier_at_acceptance_and_at_release_and_never_the_seller"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed. What the financier pays the seller is a plain transfer off the order; no advance has been made, and Knos charges nothing for one."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json). What the financier pays the seller is a plain transfer off the order; no advance has been made, and Knos charges nothing for one."
   },
   {
    "id": "standing_order",
@@ -610,7 +610,7 @@
      "names": "test_a_standing_order_pays_its_rate_once_per_pull_request"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "org_balance_limits",
@@ -626,7 +626,7 @@
      "names": "test_a_balance_with_a_side_account_enforces_all_of_it"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "org_wallet",
@@ -642,7 +642,7 @@
      "names": "test_a_pull_request_by_a_bot_is_paid_to_its_organisations_wallet"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "plans",
@@ -658,7 +658,7 @@
      "names": "test_only_the_fee_owner_sets_a_plan_and_only_to_lower_the_rate"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "fee_tiers",
@@ -706,7 +706,7 @@
      "names": "test_nothing_of_the_private_repository_is_in_any_public_place"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "meter_single",
@@ -842,7 +842,7 @@
      "names": "test_a_gitlab_project_funds_an_order_and_the_merge_request_author_is_paid"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed. Tested in the local simulator with tokens signed by a test key; no pipeline on gitlab.com has funded or paid."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json). Tested in the local simulator with tokens signed by a test key; no pipeline on gitlab.com has funded or paid."
   },
   {
    "id": "gitlab_ci_example",
@@ -1075,7 +1075,7 @@
      "names": "test_a_treasury_funds_an_order_by_cpi_and_gets_it_back_when_nobody_delivers"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1` and `knos_oidc 2.1`, which has not executed."
+   "note": "Runs at the public ids only once the upgrade to `knos_pay 2.1` and `knos_oidc 2.1` has executed (the live state is in web/upgrades.json)."
   },
   {
    "id": "oidc_gate",
@@ -1884,7 +1884,7 @@
      "names": "test_a_fund_comment_names_the_third_reader_and_the_program_takes_exactly_what_it_signed"
     }
    },
-   "note": "Waits for the upgrade to `knos_pay 2.1`, which has not executed at the public id. Two readers of one owner count as one."
+   "note": "Runs at the public id only once the upgrade to `knos_pay 2.1` has executed (the live state is in web/upgrades.json). Two readers of one owner count as one."
   },
   {
    "id": "outcome_orders",
@@ -1980,7 +1980,7 @@
      "names": "test_every_program_has_the_seven_links_and_a_missing_one_gives_its_reason"
     }
    },
-   "note": "No program's chain is complete today: the execution transaction and the exercised scenario are MISSING for each, and the builds that ran at the public ids before the upgrade have no build record (docs/PROVENANCE.md)."
+   "note": "No program's chain is complete in the committed record (docs/PROVENANCE.md): the exercised scenario is MISSING for each, the execution transaction is MISSING while its proposal has not executed, and the knos_oidc and knos_pay builds that run at the public ids before the upgrade have no build record."
   },
   {
    "id": "conformance_kit",
@@ -2028,7 +2028,7 @@
      "names": "test_the_program_and_the_reference_give_the_same_answer_on_every_case"
     }
    },
-   "note": "knos_oidc 2.2 is proposed through the multisig at release and is not deployed: devnet runs an earlier version, which accepts such a token."
+   "note": "knos_oidc 2.2 is not deployed: it will be proposed after the pending upgrade executes, and until that proposal has executed devnet runs an earlier version, which accepts such a token (the live state is in web/upgrades.json)."
   },
   {
    "id": "unwrap_inventory",

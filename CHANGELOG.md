@@ -32,8 +32,9 @@ locally" in [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md); nothing new was depl
   not JSON in a value the verifier does not read could verify. The strict reader is a file of its own that only the
   verifier's own instructions call, so it is the one program this release changes: `knos_pay`, `knos_meter` and
   `knos_passkey` are unchanged byte for byte. The recorded differential run: 8,855 cases, 0 disagreements, each of
-  the 13 formerly accepted shapes refused ([`docs/fuzz.json`](docs/fuzz.json)). 2.2 is proposed through the multisig
-  after the release and is not deployed.
+  the 13 formerly accepted shapes refused ([`docs/fuzz.json`](docs/fuzz.json)). 2.2 is not deployed: it will be
+  proposed through the multisig after the pending upgrade executes, and the live state is in
+  [`web/upgrades.json`](web/upgrades.json).
 - [`docs/UNWRAPS.md`](docs/UNWRAPS.md) lists every place a program could panic, each with whether it can be reached.
 - **Ten issuers documented.** [`docs/VERIFIER.md`](docs/VERIFIER.md) says what the verifier takes from each, and a
   token of each one's shape verifies in the tests. Only GitHub and GitLab have signed a token Knos verified.

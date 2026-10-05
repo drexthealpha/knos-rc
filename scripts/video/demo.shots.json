@@ -1,13 +1,14 @@
 {
- "_about": "The shot list of the two-minute demo (docs/submission/demo_script.md): seven moments of one buyer's story, recorded on the public program ids on devnet. `kind` is live (it happens while it is recorded) or replay (a run made earlier is shown). `faster` is true when the shot is played faster than it happened. A replay carries the first caption and a faster shot the second, each for the shot's whole length; N is the speed measured when the shot is cut, and it is written into the caption then. Render a storyboard of it with `python scripts/video/render.py <file> --limit 120`. tests/test_business_docs.py holds this file to the script.",
+ "_about": "The shot list of the two-minute demo (docs/submission/demo_script.md): seven moments of one buyer's story on devnet. Knos 0.3.16 is released before the pending upgrade executes, so what needs the newer builds ran on the staging program ids of the 0.3.14 rehearsal, and a shot of it carries the `staging` caption; `web/upgrades.json` has the live state. `kind` is live (it happens while it is recorded) or replay (a run made earlier is shown). `faster` is true when the shot is played faster than it happened. A replay carries the first caption and a faster shot the second, each for the shot's whole length; N is the speed measured when the shot is cut, and it is written into the caption then. Render a storyboard of it with `python scripts/video/render.py <file> --limit 120`. tests/test_business_docs.py holds this file to the script.",
  "limit_seconds": 120,
- "program_ids": "public",
+ "program_ids": "staging",
  "captions": {
   "first": "Built during the hackathon: everything shown. Older work is listed in docs/DISCLOSURE.md.",
   "replay": "Replay of a run recorded earlier",
   "faster": "Recorded at N times speed",
   "offline": "The network is off",
-  "money": "Solana devnet. Test USDC."
+  "money": "Solana devnet. Test USDC.",
+  "staging": "Staging program ids on Solana devnet"
  },
  "shots": [
   {"moment": "one", "start": "0:00", "end": "0:15", "kind": "live", "faster": false, "captions": ["first"],

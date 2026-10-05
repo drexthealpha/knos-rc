@@ -499,8 +499,9 @@ Nothing is posted in public only when the repository relays its own tokens, with
   chain.
 - **From source to chain.** docs/PROVENANCE.md follows each program from source commit to build hash to the hash on
   chain to its upgrade proposal; a link the repository does not record is printed as MISSING.
-- **The builds before the upgrade have no build record.** The builds running at the public ids before the upgrade
-  had no build record at the upgrade gate. Nothing on chain ties those builds to a commit.
+- **Two of the builds before the upgrade have no build record.** The knos_oidc and knos_pay builds that run at the
+  public ids until proposals 3 and 4 execute have no build record at the upgrade gate, so nothing on chain ties
+  those builds to a commit; knos_meter's and knos_passkey's have one ([PROVENANCE.md](PROVENANCE.md)).
 
 ## 14. The sandbox (tests mode)
 
@@ -934,8 +935,9 @@ The first three cannot be removed. They come with the design.
     2.2 (Knos 0.3.16) checks every byte of the header and the payload against RFC 8259, refuses a name that appears
     twice in the top-level object, and takes at most 64 levels and 128 top-level members: the 13 shapes are refused,
     and the differential test has no class outside its rule ([ASSURANCE.md](ASSURANCE.md), "The claim reader: strict
-    since 2.2"; [`fuzz.json`](fuzz.json)). 2.2 is a proposal: 2.1 runs on devnet until the proposal has executed
-    after its 48-hour delay, and [`web/upgrades.json`](../web/upgrades.json) says which is live. What stays: the
+    since 2.2"; [`fuzz.json`](fuzz.json)). 2.2 will be proposed after the pending upgrade executes; until that
+    proposal has executed after its 48-hour delay, devnet runs an earlier verifier (2.0, then 2.1 once proposal 3 has
+    executed), and [`web/upgrades.json`](../web/upgrades.json) says which is live. What stays: the
     strict rule is this project's reading of RFC 8259 (a name twice inside a nested object is not looked for), and
     `knos-pay` 2.1 and the interface crate still step over the values they do not read (2.2's strict reader is a
     file only the verifier calls, so that `knos-pay` stays the build it is); they read only payloads the verifier
