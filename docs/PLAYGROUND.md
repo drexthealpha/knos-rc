@@ -12,6 +12,10 @@ and press **Submit new issue**. The template's text ends with the line `/knos fu
 reads that line as the issue is opened, GitHub signs that your account wrote it, and 5 test USDC go into an escrow on
 Solana devnet for that issue. Knos answers in a comment.
 
+The task is paid without a merge (`auto`), and an escrow holds such an order only from `knos_pay` 2.1 on. While devnet
+runs an older build (`knos status`; the site's `upgrades.json`), the workflow funds nothing and says so in its comment:
+that is what [issue 1](https://github.com/drexthealpha/knos-playground/issues/1) got on 2026-10-05.
+
 **Take one.** Pick an [open issue](https://github.com/drexthealpha/knos-playground/issues), edit
 [`words.py`](https://github.com/drexthealpha/knos-playground/edit/main/words.py) in the browser so that it prints the
 words of a line in reverse order, and open the pull request with `Closes #<the issue's number>` in its description.
