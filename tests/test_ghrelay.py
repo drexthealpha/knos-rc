@@ -301,4 +301,7 @@ def test_the_page_about_the_relay_states_the_relays_own_constants():
     assert ghrelay.LATE == oidc.LATE                                  # "an hour past its expiry" is the verifier's rule, not the relay's
     assert "knos-relay status - - ok at=<time> round=<s> tokens=<n> waiting=<n> oldest=<s> retried=<n> refused=<n>" in doc
     assert "knos-relay status - - ok at=<time> round=<s> tokens=<n> waiting=<n> oldest=<s> retried=<n> refused=<n>" in ghrelay.__doc__
-    assert "none on devnet" in doc and "has not yet been run against the live log" in doc      # what is not done is said
+    assert "none on devnet" in doc                                    # what is not done is said
+    # and what is done says when and on what: the stages were measured on the live log, with the dates of its reads
+    assert re.search(r"`scripts/latency_stages\.py` on the live log \(\d{1,2} \w+ 20\d\d, \d\d:\d\d to \d\d:\d\d UTC", doc)
+    assert "has not yet been run against the live log" not in doc
