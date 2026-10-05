@@ -695,6 +695,10 @@ def add_week(series, one):
                    "verified_against": one["verified_against"], "designs": DESIGNS,
                    "source": f"each week says how it was read (`design`, `capped`, `strata`). The newest: week of {week}, read {one['read']}, "
                              f"{next((w['design'] for a in one['agents'].values() for w in a['weeks']), 'no design')}"})
+    # the series may still hold weeks a capped scan cut from its window: the source keeps saying so (`full_week` false)
+    part = sorted({w["week"] for a in series["agents"].values() for w in a["weeks"] if w.get("full_week") is False and w.get("read") == series["read"]})
+    if part:
+        series["source"] += f"; read on {series['read']} and not whole weeks: the weeks of {', '.join(part)} (`full_week` false)"
     series["latest_week"] = latest_week(series)
     return rank(series)
 

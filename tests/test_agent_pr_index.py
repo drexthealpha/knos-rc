@@ -978,6 +978,8 @@ def test_the_weekly_command_adds_a_capped_sample_to_the_series_and_never_refuses
         assert w["verified_acceptance_rate"] is not None and w["ranked_by"] == "verified_acceptance_rate" and w["sampled"] is not None
         assert agent["all_weeks"] == agent_pr_index._add(agent["weeks"])
     assert any(a["weeks"][-1]["capped"] for a in after["agents"].values()) and after["latest_week"] == SAMPLE_WEEK
+    cut = {w["week"] for a in after["agents"].values() for w in a["weeks"] if w.get("full_week") is False and w["read"] == after["read"]}
+    assert ("not whole weeks" in after["source"]) == bool(cut) and all(week in after["source"] for week in cut)   # the weeks a scan cut are still said
     page = doc.read_text(encoding="utf-8")
     assert "**Agent PR Index, week of 2026-09-28.** Read 2026-10-05. Design: stratified-seeded-v1. Capped: true" in page and "| capped: drew " in page
     assert agent_pr_index.weekly_table(after) in page
