@@ -35,6 +35,14 @@ command line and from the browser. Both sides compare one sha256 to confirm they
 With `--out`, a resume file is kept beside the statement: a second run asks GitHub only about lines the first could
 not finish, and every request is conditional. The file holds GitHub's answers; keep it where the invoice is kept.
 
+## The sample, read from live GitHub
+
+`knos shadow examples/shadow/sample.csv` (public pull requests assembled by Knos, not anyone's invoice; illustrative
+amounts), read on 2026-10-05 in 18 requests: 4 verified clean (325.00), 2 failed check at merge (200.00:
+[foundation-base#454](https://github.com/zcaudate-xyz/foundation-base/actions/runs/35543348565/job/106164883891),
+[atlas#24](https://github.com/JPL-Devin/atlas/actions/runs/33539794255/job/99962921861)), 0 in the other classes; in
+dispute 200.00 of 525.00 (38.10%). `statement.json` sha256 `7dd895c7f5ba3b8a8965267d45b25417770c9dc5b5f8d560a893e79fcfc193a8`.
+
 ## What it cannot tell you
 
 - A failed check at merge is not proof the work is bad, and a green check is not proof it is good.
