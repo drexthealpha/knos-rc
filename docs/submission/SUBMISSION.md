@@ -95,9 +95,9 @@ INTERVIEWS.md. The free check is the distribution; software is sold first (docs/
 
 No traction is claimed beyond what the chain counts. Knos's own account funded every task paid so far, in test
 USDC. By 3 Oct 2026 the two deployments had made 15 payments on devnet: 3 to one outside contributor, for bounties
-Knos funded itself, and the rest to Knos's own accounts. When the release ran, 42 tasks had been
+Knos funded itself, and the rest to Knos's own accounts. When the release ran, 43 tasks had been
 paid on the second deployment. Across both deployments, 0 paid tasks were funded by someone other than Knos with
-their own tokens, by 0 funders, of whom 0 funded again. From merge to paid took 25 seconds at the median, over 38
+their own tokens, by 0 funders, of whom 0 funded again. From merge to paid took 25 seconds at the median, over 39
 payments. 1,905 tests pass. Buyers: none. Interviews: none. Letters of intent: none. Pilots: none, offered or
 sold. Revenue: none; test USDC is not money. Outside reproductions: none known. The site's Numbers page
 shows today's counts, read from the programs' own logs, with Knos's own accounts kept apart from everyone else's.

@@ -59,7 +59,7 @@ real, and I do not count it. Nobody has bought anything, and there is no company
 *On screen: the receipt, then the transaction in the explorer.*
 
 The forge already records each result and signs statements about a CI run. A Solana program checks that signature
-itself, then counts the outcome or pays the supplier. From merge to paid took 25 seconds at the median, over 38
+itself, then counts the outcome or pays the supplier. From merge to paid took 25 seconds at the median, over 39
 payments on devnet. Each signed token is accepted once. What is still trusted
 is on the receipt: the forge signs which workflow ran, not what it read.
 

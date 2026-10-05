@@ -192,8 +192,8 @@ def constants(counted: dict | None = None, load: dict | None = None, bench: dict
         },
         "latency": {"merge_to_paid_s": {k: m2p[k] for k in ("count", "median", "p95")}, "window": m2p["window"],
                     "comment_to_funded_median_s": lat.get("comment_to_funded", {}).get("median"),
-                    "stage_split": "not recorded: scripts/latency_stages.py was not there when this was written, so runner queue time is inside "
-                                   "merge-to-paid and not apart from it"},
+                    "stage_split": "not apart in these samples; scripts/latency_stages.py splits"
+                                   " the payments whose relay log line carries the stage fields: docs/RELAY.md, \"Where a token waits\""},
     }
 
 

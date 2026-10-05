@@ -425,7 +425,7 @@
   },
   "latency": {
    "merge_to_paid_s": {
-    "count": 38,
+    "count": 39,
     "median": 25,
     "p95": 164
    },
@@ -433,8 +433,8 @@
     "from": "2026-10-02",
     "to": "2026-10-04"
    },
-   "comment_to_funded_median_s": 50,
-   "stage_split": "not recorded: scripts/latency_stages.py was not there when this was written, so runner queue time is inside merge-to-paid and not apart from it"
+   "comment_to_funded_median_s": 48,
+   "stage_split": "not apart in these samples; scripts/latency_stages.py splits the payments whose relay log line carries the stage fields: docs/RELAY.md, \"Where a token waits\""
   },
   "budget": {
    "own": {
@@ -538,7 +538,7 @@
       "limit": "concurrent jobs (Free plan)",
       "scope": "the customer's account",
       "at": 5268,
-      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 38 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
+      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 39 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
       "lift": "a larger plan (Pro 40, Team 60, Enterprise 500); self-hosted runners, which this limit does not count",
       "load": 0.0019,
       "binds": false
@@ -622,7 +622,7 @@
       "limit": "concurrent jobs (Free plan)",
       "scope": "the customer's account",
       "at": 5268,
-      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 38 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
+      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 39 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
       "lift": "a larger plan (Pro 40, Team 60, Enterprise 500); self-hosted runners, which this limit does not count",
       "load": 0.0019,
       "binds": false
@@ -679,7 +679,7 @@
       "limit": "concurrent jobs (Free plan)",
       "scope": "the customer's account",
       "at": 5268,
-      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 38 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
+      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 39 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
       "lift": "a larger plan (Pro 40, Team 60, Enterprise 500); self-hosted runners, which this limit does not count",
       "load": 0.1898,
       "binds": false
@@ -772,7 +772,7 @@
       "limit": "concurrent jobs (Free plan)",
       "scope": "the customer's account",
       "at": 5268,
-      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 38 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
+      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 39 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
       "lift": "a larger plan (Pro 40, Team 60, Enterprise 500); self-hosted runners, which this limit does not count",
       "load": 0.1898,
       "binds": false
@@ -842,7 +842,7 @@
       "limit": "concurrent jobs (Free plan)",
       "scope": "the customer's account",
       "at": 5268,
-      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 38 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
+      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 39 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
       "lift": "a larger plan (Pro 40, Team 60, Enterprise 500); self-hosted runners, which this limit does not count",
       "load": 18.9825,
       "binds": true
@@ -932,7 +932,7 @@
       "limit": "concurrent jobs (Free plan)",
       "scope": "the customer's account",
       "at": 5268,
-      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 38 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
+      "from": "2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 39 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub)",
       "lift": "a larger plan (Pro 40, Team 60, Enterprise 500); self-hosted runners, which this limit does not count",
       "load": 18.9825,
       "binds": true

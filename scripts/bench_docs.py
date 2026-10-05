@@ -14,7 +14,10 @@ Agent PR Index scan the docs quote, the programs' compute units, what was measur
                                                      exit 1 when they disagree on any number both state
     python scripts/bench_docs.py --set NAME=NUMBER --source "where it was measured"
                                                      fill one slot that stats.json cannot (see SLOTS)
-    python scripts/bench_docs.py --slots             list the slots that have no number yet; exit 1 if there is one
+    python scripts/bench_docs.py --stages stages.json --source "where it was measured"
+                                                     fill the stage and attempt slots (STAGE_SLOTS) from
+                                                     `scripts/latency_stages.py --json` on the live relay log
+    python scripts/bench_docs.py --slots            list the slots that have no number yet; exit 1 if there is one
 
 A block is `<!-- bench:NAME -->` ... `<!-- /bench:NAME -->` in README.md or docs/BENCH.md:
 
@@ -65,7 +68,7 @@ SUBMISSION = "docs/submission"       # every .md under it may carry [[stat: name
 # The other files that may carry slots. Everything a judge opens states a release-measured fact through one, so that the
 # release fills them all in one run and no document is left with an older number.
 SLOTTED = ["README.md", "CHANGELOG.md", "docs/DISCLOSURE.md", "docs/WHY.md", "docs/COMPARE.md", "docs/MARKET.md",
-           "docs/SECURITY.md", "docs/ASSURANCE.md", "docs/BENCH.md"]
+           "docs/SECURITY.md", "docs/ASSURANCE.md", "docs/BENCH.md", "docs/RELAY.md"]
 UNMEASURED = "measured at release"
 SLOT = re.compile(r"(?<!`)\[\[stat: ([a-z][a-z_]*)\]\]")      # not one quoted as code: that is the docs naming the syntax
 # The rows of the `devnet` block: (what was measured, its path in stats.json).
@@ -115,6 +118,43 @@ SLOTS = {
                          "repository (the automatic commits of a workflow are left out): "
                          "`git log --author=drexthealpha --format=%ad --date=short | sort -u | wc -l`", None),
 }
+# The stages of a payment and the attempts, as scripts/latency_stages.py --json reports them on the live relay log: each
+# a slot with no path in stats.json, filled by `--stages FILE --source "..."` (or one at a time with --set).
+STAGE_WORDS = {
+    "runner_queue": "the merge to the start of the workflow run (runner queue)",
+    "workflow": "the start of the workflow run to the token's comment (workflow)",
+    "relay_wait": "the token's comment to the relay picking it up (relay wait)",
+    "first_send": "the relay's pickup to the block of the token's first transaction (first send)",
+    "confirm": "that block to the block of the transaction that paid (confirm)",
+    "queued": "the run waiting for a runner, as GitHub records it (inside the runner queue)",
+    "chain": "the relay's pickup to its last confirmation (first send and confirm together)",
+}
+STAGE_STATS = {"payments": ("n", "payments in which this stage is measured"), "median": ("p50", "the median seconds"),
+               "ninety_fifth": ("p95", "the 95th percentile, by nearest rank, in seconds"), "slowest": ("max", "the longest, in seconds")}
+ATTEMPT_WORDS = {"asked": "pull requests whose payment the public relay log has a line for",
+                 "completed": "of those, the ones with a line that says ok",
+                 "lines": "log lines with a token's id, one per token a relay answered for",
+                 "failed": "of those lines, the ones that say fail",
+                 "retried": "ok lines that took more than one try",
+                 "after_failure": "payments completed only after a failed line",
+                 "never": "payments asked for that no line says ok"}
+STAGE_SLOTS = {f"stage_{stage}_{stat}": (f"{what}: {words}, over the public relay's log (scripts/latency_stages.py)", ("stages", stage, key))
+               for stage, words in STAGE_WORDS.items() for stat, (key, what) in STAGE_STATS.items()}
+STAGE_SLOTS |= {f"stage_whole_{stat}": (f"{what}: the merge to the payment, the whole wait, as scripts/latency_stages.py "
+                                        "timed it over the public relay's log", ("whole", key)) for stat, (key, what) in STAGE_STATS.items()}
+STAGE_SLOTS |= {f"pay_attempts_{name}": (f"{words} (scripts/latency_stages.py, network_stats.attempts)", ("attempts", name))
+                for name, words in ATTEMPT_WORDS.items()}
+SLOTS |= {name: (what, None) for name, (what, _where) in STAGE_SLOTS.items()}
+
+
+def stage_numbers(report: dict, source: str) -> dict:
+    """{slot name: (number, source)} for every stage slot `report` (latency_stages.py --json) has a number for."""
+    out = {}
+    for name, (_what, where) in STAGE_SLOTS.items():
+        value = _dig(report, ".".join(where))
+        if _number(value):
+            out[name] = (value, source)
+    return out
 _V = r"(\[\[stat: [a-z_]+\]\]|\d[\d,]*(?:\.\d+)?)"
 # The sentences in which a slot's fact is stated, each with one group: the value as written, a number or a slot.
 FRAMES = {
@@ -622,6 +662,11 @@ if __name__ == "__main__":
         if not source or not re.fullmatch(r"\d+(?:\.\d+)?", value):
             raise SystemExit('usage: python scripts/bench_docs.py --set NAME=NUMBER --source "where it was measured"')
         given = {name: (float(value) if "." in value else int(value), source)}
+    if "--stages" in sys.argv:      # scripts/latency_stages.py --json on the live log: every stage slot it has a number for
+        source = _arg("--source")
+        if not source:
+            raise SystemExit('usage: python scripts/bench_docs.py --stages stages.json --source "where and when it was measured"')
+        given = {**(given or {}), **stage_numbers(json.loads(Path(_arg("--stages") or "").read_text(encoding="utf-8")), source)}
     if "--stats" in sys.argv or given:
         fill(_arg("--stats"), given)
     if "--site" in sys.argv:      # a built site's folder: its stats.json and latency.json against the documents

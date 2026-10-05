@@ -80,8 +80,34 @@ Three things follow, and one does not.
 - For fundings the relay's side is the tail: 887 s at the slowest, and of the three lines that carry stages one waited
   875 s to be picked up. The paths below are how.
 - What the published files do not say: which stage the 164 s payment waited in. Two of the 39 lines carry no relay
-  seconds and cannot be split from those files. `scripts/latency_stages.py` prints every slow payment with its own
-  stages from the live log; it runs at release time and has not yet been run against the live log.
+  seconds and cannot be split from those files. `scripts/latency_stages.py` splits a payment only where its log line
+  carries the stage fields (`workflow=`, `wait=`, `chain=`), and the 164 s payment's line does not.
+
+`scripts/latency_stages.py` on the live log (5 October 2026, 07:56 to 08:02 UTC; the escrows' history read by
+`scripts/network_stats.py` at 07:44 UTC, block times from devnet's public endpoint). Each row is measured only where
+the line carries it, so each has its own n:
+
+| stage | n | median | 95th percentile | slowest |
+| --- | --- | --- | --- | --- |
+| the whole wait, as this script timed it | 39 | 25 s | 164 s | 1,220 s |
+| runner queue: the merge to the start of the run | 3 | 4 s | 1,184 s | 1,184 s |
+| of it, the run waiting for a runner (GitHub's record) | 3 | 0 s | 0 s | 0 s |
+| workflow: the start of the run to the token's comment | 3 | 17 s | 24 s | 24 s |
+| relay wait: the comment to the relay picking it up | 3 | 3 s | 5 s | 5 s |
+| first send: the pickup to the first transaction's block | 3 | 3 s | 5 s | 5 s |
+| confirm: that block to the paying transaction's block | 3 | 5 s | 8 s | 8 s |
+| the relay's side (first send and confirm together) | 3 | 10 s | 11 s | 11 s |
+
+Few lines carry the stage fields yet, so the stage rows are a handful of payments, not a distribution: read them as
+those payments. The slowest of them spent its time in the runner queue (before the run began, with no wait for a
+runner recorded by GitHub), not in the relay.
+
+The attempts, over every payment line of the log: 42 of 51
+pull requests asked for were paid; the log has 55 lines with a token, of which
+13 say fail and 0 took more than one try;
+1 were paid only after a failed line, and 9 were never
+paid. A failure here is a relay's answer (a token too long, no bounty on the issue, a token for the other
+deployment), not a payment lost: a token no relay picked up has no line at all.
 
 Every path that can add minutes, with a test that reproduces it under a fake GitHub and a clock the test moves
 (`tests/test_relay_failures.py`), and its bound:
