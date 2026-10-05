@@ -998,7 +998,7 @@ def test_a_hiccup_of_the_cluster_is_tried_again_and_a_refusal_is_not(env):
                            (2, twin, "another run moved this token's account (error 69)"),
                            (2, OSError("connection reset"), "OSError: connection reset")):
         r = relay.submit(Flaky(net).fail(nth, why), c.payer, fund, TERMS, JWKS, now=c.now())
-        assert r == {"ok": False, "kind": "fund", "why": said, "retry": True, "transient": True}, r
+        assert r == {"ok": False, "kind": "fund", "why": said, "retry": True, "transient": True, **({"answered": True} if why is twin else {})}, r
         assert c.data(oidc.token_pda(c.payer.pubkey(), oidc.token_id(fund))) is None           # the rent came back each time
         assert c.data(pay.job_pda(repo, n, pay.faucet_balance_pda(org))) is None
     assert go(env, fund, TERMS)["ok"]                            # the same token, on the next pass

@@ -694,14 +694,6 @@
   "claim_parser_executions": {
    "value": 16024654,
    "source": "libFuzzer through cargo-fuzz on the claim parser (target claims), 300 seconds, commit 519dffc, https://github.com/drexthealpha/knos-rc/actions/runs/37185319408"
-  },
-  "upgrade_proposed": {
-   "value": "2026-10-04 07:17 UTC",
-   "source": "the later of the two approvals on devnet: proposal 2 (knos_pay) approved 2026-10-04 07:17:29 UTC; proposal 1 (knos_oidc) 07:16:43 UTC"
-  },
-  "upgrade_executable": {
-   "value": "2026-10-06 07:17 UTC",
-   "source": "48 hours after upgrade_proposed (the later of the two approvals on devnet: proposal 2 (knos_pay) approved 2026-10-04 07:17:29 UTC; proposal 1 (knos_oidc) 07:16:43 UTC)"
   }
  }
 }

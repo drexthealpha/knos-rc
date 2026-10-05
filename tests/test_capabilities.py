@@ -128,8 +128,16 @@ def test_the_readme_and_the_document_are_what_render_writes(tmp_path):
     # README.md names every capability under its stage; the document has one row each, with the evidence
     block = text[text.index(cap.START):text.index(cap.END)]
     assert all(f"`{c['id']}`" in block for c in DATA["capabilities"]) and "**Reproduced by someone else:** none recorded yet." in block
-    exercised = block[block.index("**Exercised on devnet:**"):block.index("**Deployed on devnet:**")]
+    exercised = block[block.index("**Exercised on devnet:**"):block.index(cap.STAGING)]
     assert all(f"`{cid}`" in exercised for cid in EXERCISED) and exercised.count("`") == 2 * len(EXERCISED)
+    # where each ran is read from its deployed evidence, and README.md says it: a staging run is not a run of the public ids
+    where = block[block.index(cap.STAGING):block.index("**Deployed on devnet:**")]
+    staging = [cid for cid in EXERCISED if cap.ids_of(BY_ID[cid]) == "staging"]
+    assert {cap.ids_of(BY_ID[cid]) for cid in EXERCISED} <= {"public", "staging"} and cap.ids_of(BY_ID["pay_on_merge"]) is None
+    assert ("all of them" in where) == (len(staging) == len(EXERCISED) > 0) and all(BY_ID[cid]["evidence"]["deployed"]["program"].endswith("_staging") for cid in staging)
+    wrong = json.loads(json.dumps(DATA))
+    next(c for c in wrong["capabilities"] if c["id"] == staging[0])["evidence"]["exercised"]["ids"] = "public"
+    assert any("`ids` says 'public', and the deployed evidence says staging" in line for line in cap.problems(wrong))
     deployed = block[block.index("**Deployed on devnet:**"):block.index("**Tested locally:**")]
     assert "`pay_on_merge`" in deployed and "`work_orders`" not in deployed
     rows = full[full.index(cap.START):full.index(cap.END)]

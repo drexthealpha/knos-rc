@@ -67,6 +67,8 @@ class SeedKey:
                 primes.append(c)
         self.bits, self.n, self.primes = bits, math.prod(primes), tuple(primes)
         self.d = pow(65537, -1, math.lcm(*(p - 1 for p in primes)))
+        # for `sign`: the exponent and the recombining factor of each prime (the Chinese remainder theorem)
+        self._crt = tuple((p, self.d % (p - 1), self.n // p * pow(self.n // p, -1, p)) for p in primes)
         assert self.n.bit_length() == bits
 
     def public_key(self):
@@ -78,7 +80,10 @@ class SeedKey:
         k = self.bits // 8
         t = self.DIGEST_INFO + hashlib.sha256(data).digest()
         em = b"\x00\x01" + b"\xff" * (k - len(t) - 3) + b"\x00" + t
-        return pow(int.from_bytes(em, "big"), self.d, self.n).to_bytes(k, "big")
+        # em ** d mod n, one prime at a time: the same number as pow(em, d, n), several times sooner, and every token
+        # of the suite is signed here (the program, and a reference library in tests/test_oidc2_chain.py, verify them)
+        m = int.from_bytes(em, "big")
+        return (sum(pow(m % p, dp, p) * back for p, dp, back in self._crt) % self.n).to_bytes(k, "big")
 
 
 _KEYS: dict[int, SeedKey] = {}

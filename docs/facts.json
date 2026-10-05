@@ -217,7 +217,7 @@
    "doc": "docs/MARKET.md",
    "what": "the price book, Settle: paid by the funder on top, marginal in three tiers: 2.5% of the first 1,000, 1% from 1,000 to 50,000, 0.5% above; minimum 0.40; no maximum (FEE_BPS, FEE_TIER_1, FEE_BPS_2, FEE_TIER_2, FEE_BPS_3, ORDER_FEE_MIN of knos_pay 2.1, in whole units of the mint); the row every document and the pricing page repeat",
    "file": "docs/MARKET.md",
-   "has": "| Settle | dollar settled, paid by the funder on top | 2.5% of the first 1,000, 1% from 1,000 to 50,000, 0.5% above; minimum 0.40; plans 0.5 to 1.5% |"
+   "has": "| Settle | dollar settled, paid by the funder on top | 2.5% of the first 1,000, 1% from 1,000 to 50,000, 0.5% above; minimum 0.40 |"
   },
   {
    "say": [
@@ -226,9 +226,9 @@
     "10,000"
    ],
    "doc": "docs/MARKET.md",
-   "what": "the price book, Meter: the first 10,000 attested evaluations of an owner in a month free, then 0.05 USD each; 0.02 on a committed-volume plan (knos_meter)",
+   "what": "the price book, Meter: an organisation's first 10,000 evaluations in a month free, then 0.05 USD each; 0.02 on a committed-volume plan (knos_meter)",
    "file": "docs/MARKET.md",
-   "has": "| Meter | attested evaluation | 10,000 a month free, then 0.05 USD; 0.02 on a committed-volume plan |"
+   "has": "| Meter | evaluation | 10,000 a month free per organisation, then 0.05 USD; 0.02 on a committed-volume plan |"
   },
   {
    "say": [
@@ -242,14 +242,15 @@
   },
   {
    "say": [
-    "240",
-    "520",
-    "412"
+    "100,000",
+    "21,600",
+    "101,600",
+    "508,000"
    ],
    "doc": "docs/MARKET.md",
-   "what": "what 1 billion USD a year would require, as arithmetic and not as a forecast, at the price book's prices: 3,000 organisations at 80,000 = 240 million; 12 billion billable evaluations at 0.02 = 240 million; 8 million orders of 5,000 at a fee of 65 each = 520 million (40 billion settled); together 1,000 million. The same 40 billion in orders of 50,000 is 800,000 orders at 515 = 412 million",
+   "what": "one customer worked at the price book's prices, an example and not a customer: Control at 80,000 USD a year, and 100,000 evaluations a month less 10,000 free = 90,000 billable x 12 x 0.02 = 21,600; together 101,600 USD a year. Five times that, 508,000, is the benefit we set as a target; nobody has measured it",
    "file": "docs/MARKET.md",
-   "matches": "\\| Control \\| 3,000 organisations under contract \\| 80,000 USD a year each \\| 240 million \\|[\\s\\S]*\\| Meter \\| 12 billion billable evaluations a year \\| 0\\.02 realised \\| 240 million \\|[\\s\\S]*\\| Settle \\| 8 million orders of 5,000 USD: 40 billion USD settled \\| 65 USD an order \\(1\\.3%\\) \\| 520 million \\|[\\s\\S]*\\*\\*1,000 million\\*\\*"
+   "matches": "\\| Meter \\| 100,000 evaluations a month, less 10,000 free, is 90,000 billable; × 12 months × 0\\.02 \\| 21,600 \\|[\\s\\S]*\\*\\*101,600\\*\\*[\\s\\S]*508,000 USD a year against 101,600"
   },
   {
    "say": [
@@ -311,12 +312,14 @@
   },
   {
    "say": [
-    "4,310"
+    "2,500",
+    "30",
+    "40"
    ],
    "doc": "docs/MARKET.md",
-   "what": "Datadog, results for 2025: about 4,310 customers with annual recurring revenue of 100,000 USD or more as of 31 Dec 2025",
-   "source": "https://investors.datadoghq.com/news-releases/news-release-details/datadog-announces-fourth-quarter-and-fiscal-year-2025-financial",
-   "read": "2026-10-04"
+   "what": "the price book, Pilot: one buyer and its suppliers for 30 days, 2,500 USD, invoiced off chain; nobody has bought it and there is no legal entity to invoice from. And the first milestone: 1 million USD a year is 40 organisations at the 25,000 USD entry price",
+   "file": "docs/MARKET.md",
+   "matches": "\\| Pilot \\| one buyer and its suppliers, 30 days \\| 2,500 USD, invoiced off chain:[\\s\\S]*40 organisations at the 25,000 USD entry price"
   },
   {
    "say": [
@@ -485,13 +488,17 @@
   },
   {
    "say": [
-    "3%",
-    "0.30"
+    "0.30",
+    "8%",
+    "8.00%",
+    "2.50%",
+    "1.30%",
+    "1.03%"
    ],
    "doc": "docs/MARKET.md",
-   "what": "the price book, Advance: 1 to 3% is what a financier who takes the assignment would charge, an assumption, since no advance has been made and Knos charges nothing; and the relayer's tip, 0.05, or 0.30 on a payee's first payment (TIP, TIP_FIRST of knos_pay)",
+   "what": "the relayer's tip, 0.05, or 0.30 on a payee's first payment (TIP, TIP_FIRST of knos_pay); and the effective settle fee shown before funding: 5 pays 0.40 (8.00%), 20 pays 0.50 (2.50%), 1,000 pays 25 (2.50%), 5,000 pays 65 (1.30%), 50,000 pays 515 (1.03%), so Knos is not cheaper on a small order",
    "file": "docs/MARKET.md",
-   "has": "| Advance | dollar advanced on accepted work waiting on a holdback | 1 to 3%, by a financier who takes the assignment (`Assign`); Knos charges nothing today |"
+   "matches": "Relayer tip: 0\\.05, or 0\\.30 on a payee's first payment[\\s\\S]*\\| 5 \\| 0\\.40 \\| 8\\.00% \\|\\n\\| 20 \\| 0\\.50 \\| 2\\.50% \\|\\n\\| 1,000 \\| 25 \\| 2\\.50% \\|\\n\\| 5,000 \\| 65 \\| 1\\.30% \\|\\n\\| 50,000 \\| 515 \\| 1\\.03% \\|"
   },
   {
    "say": [
@@ -499,7 +506,8 @@
    ],
    "what": "payments on devnet by both deployments when the escrows' logs were read on 3 Oct 2026, 16:04 UTC; Knos funded every one of those tasks, and 3 went to another GitHub account",
    "file": "docs/COMPARE.md",
-   "has": "Knos's two deployments show 15 payments on devnet"
+   "has": "Knos's two deployments had made 15 payments on devnet when their logs were read on 3 Oct 2026",
+   "doc": "docs/COMPARE.md"
   },
   {
    "say": [
@@ -573,22 +581,6 @@
    "path": "release.claim_parser_executions.value",
    "equals": 16024654,
    "doc": "docs/ASSURANCE.md"
-  },
-  {
-   "say": [],
-   "what": "when the upgrade of knos_oidc and knos_pay to 2.1 was proposed to the upgrade multisig and approved by its members on devnet (UTC, to the minute; the later of the two programs' approvals). `node scripts/governance.mjs upgrade propose` stops after the approvals and prints when the proposal can be executed, which is this time plus 48 hours; `knos status` reads the same from the chain. Measured: the later of the two approvals on devnet: proposal 2 (knos_pay) approved 2026-10-04 07:17:29 UTC; proposal 1 (knos_oidc) 07:16:43 UTC",
-   "json": "docs/bench.json",
-   "path": "release.upgrade_proposed.value",
-   "equals": "2026-10-04 07:17 UTC",
-   "text": "2026-10-04 07:17 UTC"
-  },
-  {
-   "say": [],
-   "what": "48 hours after that approval: the first moment the Squads program lets the upgrade execute. Filled with upgrade_proposed, never by itself. Measured: 48 hours after upgrade_proposed (the later of the two approvals on devnet: proposal 2 (knos_pay) approved 2026-10-04 07:17:29 UTC; proposal 1 (knos_oidc) 07:16:43 UTC)",
-   "json": "docs/bench.json",
-   "path": "release.upgrade_executable.value",
-   "equals": "2026-10-06 07:17 UTC",
-   "text": "2026-10-06 07:17 UTC"
   }
  ]
 }

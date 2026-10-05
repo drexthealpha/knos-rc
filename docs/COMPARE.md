@@ -78,10 +78,11 @@ on devnet, and has been used by nobody but Knos.
   and either side can recompute its statement from the program's logs. No vendor uses it yet.
 
 Both records are small. MergePay's feed shows 4 bounties funded (2.25 USDC) and one award (0.47 USDC, to its own
-author, on its own repository), read 2 Oct 2026. Knos's two deployments show 15 payments on devnet. Knos's own
-account funded every one of those tasks, in test money. 3 of the 15 went to another GitHub account; the other 12
-went to Knos's own accounts (measured with `scripts/network_stats.py` on devnet, 3 Oct 2026, 16:04 UTC;
-`release.payments_between_unrelated_accounts` in [`bench.json`](bench.json)). Tasks funded by anyone other than
+author, on its own repository), read 2 Oct 2026. Knos's two deployments had made 15 payments on devnet when their logs were read on 3 Oct 2026 (16:04 UTC, with
+`scripts/network_stats.py`); the site's Numbers page has the count now. Knos's own
+account funded every one of those tasks, in test money. 3 payments have gone to another GitHub account
+(`release.payments_between_unrelated_accounts` in [`bench.json`](bench.json)); every other one
+went to Knos's own accounts. Tasks funded by anyone other than
 Knos: 0.
 
 ## Where Knos is behind
@@ -90,6 +91,11 @@ Knos: 0.
 - No security firm has audited anything. Until an outside review, Knos can change the second deployment through its multisig, after a public
   48-hour delay, and every member key of that multisig is the founder's.
 - It charges a fee on top of the amount: 2.5% of the first 1,000, 1% from 1,000 to 50,000, 0.5% above, at least 0.40. MergePay charges no platform fee.
+- It is not cheaper on a small order. The 0.40 minimum makes a 5 USDC order pay 8%, and every order under 16 pays
+  more than 2.5% ([MARKET.md](MARKET.md), section 3, has the effective fee by order size). A board that charges a
+  percentage with no minimum costs less there.
+- Nothing it sells has been bought. The one offer for money, a 30-day [Pilot](PILOT.md), cannot be invoiced yet:
+  there is no legal entity.
 - Its speed is measured on few payments. From merge to payment took 25 seconds
   at the median, over 38 payments ([BENCH.md](BENCH.md)). MergePay has shown 9 seconds on its
   one award. On the first deployment the
@@ -99,7 +105,7 @@ Knos: 0.
 - It pays USDC on Solana. A passkey can be the wallet, so the payee needs no wallet app, but there is no payout to
   a bank. The boards pay bank accounts.
 - No outside repository has funded a task through it.
-- One person operates it ([CONTROLS.md](CONTROLS.md)).
+- One person operates it ([CONTROLS.md](CONTROLS.md), [TEAM.md](TEAM.md)).
 
 ## What GitHub's own controls can and cannot do
 
