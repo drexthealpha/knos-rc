@@ -16,6 +16,10 @@ Steps, so the Pages build never scans:
     python scripts/agent_pr_index.py scan --week last --rows week.json          # one whole week, every hit (below)
     python scripts/agent_pr_index.py weekly --rows week.json --into docs/agent_weekly.json --doc docs/INDEX.md
                                                                # offline: add that week to the published series
+    python scripts/agent_pr_index.py scan --end <Sunday> --days 14 --per-agent N --rows rows.json
+    python scripts/agent_pr_index.py weekly --rows rows.json --add-sample docs/agent_weekly.json --doc docs/INDEX.md
+                                                               # a capped sample of recent weeks, cut by week and
+                                                               # marked so (full_week false); a week read whole stays
 
 The weekly publication ("Agent PR Index, week of <Monday>") reads one whole week: each agent, each day, every page.
 GitHub's search answers 30 requests a minute to a signed-in caller and at most 1,000 results a query
@@ -340,6 +344,28 @@ def add_week(series, one):
     return rank(series)
 
 
+def add_sample(series, fresh):
+    """The series with the weeks of `fresh` (a `weekly` of a capped scan: every week `full_week` false) put in. A week
+    read whole stays as it is; an older sample's row for the same Monday is replaced by the newer reading; the weeks
+    `fresh` does not have are not touched. `all_weeks` and the ranks are worked again."""
+    for name, new in fresh["agents"].items():
+        mine = series["agents"].setdefault(name, {"weeks": [], "all_weeks": None})
+        whole = {w["week"] for w in mine["weeks"] if w.get("full_week")}
+        took = {w["week"]: w for w in new["weeks"] if w["week"] not in whole}
+        mine["weeks"] = sorted([w for w in mine["weeks"] if w["week"] not in took] + list(took.values()), key=lambda w: w["week"])
+        mine["all_weeks"] = _add(mine["weeks"])
+    days = [series["window"][0], series["window"][1], fresh["window"][0], fresh["window"][1]]
+    series.update({"name": NAME, "read": max(series["read"], fresh["read"]), "window": [min(days), max(days)],
+                   "agents_told_by": fresh["agents_told_by"], "heuristics": fresh["heuristics"], "claim_search": fresh["claim_search"],
+                   "definitions": fresh["definitions"], "limits": fresh["limits"], "min_claims_to_rank": fresh["min_claims_to_rank"],
+                   "verified_against": fresh["verified_against"],
+                   "source": f"the weeks read on {fresh['read']} are cut from a capped sample of {fresh['window'][0]} to "
+                             f"{fresh['window'][1]} (each agent's newest claimed pull requests, up to a cap, by "
+                             "agent_pr_index.py scan), not whole weeks; the others are the sample read on 2026-10-01, cut by week"})
+    series["latest_week"] = latest_week(series)
+    return rank(series)
+
+
 def latest_week(series):
     """The newest week any agent has a row for; a week read whole comes before a week cut from the sample."""
     weeks = [(bool(w.get("full_week")), w["week"]) for a in series["agents"].values() for w in a["weeks"]]
@@ -481,7 +507,18 @@ def weekly_main(a):
     else:
         got = _load(a.rows)
         agent_pr_ci.ARGS = SimpleNamespace(max_seconds=a.max_seconds)
-        if a.into:                                        # one whole week, added to the published series; reads nothing
+        if a.add_sample:                                  # a capped scan, cut by week, into the published series
+            if got.get("week"):
+                raise SystemExit(f"{a.rows} is one whole week's scan: add it with --into")
+            read_merged(got["rows"])                      # the merge state of each one with finished CI (asked, then cached)
+            why = week_gaps(got)
+            for line in why:
+                print(f"not added: {line}", file=sys.stderr)
+            if why:
+                return 1
+            fresh = weekly(got["rows"], got["window"], dt.date.today().isoformat(), "a capped scan", got["no_claim"], None, paid)
+            series, a.out = add_sample(_load(a.add_sample), fresh), a.add_sample
+        elif a.into:                                     # one whole week, added to the published series; reads nothing
             if not got.get("week"):
                 raise SystemExit(f"{a.rows} is not one week's scan. Make it with: agent_pr_index.py scan --week last --rows {a.rows}")
             why = week_gaps(got)
@@ -537,6 +574,8 @@ def main():
     ap.add_argument("--doc", help="weekly: also write the table between the markers of this file (docs/INDEX.md)")
     ap.add_argument("--week", help="scan: one whole week, every hit: the Monday it starts on (YYYY-MM-DD), or `last` for the newest week that has ended")
     ap.add_argument("--into", help="weekly: add the one week in --rows to this published series (docs/agent_weekly.json); reads nothing")
+    ap.add_argument("--add-sample", help="weekly: add the weeks of the capped scan in --rows to this published series (docs/agent_weekly.json), "
+                                         "each marked as not read whole; reads the merge states it lacks")
     ap.add_argument("--paid", help='weekly: a JSON list of "owner/repo#number", the pull requests paid through Knos under terms with a black-box check')
     ap.add_argument("--rows", default="rows.json")
     ap.add_argument("--out", default="_site/index.json")

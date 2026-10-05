@@ -44,12 +44,15 @@ ok("an agent's name is text, never markup", old.includes("codex&lt;b&gt;") && !o
 ok("an agent with no row for the week says so", latest.includes("no row for this week in the file"));
 ok("it says what a place is not", old.includes("not proof that the claim was false") && old.includes("not a ranking of the agents"));
 
-// the committed file: the real sample of 2026-10-01. Nobody is placed, nothing is verified, and it says why.
+// the committed file: the sample of 2026-10-01, with the weeks a later capped scan read in place of the sample's. A place
+// is drawn for each agent the file ranks and for no other, nothing is verified, and it says why.
 const real = indexBoardHtml(committed);
+const newest = Object.values(committed.agents).map((a) => a.weeks.find((w) => w.week === committed.latest_week)).filter(Boolean);
 ok("the committed file draws its newest week", real.includes(`Agent PR Index, week of ${committed.latest_week}`) && weeksOf(committed)[0] === committed.latest_week);
-ok("in the committed sample every agent is too few to rank", !real.includes('class="ib-place"') && real.split(TOO_FEW).length - 1 >= 5);
+ok("in the committed file a place is drawn for each ranked agent and for no other",
+   real.split('class="ib-place"').length - 1 === newest.filter((w) => w.rank != null).length && real.split(`>${TOO_FEW}<`).length - 1 === newest.filter((w) => w.rank == null).length);
 ok("in the committed sample verified is 0 and the page says what it would take", real.includes("Verified: 0 this week.") && real.includes("no list of Knos payments was joined") && real.includes("--paid") && !real.includes(" verified</strong>"));
-ok("it says the sample is capped and where a hit's date was not kept", real.includes("a capped sample cut by week") && real.includes("not kept"));
+ok("it says the sample is capped and where a hit's date was not kept", (newest.every((w) => w.full_week) || real.includes("a capped sample cut by week")) && (newest.every((w) => w.sampled != null) || real.includes("not kept")));
 const five = Object.keys(committed.agents);
 ok("every agent of the file has a row", five.every((a) => real.includes(`<th scope="row">${a}</th>`)), five);
 

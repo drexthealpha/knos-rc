@@ -549,33 +549,73 @@ def test_a_scan_keeps_when_the_hits_it_set_aside_were_opened(monkeypatch):
 
 
 def test_the_committed_weekly_file_is_the_committed_sample_cut_by_week_and_the_page_shows_its_table(tmp_path):
-    """Nothing in docs/agent_weekly.json is typed by hand: it is docs/agent_pr_ci.json reshaped, and docs/INDEX.md
-    holds exactly the table the script renders from it, and says what the numbers cannot say."""
+    """Nothing in docs/agent_weekly.json is typed by hand: it is docs/agent_pr_ci.json reshaped, with the weeks a later
+    scan read put in by the script in place of the sample's (each says the day it was read, and whether that was the
+    whole week), and docs/INDEX.md holds exactly the table the script renders from it, and says what the numbers
+    cannot say."""
     out, doc = tmp_path / "weekly.json", tmp_path / "INDEX.md"
     doc.write_text((ROOT / "docs" / "INDEX.md").read_text(encoding="utf-8"), encoding="utf-8")
     assert subprocess.run([sys.executable, str(ROOT / "scripts" / "agent_pr_index.py"), "weekly", "--sample", "docs/agent_pr_ci.json",
                            "--out", str(out), "--doc", str(doc)], cwd=ROOT, capture_output=True, text=True).returncode == 0
-    series = json.loads(out.read_text(encoding="utf-8"))
-    assert series == json.loads((ROOT / "docs" / "agent_weekly.json").read_text(encoding="utf-8"))
+    reshaped = json.loads(out.read_text(encoding="utf-8"))
+    series = json.loads((ROOT / "docs" / "agent_weekly.json").read_text(encoding="utf-8"))
     page = (ROOT / "docs" / "INDEX.md").read_text(encoding="utf-8")
-    assert doc.read_text(encoding="utf-8") == page and agent_pr_index.weekly_table(series) in page
+    assert agent_pr_index.weekly_table(series) in page
     sample = json.loads((ROOT / "docs" / "agent_pr_ci.json").read_text(encoding="utf-8"))
-    assert series["read"] == sample["generated_utc"][:10] and "nothing was read again" in series["source"]
-    for name, agent in series["agents"].items():
+    assert reshaped["read"] == sample["generated_utc"][:10] and "nothing was read again" in reshaped["source"]
+    for name, agent in reshaped["agents"].items():
         s = sample["summary"][name]
         assert agent["all_weeks"]["claimed_passing"] == s["N"] == sum(w["claimed_passing"] for w in agent["weeks"])
         assert all(w["rank"] is None and w["verified"] == 0 for w in agent["weeks"])   # nobody has 30 finished claims in a week of this sample
         assert agent["all_weeks"]["failed_a_check"] == {"k": s["failed"], "n": s["with_completed_ci"], "share": s["share_failed_among_completed_ci"],
                                                         "ci95": agent_pr_index.wilson(s["failed"], s["with_completed_ci"]), "test_or_build": s["failed_testish"]}
         assert all(w["sampled"] is None for w in agent["weeks"])                 # the sample kept no date for the hits it set aside
+    # the committed series: every week the sample has and no later scan read is the sample's, as reshaped; the weeks
+    # read later carry their own day, and the sums are the weeks added up
+    later = {w["week"] for a in series["agents"].values() for w in a["weeks"] if w["read"] != reshaped["read"]}
+    assert set(series["agents"]) == set(reshaped["agents"]) and series["read"] >= reshaped["read"]
+    for name, agent in series["agents"].items():
+        old = {w["week"]: w for w in reshaped["agents"][name]["weeks"]}
+        new = {w["week"]: w for w in agent["weeks"]}
+        assert {k: v for k, v in new.items() if k not in later} == {k: v for k, v in old.items() if k not in later}
+        assert all(w["read"] > reshaped["read"] and isinstance(w["full_week"], bool) for k, w in new.items() if k in later)
+        assert agent["all_weeks"] == agent_pr_index._add(agent["weeks"])
+    if later:
+        assert ("not whole weeks" in series["source"]) == any(not w["full_week"] for a in series["agents"].values() for w in a["weeks"] if w["week"] in later)
     assert series["name"] == "Agent PR Index" and series["latest_week"] == "2026-09-28" and "**Agent PR Index, week of 2026-09-28.**" in page
-    assert page.count("| too few to rank |") == 5 and "| 1 |" not in page and set(series["heuristics"]) == set(series["agents"])
+    whole = all(w.get("full_week") for a in series["agents"].values() for w in a["weeks"] if w["week"] == "2026-09-28")
+    assert ("every pull request the week's searches returned." if whole else "a capped sample cut by week, not the whole week.") in page
+    assert set(series["heuristics"]) == set(series["agents"])
     for words in ("Bot-author heuristics", "Public repositories only", "One snapshot of the checks", "Wilson", "not proof that the claim was false",
                   "30 requests a minute", "1,000 results", "docs.github.com/en/rest/search/search"):
         assert words in page
     with pytest.raises(SystemExit):
         (tmp_path / "bare.md").write_text("no markers", encoding="utf-8")
         agent_pr_index.render_doc(str(tmp_path / "bare.md"), series)
+
+
+def test_a_capped_sample_replaces_the_older_sample_of_its_weeks_and_never_a_week_read_whole(tmp_path):
+    """`weekly --add-sample`: the weeks of a capped scan go into the published series marked as not read whole; a week
+    the weekly run read whole stays, the weeks the scan does not have stay, and a scan that did not finish is refused."""
+    base = agent_pr_index.weekly(WEEK_ROWS, WINDOW, "2026-10-01", "the sample")
+    base["agents"]["copilot"]["weeks"][1]["full_week"] = True                # 2026-09-28: as if read whole
+    fresh_rows = [_row("copilot", 7, "2026-09-22", "failed", True, ["test"]), _row("copilot", 8, "2026-09-29", "passed", True),
+                  _row("devin", 9, "2026-09-24", "passed", False)]
+    fresh = agent_pr_index.weekly(fresh_rows, ["2026-09-21", "2026-10-04"], "2026-10-05", "a capped scan", [])
+    got = agent_pr_index.add_sample(json.loads(json.dumps(base)), fresh)
+    copilot = {w["week"]: w for w in got["agents"]["copilot"]["weeks"]}
+    assert copilot["2026-09-21"]["read"] == "2026-10-05" and copilot["2026-09-21"]["full_week"] is False and copilot["2026-09-21"]["claimed_passing"] == 1
+    assert copilot["2026-09-28"] == base["agents"]["copilot"]["weeks"][1]     # read whole: kept
+    assert got["agents"]["copilot"]["all_weeks"] == agent_pr_index._add(got["agents"]["copilot"]["weeks"])
+    assert got["window"] == ["2026-09-21", "2026-10-04"] and got["read"] == "2026-10-05" and "not whole weeks" in got["source"]
+    rows = tmp_path / "rows.json"
+    rows.write_text(json.dumps({"window": ["2026-09-21", "2026-10-04"], "kept": 3, "unread": 0, "unfinished_search": ["codex"],
+                                "no_claim": [], "rows": fresh_rows}), encoding="utf-8")
+    into = tmp_path / "series.json"
+    into.write_text(json.dumps(base), encoding="utf-8")
+    r = subprocess.run([sys.executable, str(ROOT / "scripts" / "agent_pr_index.py"), "weekly", "--rows", str(rows), "--add-sample", str(into)],
+                       capture_output=True, text=True, check=False, env={**os.environ, "GH_TOKEN": "", "PATH": ""})
+    assert r.returncode == 1 and "the search did not finish for codex" in r.stderr and json.loads(into.read_text(encoding="utf-8")) == base
 
 
 def test_the_weekly_job_opens_a_pull_request_and_merges_nothing_and_the_job_that_reads_can_only_read():

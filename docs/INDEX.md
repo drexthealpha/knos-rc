@@ -10,36 +10,38 @@ request a person merges.
 ## The latest table
 
 <!-- weekly:begin (written by scripts/agent_pr_index.py weekly; do not edit by hand) -->
-**Agent PR Index, week of 2026-09-28.** Read 2026-10-01: a capped sample cut by week, not the whole week. An agent with fewer than 30 claimed pull requests whose CI had finished that week is "too few to rank" and has no place.
+**Agent PR Index, week of 2026-09-28.** Read 2026-10-05: a capped sample cut by week, not the whole week. An agent with fewer than 30 claimed pull requests whose CI had finished that week is "too few to rank" and has no place.
 
 | Rank | Agent | Sampled | Claimed passing | CI finished | Failed a check anyway (95% interval) | Merged despite a failed check (95% interval) | Verified: also paid through Knos on a black-box check |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| too few to rank | copilot | not kept | 5 | 3 | 1 of 3 (33.3%; 6.2% to 79.2%) | 1 of 3 (33.3%; 6.2% to 79.2%) | 0 |
-| too few to rank | devin | not kept | 14 | 6 | 1 of 6 (16.7%; 3.0% to 56.4%) | 0 of 4 (0.0%; 0.0% to 49.0%) | 0 |
-| too few to rank | claude-bot | not kept | 9 | 6 | 0 of 6 (0.0%; 0.0% to 39.0%) | 0 of 3 (0.0%; 0.0% to 56.1%) | 0 |
-| too few to rank | claude-code | not kept | 4 | 3 | 1 of 3 (33.3%; 6.2% to 79.2%) | 1 of 1 (100.0%; 20.6% to 100.0%) | 0 |
-| too few to rank | codex | not kept | 5 | 5 | 0 of 5 (0.0%; 0.0% to 43.5%) | 0 of 5 (0.0%; 0.0% to 43.5%) | 0 |
+| 1 | claude-bot | 242 | 120 | 115 | 13 of 115 (11.3%; 6.7% to 18.4%) | 10 of 101 (9.9%; 5.5% to 17.3%) | 0 |
+| 2 | claude-code | 423 | 120 | 102 | 13 of 102 (12.8%; 7.6% to 20.6%) | 6 of 76 (7.9%; 3.7% to 16.2%) | 0 |
+| 3 | copilot | 169 | 66 | 58 | 13 of 58 (22.4%; 13.6% to 34.7%) | 12 of 45 (26.7%; 16.0% to 41.0%) | 0 |
+| 4 | devin | 140 | 120 | 109 | 70 of 109 (64.2%; 54.9% to 72.6%) | 2 of 37 (5.4%; 1.5% to 17.7%) | 0 |
+| too few to rank | codex | 83 | 2 | 2 | 0 of 2 (0.0%; 0.0% to 65.8%) | 0 of 2 (0.0%; 0.0% to 65.8%) | 0 |
 
 Verified, checked against: no list of Knos payments was joined to this sample, so the count is 0 for every agent: every Knos payment so far is test USDC on Solana devnet. It takes a sampled pull request that was also paid through Knos under terms with a black-box check, and that list given to the script (--paid).
 
-Every week in the file added up (2026-07-03 to 2026-09-30; never ranked: the weeks were not all read the same way). Source: docs/agent_pr_ci.json, the sample read on 2026-10-01, reshaped by week (nothing was read again). Unlike the index, this sample kept pull requests on repositories their author owns.
+Every week in the file added up (2026-07-03 to 2026-10-04; never ranked: the weeks were not all read the same way). Source: the weeks read on 2026-10-05 are cut from a capped sample of 2026-09-21 to 2026-10-04 (each agent's newest claimed pull requests, up to a cap, by agent_pr_index.py scan), not whole weeks; the others are the sample read on 2026-10-01, cut by week.
 
 | Rank | Agent | Sampled | Claimed passing | CI finished | Failed a check anyway (95% interval) | Merged despite a failed check (95% interval) | Verified: also paid through Knos on a black-box check |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| not ranked | copilot | 179 | 75 | 60 | 21 of 60 (35.0%; 24.2% to 47.6%) | 15 of 44 (34.1%; 21.9% to 48.9%) | 0 |
-| not ranked | devin | 180 | 87 | 68 | 15 of 68 (22.1%; 13.9% to 33.3%) | 5 of 43 (11.6%; 5.1% to 24.5%) | 0 |
-| not ranked | claude-bot | 180 | 101 | 96 | 8 of 96 (8.3%; 4.3% to 15.6%) | 5 of 85 (5.9%; 2.5% to 13.0%) | 0 |
-| not ranked | claude-code | 180 | 31 | 24 | 2 of 24 (8.3%; 2.3% to 25.9%) | 2 of 22 (9.1%; 2.5% to 27.8%) | 0 |
-| not ranked | codex | 114 | 55 | 55 | 9 of 55 (16.4%; 8.9% to 28.3%) | 3 of 47 (6.4%; 2.2% to 17.2%) | 0 |
+| not ranked | copilot | not kept | 175 | 150 | 40 of 150 (26.7%; 20.2% to 34.3%) | 30 of 108 (27.8%; 20.2% to 36.9%) | 0 |
+| not ranked | devin | not kept | 193 | 171 | 84 of 171 (49.1%; 41.7% to 56.5%) | 7 of 76 (9.2%; 4.5% to 17.8%) | 0 |
+| not ranked | claude-bot | not kept | 212 | 205 | 21 of 205 (10.2%; 6.8% to 15.2%) | 15 of 183 (8.2%; 5.0% to 13.1%) | 0 |
+| not ranked | claude-code | not kept | 147 | 123 | 14 of 123 (11.4%; 6.9% to 18.2%) | 7 of 97 (7.2%; 3.5% to 14.1%) | 0 |
+| not ranked | codex | not kept | 52 | 52 | 9 of 52 (17.3%; 9.4% to 29.7%) | 3 of 44 (6.8%; 2.4% to 18.2%) | 0 |
 <!-- weekly:end -->
 
-**What is published today.** The table above is the sample of 349 pull requests read once, on 2026-10-01, cut into
-weeks. It is a capped sample (at most 20 hits a search window), not a whole week, so no agent has enough claims in
-any week to be ranked, and the dates of the hits that claimed nothing were not kept ("not kept"). Nothing was read
-again to make it, and no number here was made up: the machine this release was built on cannot reach GitHub's
-search. The weekly run was exercised here only against a test double of GitHub's API
-(`tests/test_agent_pr_index.py`); it has not yet run on GitHub. Its first run replaces the row of its week with a
-whole week, read as described below, where "Sampled" is always a number.
+**What is published today.** The table above is the newest week of `agent_weekly.json`. Its rows read on 2026-10-05
+are a capped sample, not a whole week: `agent_pr_index.py scan --end 2026-10-04 --days 14 --per-agent 120` (each
+agent's newest claimed pull requests, at most 120, from 21 September to 4 October 2026), cut by week and put into the
+file with `weekly --add-sample`. An agent that reached its 120 within the newest week has no new row for the week
+before; there its row is still the older sample's. The other weeks are the sample read once, on 2026-10-01 (at most
+20 hits a search window), where the dates of the hits that claimed nothing were not kept ("not kept"). The weekly run
+itself has run once on GitHub, in staging, on 5 October 2026: within its five hours one agent's search did not finish
+and most of the week's checks were not yet read, so it added nothing and opened no pull request, as it is built to.
+Its first run that reads a week whole replaces that week's row, where "Sampled" is always a number.
 
 ## How a week is read
 

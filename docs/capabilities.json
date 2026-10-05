@@ -1247,7 +1247,7 @@
      "names": "test_the_weekly_series_counts_each_agent_by_the_week_a_pull_request_was_opened"
     }
    },
-   "note": "Computed from the committed sample; the weekly job opens a pull request and merges nothing."
+   "note": "Computed from the committed sample and from a capped scan read on 5 Oct 2026, cut by week; the weekly job opens a pull request and merges nothing."
   },
   {
    "id": "mainnet_check",
@@ -1519,7 +1519,7 @@
   },
   {
    "id": "agent_index_weekly_scan",
-   "what": "A weekly job reads one whole week of agent pull requests day by day and adds it to the published series, and so far it has run as a dry run only.",
+   "what": "A weekly job reads one whole week of agent pull requests day by day and adds it to the published series, and so far no run has added a week.",
    "stage": "tested",
    "evidence": {
     "implemented": {
@@ -1531,7 +1531,7 @@
      "names": "test_one_whole_week_is_read_day_by_day_past_the_cap_and_added_to_the_published_series"
     }
    },
-   "note": "Dry run only: no scheduled run has published a week. The job opens a pull request and merges nothing."
+   "note": "Its one run on GitHub (staging, 5 Oct 2026) did not finish reading the week in its time and added nothing. The job opens a pull request and merges nothing."
   },
   {
    "id": "opt_in_profiles",
