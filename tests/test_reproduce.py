@@ -85,9 +85,13 @@ def test_only_runs_the_named_checks_in_the_fixed_order_and_refuses_a_name_it_doe
 def test_every_check_supports_capabilities_the_manifest_lists_and_the_named_things_are_the_recorded_ones():
     listed = {c["id"]: c for c in MANIFEST["capabilities"]}
     assert set(rp.ORDER) == set(rp.SUPPORTS) and all(set(caps) <= set(listed) for caps in rp.SUPPORTS.values())
-    # the payment is the manifest's own exercised evidence, on the rehearsal's deployment the manifest names
-    assert listed["order_pay"]["evidence"]["exercised"]["signature"] == rp.PAYMENT["signature"]
-    assert MANIFEST["programs"][listed["order_pay"]["evidence"]["deployed"]["program"]]["id"] == rp.PAYMENT["pay"] and rp.PAYMENT["oidc"] in MANIFEST["_about"]
+    # the payment is the rehearsal's, on the staging deployment docs/CAPABILITIES.md names: the manifest's note of order_pay
+    # gives its signature, and because those addresses are not the public program ids, it is no evidence of a stage
+    rehearsal = (ROOT / "docs" / "CAPABILITIES.md").read_text(encoding="utf-8").split("## The 0.3.14 rehearsal on devnet", 1)[1]
+    assert rp.PAYMENT["signature"] in listed["order_pay"]["note"] and rp.PAYMENT["signature"] in rehearsal
+    assert rp.PAYMENT["pay"] in rehearsal and rp.PAYMENT["oidc"] in rehearsal
+    assert (listed["order_pay"]["evidence"].get("exercised") or {}).get("signature") != rp.PAYMENT["signature"]
+    assert {rp.PAYMENT["pay"], rp.PAYMENT["oidc"]}.isdisjoint(p["id"] for p in MANIFEST["programs"].values())
     # the pull request is one docs/agent_pr_ci.json records: merged, a claim of passing tests, a failed check at that commit
     repo, number = rp.CLAIM["pr"].split("#")
     [recorded] = [p for p in json.loads((ROOT / "docs" / "agent_pr_ci.json").read_text(encoding="utf-8"))["prs"] if p["repo"] == repo and p["number"] == int(number)]
@@ -220,7 +224,10 @@ def test_an_answer_cut_off_before_its_end_is_a_host_not_asked_and_never_a_failed
 def _stage(cid: str, evidence: dict) -> dict:
     data = copy.deepcopy(MANIFEST)
     c = next(c for c in data["capabilities"] if c["id"] == cid)
-    c["stage"], c["evidence"] = "reproduced", {**c["evidence"], "reproduced": evidence}
+    # the stages below `reproduced` as they would be once it runs at the public knos_pay: a staging run is no evidence
+    public = {"program": "knos_pay", "id": data["programs"]["knos_pay"]["id"], "version": data["programs"]["knos_pay"]["on_chain"]}
+    below = {"deployed": c["evidence"].get("deployed", public), "exercised": c["evidence"].get("exercised", {"signature": "5" * 87})}
+    c["stage"], c["evidence"] = "reproduced", {**c["evidence"], **below, "reproduced": evidence}
     return data
 
 
@@ -236,6 +243,10 @@ def test_a_capability_is_reproduced_only_by_a_valid_outside_file_in_which_a_chec
     file = "reproductions/octo-widgets-36905461215.json"
     assert cap.problems(_stage("order_pay", {"file": file})) == []
     assert cap.problems(_stage("order_pay", {"file": file, "url": held[file]["run"]})) == []
+    # ... and never above a run at a staging address: an outside reproduction does not lift a staging deployment into evidence
+    staged = _stage("order_pay", {"file": file})
+    next(c for c in staged["capabilities"] if c["id"] == "order_pay")["evidence"]["deployed"] = {"program": "knos_pay", "id": rp.PAYMENT["pay"], "version": "2.1"}
+    assert any("is not a public program id" in line for line in cap.problems(staged))
     assert "[outside run](https://github.com/octo/widgets/actions/runs/36905461215)" in cap.table(_stage("order_pay", {"file": file, "url": held[file]["run"]}))
     for evidence, said in (({"url": "https://example.com/a-run"}, "a link to someone else's run is not evidence"),
                            ({"file": "reproductions/nobody.json"}, "is not evidence"),

@@ -216,7 +216,9 @@ python scripts/capabilities.py check --rpc        # says which `on_chain` versio
 Then the exercises of the handover notes (HANDOFF, kept with the release outside the repository, as `ship_check.py`
 is): each instruction the newer builds add, once, at the public program ids, in test USDC. Their transactions are the
 `exercised` evidence, on public ids, of the next release's manifest. Until then every document says what is true
-before and after: the capabilities were exercised on staging ids, and the live state is in `web/upgrades.json`.
+before and after: the capabilities were rehearsed on staging ids, the manifest holds them at `tested` (only a public
+program id is evidence for `deployed` or `exercised`, and `python scripts/capabilities.py check` refuses any other),
+and the live state is in `web/upgrades.json`.
 
 Under WSL the run is a Windows scheduled task, which starts the distribution: a timer inside WSL fires only while it
 runs. Every timer starts the run through a login shell, and the run reads the key paths arranging wrote

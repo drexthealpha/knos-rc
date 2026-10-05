@@ -463,14 +463,27 @@ await reset();
   check("  the filter shows one stage: exactly it, not at least it", JSON.stringify((await capRows()).map((r) => r[1])) === JSON.stringify(manifest.capabilities.filter((c) => c.stage === "deployed").map((c) => c.what)));
   const built014 = ["meter_batch", "meter_seller_claim", "passkey_funder", "gitlab_pay", "single_use_tokens", "fee_tiers", "hermetic_judge", "evidence_bundle", "receipt_mirror", "audit_export", "install_by_pull_request", "terms_templates",
     "badge", "agent_weekly_rates", "x402_knos_order", "upgrade_feed", "load_local_1000", "adapters"];
-  // what the release's rehearsal ran on devnet is exercised on a staging program of its own, never on a pinned one; the rest is tested
+  // what the release's rehearsal ran on devnet ran on staging programs of its own, never on a public one: it is tested, and
+  // its note gives the transaction and says it was a staging rehearsal; the rest is tested with no devnet run at all
   const rehearsed014 = ["meter_batch", "meter_seller_claim", "passkey_funder", "single_use_tokens", "fee_tiers", "x402_knos_order"];
-  const as014 = (c) => (rehearsed014.includes(c.id)
-    ? c.stage === "exercised" && c.evidence.deployed.program.endsWith("_staging") && !(c.evidence.deployed.program in { knos_oidc: 1, knos_pay: 1, knos_meter: 1, knos_passkey: 1 }) && /^[1-9A-HJ-NP-Za-km-z]{86,88}$/.test(c.evidence.exercised.signature)
-    : c.stage === "tested" && !c.evidence.deployed && !c.evidence.exercised);
-  check("  what 0.3.14 built is in it, each tested, or exercised on a staging program only, and none said to be deployed on a pinned one",
+  const as014 = (c) => c.stage === "tested" && !c.evidence.deployed && !c.evidence.exercised && (rehearsed014.includes(c.id)
+    ? c.note.startsWith("Rehearsed on ") && c.note.includes("staging deployment") && c.note.includes("not on the public program ids") && /[1-9A-HJ-NP-Za-km-z]{86,88}/.test(c.note)
+    : !/^Rehearsed on /.test(c.note || ""));
+  check("  what 0.3.14 built is in it, each tested, the rehearsed ones with their staging transaction in the note, and none said to be deployed or exercised",
     built014.every((id) => { const c = manifest.capabilities.find((x) => x.id === id); return c && as014(c); }),
     built014.filter((id) => { const c = manifest.capabilities.find((x) => x.id === id); return !c || !as014(c); }));
+  // the release's rule: nothing is deployed or exercised on a program that is not a public id, at the version devnet runs there
+  const pinnedIds = JSON.parse(readFileSync(join(here, "..", "..", "programs-v2", "program_ids.json"), "utf8"));
+  const publicIds = { ...Object.fromEntries(Object.entries(pinnedIds).filter(([n]) => n.startsWith("knos_"))),
+    upgrade_gate: /declare_id!\("([1-9A-HJ-NP-Za-km-z]{32,44})"\)/.exec(readFileSync(join(here, "..", "..", "examples", "upgrade_gate", "src", "lib.rs"), "utf8"))[1] };
+  const onPublic = (c) => {
+    const d = c.evidence.deployed, p = d && manifest.programs[d.program];
+    return !!p && publicIds[d.program] === d.id && p.id === d.id && p.versions.indexOf(d.version) >= 0 && p.versions.indexOf(d.version) <= p.versions.indexOf(p.on_chain);
+  };
+  const offPublic = manifest.capabilities.filter((c) => ["deployed", "exercised", "reproduced"].includes(c.stage) && !onPublic(c)).map((c) => c.id);
+  check("  no capability is deployed or exercised on a program that is not a public id, and the manifest lists no other program",
+    offPublic.length === 0 && Object.entries(manifest.programs).every(([n, p]) => publicIds[n] === p.id) && !Object.keys(manifest.programs).some((n) => n.endsWith("_staging"))
+    && manifest.capabilities.filter((c) => c.stage === "deployed").length > 0 && !(await page.textContent("#capabilities")).includes("_staging"), offPublic);
   const buyer = readFileSync(join(root, "buyer.js"), "utf8");
   await visit(page, "#buy");
   await page.waitForTimeout(300);

@@ -56,6 +56,7 @@ GENERATED = {"docs/DRILLS.md", "docs/drills_recovery.md"}
 OTHER = ["src/knos/cli.py", "server.json", "gemini-extension.json", "glama.json", ".claude-plugin/marketplace.json",
          "plugin/.claude-plugin/plugin.json", "plugin/.codex-plugin/plugin.json"]
 PROGRAMS_START, PROGRAMS_END = "<!-- programs:start -->", "<!-- programs:end -->"
+REHEARSAL = "## The 0.3.14 rehearsal on devnet"     # the section of docs/CAPABILITIES.md that names the staging addresses
 NAMES = {"knos_oidc": "the verifier", "knos_pay": "the escrow", "knos_meter": "the count", "knos_passkey": "a wallet from a passkey"}
 _WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen",
           "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"]
@@ -91,7 +92,7 @@ def _stage_count(stage):
 
 def _where_count(where: str):
     cap = _script("capabilities")
-    return lambda root: sum(cap.ids_of(c) == where for c in _json(root, MANIFEST)["capabilities"] if c["stage"] == "exercised")
+    return lambda root: sum(cap.ids_of(c, root) == where for c in _json(root, MANIFEST)["capabilities"] if c["stage"] == "exercised")
 
 
 def programs(root: Path = ROOT) -> list[str]:
@@ -160,7 +161,7 @@ def stage_words(ids: list[str], root: Path = ROOT) -> str:
 
     def one(cid: str) -> str:
         c = by_id[cid]
-        return cap.WORDS[c["stage"]] + (", on staging program ids" if cap.ids_of(c) == "staging" else "")
+        return cap.WORDS[c["stage"]] + (", on staging program ids" if cap.ids_of(c, root) == "staging" else "")
     said: dict[str, list[str]] = {}
     for cid in ids:
         said.setdefault(one(cid), []).append(f"`{cid}`")
@@ -173,15 +174,18 @@ def programs_table(root: Path = ROOT) -> str:
     (`python scripts/capabilities.py check --rpc` holds it to devnet)."""
     cap = _script("capabilities")
     data, ids = _json(root, MANIFEST), _json(root, IDS)
+    # a staging run is named from the rehearsal's own section, never from the manifest: no stage counts it
+    full = (root / cap.FULL).read_text(encoding="utf-8") if (root / cap.FULL).is_file() else ""
+    rehearsal = full.split(REHEARSAL, 1)[1] if REHEARSAL in full else ""
     lines = [f"| program | address | on devnet, as [`{MANIFEST}`]({MANIFEST}) records it |", "|---|---|---|"]
     for name in programs(root):
         p = data["programs"][name]
         later = p["versions"][p["versions"].index(p["on_chain"]) + 1:]
-        staged = any(cap.ids_of(c) == "staging" and c["evidence"]["deployed"]["program"] == f"{name}_staging" for c in data["capabilities"])
+        staged = re.search(rf"\b{name}\s+`[1-9A-HJ-NP-Za-km-z]{{32,44}}`", rehearsal) is not None
         state = f"runs `{p['on_chain']}`"
         if later:
             state += (f"; `{later[0]}` is proposed through the multisig and runs at this address only once its proposal has executed"
-                      + ("; it has been exercised at a staging address of its own" if staged else ""))
+                      + (f"; the 0.3.14 rehearsal ran it at a staging address of its own ([{cap.FULL}]({cap.FULL}))" if staged else ""))
         lines.append(f"| `{name.replace('_', '-')}`, {NAMES.get(name, 'a program')} | `{ids[name]}` | {state} |")
     return "\n".join(lines)
 

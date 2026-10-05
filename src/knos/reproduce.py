@@ -4,7 +4,7 @@
 
 Five checks, each timed, each naming the capabilities of docs/capabilities.json it supports:
 
-    payment    a named payment on devnet (the `order_pay` transaction of docs/capabilities.json) is read from the chain and
+    payment    a named payment on devnet (the rehearsal's `order_pay` transaction, docs/CAPABILITIES.md) is read from the chain and
                its token re-verified here: GitHub's RS256 signature (against the key the chain holds at an address derived
                from the key, and against GitHub's published keys while GitHub still publishes that one), the audience (this
                order, these payees), and the terms hash (sha256 of the terms the order logged when it was funded)
@@ -55,8 +55,9 @@ JWKS = ISSUER + "/.well-known/jwks"
 FEED = "https://drexthealpha.github.io/Knos/upgrades.json"       # what the release names: written from the multisig's accounts
 MAINTAINER = "drexthealpha"
 RESULTS = ("pass", "fail", "skipped")
-# The payment `payment` re-verifies: the `order_pay` transaction of docs/capabilities.json, made by the 0.3.14 rehearsal
-# on its own deployment of the 2.1 build (the manifest's `knos_pay_staging`, with the verifier it accepts tokens from).
+# The payment `payment` re-verifies: the `order_pay` transaction of the 0.3.14 rehearsal, made on its own deployment of
+# the 2.1 build (the staging knos_pay and the verifier it accepts tokens from, named in docs/CAPABILITIES.md, "The 0.3.14
+# rehearsal on devnet"; the signature is in the note of `order_pay` in docs/capabilities.json, which stays `tested`).
 PAYMENT = {"signature": "63wT5rhYhEKbgmF5k8vEKdexzoCaXZCiDvRG2GQMGSMBBsc9avGfDw3izER9D6LHoe4ucJeinTBiWaWGWpnFWvfq",
            "pay": "FJJtqcRjQ9ATx37sBTCLUBxBqLUA9aQgSTLAsZynqtnH", "oidc": "iosu8ARUNvvruHPCcMWQ5rqsnJewzBxcPXajSpoHqXd"}
 # The pull request `claim` checks: merged, so its head no longer moves; docs/agent_pr_ci.json records it as `failed`

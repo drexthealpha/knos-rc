@@ -36,7 +36,7 @@ there); only `pass` counts for anything.
 | `own_repo` | Only with `--own-repo OWNER/NAME` and `GH_TOKEN`: one funded round in a repository of yours that has Knos installed ([INSTALL.md](INSTALL.md)): an issue funded by comment from the faucet Balance, a pull request, the merge, the payment. It opens and merges a pull request there, so it never runs unasked. | The whole flow works for someone who is not the maintainer, on test USDC. | `fund_by_comment`, `pay_on_merge` |
 
 The payment in `payment` was made by the 0.3.14 release rehearsal on its own devnet deployment of the 2.1 build, which
-capabilities.json names; the pinned program ids run what the feed says they run. From an installed wheel `simulator`
+CAPABILITIES.md names ("The 0.3.14 rehearsal on devnet"); the pinned program ids run what the feed says they run. From an installed wheel `simulator`
 is skipped. To run it: clone the repository, `pip install -e '.[dev]'`, then `python -m knos reproduce --only simulator`.
 
 `--only` takes a check's name or a capability id, `--rpc` another Solana RPC, `--out` where the report goes. The

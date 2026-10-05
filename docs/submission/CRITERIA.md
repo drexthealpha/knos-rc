@@ -50,9 +50,9 @@ what it read. Whether buyers object to the seller's count enough to pay for anot
 On the public program ids on devnet, in test USDC, a task is funded by a comment, a submission whose required
 check failed is refused with the check named, a valid one is paid on the forge's signature, and an unfulfilled
 task refunds without anyone's permission. Work orders, the batched count with the supplier's own count beside the
-buyer's, funding by passkey and the single-use rule for every token were exercised on staging program ids; they
-reach the public ids only when their approved upgrade proposals execute, and `web/upgrades.json` says whether
-they have. [CAPABILITIES.md](../CAPABILITIES.md) gives the stage of each, and the demo cuts any shot whose
+buyer's, funding by passkey and the single-use rule for every token were rehearsed on staging program ids, which
+are not the public ones, so the manifest holds them at "tested locally"; they reach the public ids only when their
+approved upgrade proposals execute, and `web/upgrades.json` says whether they have. [CAPABILITIES.md](../CAPABILITIES.md) gives the stage of each, and the demo cuts any shot whose
 capability is not at the stage it needs on the day. Against the competition ([COMPARE.md](../COMPARE.md)):
 MergePay is on a mainnet with real USDC and no platform fee, and is ahead there; its condition is the merge
 alone. Knos adds terms fixed at funding, a supplier who can settle without the buyer, a black-box check, and a
@@ -117,7 +117,7 @@ token could pay a re-funded order twice ([SECURITY.md](../SECURITY.md), section 
 instruction that takes a signed token creates one single-use marker, a test replays every accepted token against
 every instruction, and a second test drives a random state machine of orders, tokens and replays that finds the
 double payment in the older build and no broken invariant in this one, in the seeds the tests run. That build was
-exercised on staging program ids; whether it is live on the public ids is in `web/upgrades.json`. What is not
+rehearsed on staging program ids, not the public ones; whether it is live on the public ids is in `web/upgrades.json`. What is not
 shown: mainnet load, and an outside review. Acceptance itself is decided by a pinned workflow off chain; the
 chain verifies who signed.
 

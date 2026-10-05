@@ -52,8 +52,8 @@ at a pinned commit reads the forge's record, the forge signs that run, and a Sol
 on chain. It then counts the outcome, with no money on chain, or pays the supplier in full, the buyer paying the
 fee on top. Buyer and supplier each compute the month's statement from their own ledger; a difference shows as a
 named dispute. Live on the public program ids on devnet: funding by comment, payment on a merge, refunds, the
-single count. Work orders, the batched count, passkey funding and one single-use rule for every token ran on
-staging ids and go live when their approved upgrades execute (web/upgrades.json). docs/CAPABILITIES.md has each
+single count. Work orders, the batched count, passkey funding and one single-use rule for every token were
+rehearsed on staging ids, not the public ones, and go live when their approved upgrades execute (web/upgrades.json). docs/CAPABILITIES.md has each
 stage. Test USDC only.
 
 ## whyNow

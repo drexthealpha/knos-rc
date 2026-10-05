@@ -77,6 +77,9 @@ def test_this_tree_states_every_registered_fact_once_and_as_its_source_has_it(tr
     for stage in data["stages"]:
         assert dc.value(f"capabilities.{stage}") == sum(c["stage"] == stage for c in data["capabilities"])
     assert dc.value("capabilities.exercised") == sum(dc.value(f"capabilities.exercised.{w}") for w in ("public", "staging", "unknown"))
+    # and every exercised one ran at a public program id: a staging run is no stage (scripts/capabilities.py refuses it)
+    assert dc.value("capabilities.exercised") == dc.value("capabilities.exercised.public")
+    assert dc.value("capabilities.exercised.staging") == dc.value("capabilities.exercised.unknown") == 0
     assert dc.value("programs") == 4 and dc.value("upgrades.pending") == len(dc.pending())
     assert dc.value("stat.payments_timed") == json.loads((ROOT / dc.BENCH).read_text(encoding="utf-8"))["devnet"]["stats"]["latency"]["merge_to_paid"]["count"]
     # the same documents hold whatever the chain says next: with every committed proposal withdrawn and a new one pending
@@ -84,10 +87,26 @@ def test_this_tree_states_every_registered_fact_once_and_as_its_source_has_it(tr
     assert dc.problems(tree) == []
 
 
+def _exercise(root: Path, *cids: str, deployed: dict | None = None) -> dict:
+    """The manifest of `root` with each of `cids` exercised by a transaction (made up here), on its own deployed program
+    or on `deployed`."""
+    data = json.loads((root / dc.MANIFEST).read_text(encoding="utf-8"))
+    for k, c in enumerate(c for c in data["capabilities"] if c["id"] in cids):
+        c["stage"] = "exercised"
+        c["evidence"] = {**c["evidence"], **({"deployed": deployed} if deployed else {}), "exercised": {"signature": str(5 + k) * 87}}
+    (root / dc.MANIFEST).write_text(json.dumps(data), encoding="utf-8")
+    return data
+
+
 def test_a_count_or_a_stage_that_is_not_the_manifests_fails(tree):
-    n = dc.value("capabilities.exercised")
-    # the committed pages state no count of capabilities (docs/CAPABILITIES.md is the count): one is written here
-    assert n > 0 and not dc._COUNT.search((tree / CRITERIA).read_text(encoding="utf-8"))
+    # the committed pages state no count of capabilities (docs/CAPABILITIES.md is the count): one is written here, of a
+    # manifest in which two deployed capabilities have been exercised at their public program ids
+    assert not dc._COUNT.search((tree / CRITERIA).read_text(encoding="utf-8"))
+    _exercise(tree, "fund_by_comment", "pay_on_merge")
+    n = dc.value("capabilities.exercised", tree)
+    assert n == dc.value("capabilities.exercised.public", tree) == 2 and dc.value("capabilities.exercised.staging", tree) == 0
+    dc.write(tree)          # the stage cells that name them follow the manifest
+    assert dc.problems(tree) == []
     _add(tree, CRITERIA, f"{n} capabilities are exercised on devnet.")
     assert dc.problems(tree) == []
     _swap(tree, CRITERIA, f"{n} capabilities are exercised on devnet", f"{n + 1} capabilities are exercised on devnet")
@@ -99,29 +118,35 @@ def test_a_count_or_a_stage_that_is_not_the_manifests_fails(tree):
     _found(tree, WHY, "says nothing is exercised")
     _add(tree, "docs/MARKET.md", "What this release adds is tested locally and is not on devnet yet.")
     _found(tree, "docs/MARKET.md", "gives a whole release one stage")
-    # which ids they ran on is the manifest's too
+    # which ids they ran on is the manifest's too: a run is never said to be a staging one when it was public, nor the other way
     _add(tree, "docs/COMPARE.md", f"Of the {n} capabilities exercised on devnet, {n} ran on the public program ids.")
-    _found(tree, "docs/COMPARE.md", "exercised on public ids", f"has {dc.value('capabilities.exercised.public')}")
+    assert not any("docs/COMPARE.md" in line for line in dc.problems(tree))
+    _add(tree, "docs/COMPARE.md", f"Of the {n} capabilities exercised on devnet, {n} ran on the staging program ids.")
+    _found(tree, "docs/COMPARE.md", f"says {n} exercised on staging ids", "has 0")
+    _add(tree, "docs/COMPARE.md", f"Of the {n} capabilities exercised on devnet, {n - 1} ran on the public program ids.")
+    _found(tree, "docs/COMPARE.md", f"says {n - 1} exercised on public ids", f"has {n}")
     _add(tree, "docs/METER.md", "Knos is seven programs on Solana devnet.")
     _found(tree, "docs/METER.md", "counts seven programs")
 
 
 def test_a_stage_cell_is_the_manifests_words_and_follows_the_manifest(tree):
     text = (tree / DEMO).read_text(encoding="utf-8")
-    assert "| `single_use_tokens` | exercised on devnet, on staging program ids |" in text
+    # what the rehearsal ran on staging ids is tested locally on the public ids, and no stage cell says otherwise
+    assert "| `single_use_tokens` | tested locally |" in text and "| `pay_on_merge` | deployed on devnet |" in text and "on staging program ids |" not in text
     _swap(tree, DEMO, "| `statements` | tested locally |", "| `statements` | deployed on devnet |")
     _found(tree, DEMO, "the stage of statements is 'deployed on devnet'", "'tested locally'")
     assert dc.write(tree) == [DEMO] and dc.problems(tree) == []
-    # the manifest moves (a capability loses its devnet transaction): every document that states its stage or a count fails
+    # the manifest moves (a capability gets a devnet transaction at its public id): every document that states its stage or a count fails
     _add(tree, CRITERIA, f"{dc.value('capabilities.exercised')} capabilities are exercised on devnet.")
-    data = json.loads((tree / dc.MANIFEST).read_text(encoding="utf-8"))
-    c = next(c for c in data["capabilities"] if c["id"] == "single_use_tokens")
-    c["stage"] = "tested"
-    c["evidence"] = {k: v for k, v in c["evidence"].items() if k in ("implemented", "tested")}
-    (tree / dc.MANIFEST).write_text(json.dumps(data), encoding="utf-8")
-    lines = _found(tree, DEMO, "the stage of single_use_tokens", "'tested locally'")
+    data = _exercise(tree, "pay_on_merge")
+    lines = _found(tree, DEMO, "the stage of pay_on_merge", "'exercised on devnet'")
     assert any(CRITERIA in line and "capabilities exercised" in line for line in lines)
-    assert dc.stage_words(["single_use_tokens", "pay_on_merge"], tree) == "`single_use_tokens`: tested locally; `pay_on_merge`: deployed on devnet"
+    assert dc.stage_words(["single_use_tokens", "pay_on_merge"], tree) == "`single_use_tokens`: tested locally; `pay_on_merge`: exercised on devnet"
+    # a run at any other address than the public id is never said as a plain "exercised on devnet" (capabilities.py refuses it)
+    staged = _exercise(tree, "single_use_tokens", deployed={"program": "knos_pay_staging", "id": "FJJtqcRjQ9ATx37sBTCLUBxBqLUA9aQgSTLAsZynqtnH", "version": "2.1"})
+    assert dc.stage_words(["single_use_tokens"], tree) == "exercised on devnet, on staging program ids" and dc.value("capabilities.exercised.staging", tree) == 1
+    _found(tree, DEMO, "the stage of single_use_tokens", "'exercised on devnet, on staging program ids'")
+    data = json.loads(json.dumps(staged))
     # README.md's table of programs is the manifest's versions
     data["programs"]["knos_pay"]["on_chain"] = "2.1"
     (tree / dc.MANIFEST).write_text(json.dumps(data), encoding="utf-8")

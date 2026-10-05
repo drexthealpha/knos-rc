@@ -19,16 +19,19 @@ A capability's `stage` is the highest of five that has evidence, and each stage 
     tested        {"test", "names"}: a test file (pytest's, Node's, the site's tests/web/*.mjs, or a Rust crate's
                   tests/*.rs), and words in it that
                   name the capability
-    deployed      {"program", "id", "version"}: the program of programs-v2/program_ids.json at that address, and the
-                  on-chain version that carries the capability. A capability with no program stops at `tested`
-    exercised     {"signature"}: a transaction on devnet that used it and succeeded. WHERE it ran is not a second
-                  claim: `ids_of` reads it from the deployed evidence (a program named `<name>_staging` is a staging
-                  address of this build, anything else the public program id). An `ids` field, if given, must say the
-                  same (`public`, `staging`, or `unknown` when the program cannot tell)
+    deployed      {"program", "id", "version"}: a PUBLIC program id (`public_ids`: the `knos_*` addresses of
+                  programs-v2/program_ids.json, and upgrade_gate's own `declare_id!`), and the on-chain version there
+                  that carries the capability. A capability with no program stops at `tested`
+    exercised     {"signature"}: a transaction on devnet, at that public program id, that used it and succeeded. An
+                  `ids` field, if given, must say `public`
     reproduced    {"file"}: a file of reproductions/ (the report of `knos reproduce` and the token GitHub signed for it in
                   someone else's repository, docs/REPRODUCE.md) in which a check that supports this capability passed.
                   The signature is checked here with the archived key (scripts/github_oidc_keys.json); `check --rpc`
                   also asks GitHub whether it still publishes that key. A link alone is not evidence
+
+A deployment of a build at an address of its own (a staging deployment, such as the 0.3.14 rehearsal's) is never
+evidence for `deployed` or `exercised`, and `programs` lists no such address: what ran there is said in the
+capability's note, with its transaction, and the capability stays `tested` until it runs at a public id.
 
 `stage: null` is a capability this tree does not hold yet: it has no evidence and the table says "not built".
 Evidence above the stated stage is refused as well: the stage would then not be the highest. An exercised signature
@@ -50,8 +53,10 @@ FULL = "docs/CAPABILITIES.md"      # the whole table; README.md carries the summ
 STAGES = ("implemented", "tested", "deployed", "exercised", "reproduced")
 WORDS = {None: "not built", "implemented": "implemented", "tested": "tested locally", "deployed": "deployed on devnet",
          "exercised": "exercised on devnet", "reproduced": "reproduced by someone else"}
-# said after the exercised ones in README.md, so "exercised on devnet" is never read as "on the public program ids"
-STAGING = "**Of those, exercised on staging program ids of the same build, not on the public program ids:**"
+# said after the stages in README.md: a stage above `tested` is a run at a public program id, and a staging run is not one
+PUBLIC_ONLY = ("Deployed and exercised are counted only at the public program ids; what the 0.3.14 rehearsal ran at staging "
+               "addresses of its own is in the note of each capability it ran, with its transaction.")
+GATE = "examples/upgrade_gate/src/lib.rs"     # upgrade_gate is an example program: its public id is its own declare_id!
 START, END = "<!-- capabilities:start -->", "<!-- capabilities:end -->"
 DEVNET = "https://api.devnet.solana.com"
 _ID = re.compile(r"[a-z][a-z0-9_]*")
@@ -63,15 +68,28 @@ def load(root: Path = ROOT) -> dict:
     return json.loads((root / MANIFEST).read_text(encoding="utf-8"))
 
 
-def ids_of(c: dict) -> str | None:
-    """Where an exercised capability ran: "public" (the program ids of programs-v2/program_ids.json), "staging" (an
-    address of its own that carries this build) or "unknown". None for a capability that is not exercised. The
-    deployed evidence decides, so a document cannot say "exercised on devnet" of the public ids for a staging run."""
+def public_ids(root: Path = ROOT) -> dict[str, str]:
+    """The public program ids, by name: the `knos_*` addresses of programs-v2/program_ids.json and upgrade_gate's own
+    `declare_id!`. Nothing else is evidence for `deployed` or `exercised`."""
+    ids = json.loads((root / "programs-v2" / "program_ids.json").read_text(encoding="utf-8"))
+    out = {k: v for k, v in ids.items() if k.startswith("knos_") and isinstance(v, str)}
+    gate = root / GATE
+    if gate.is_file() and (m := re.search(r'declare_id!\("([1-9A-HJ-NP-Za-km-z]{32,44})"\)', gate.read_text(encoding="utf-8"))):
+        out["upgrade_gate"] = m.group(1)
+    return out
+
+
+def ids_of(c: dict, root: Path = ROOT) -> str | None:
+    """Where an exercised capability ran: "public" when its deployed evidence is a public program id at its address,
+    "staging" for any other address (which `problems` refuses), "unknown" with no deployed evidence. None for a
+    capability that is not exercised. The deployed evidence decides, never a word of a document."""
     ev = c.get("evidence") or {}
     if not ev.get("exercised"):
         return None
-    program = str((ev.get("deployed") or {}).get("program") or "")
-    return ("staging" if program.endswith("_staging") else "public") if program else str(ev["exercised"].get("ids") or "unknown")
+    dep = ev.get("deployed") or {}
+    if not dep.get("program"):
+        return "unknown"
+    return "public" if public_ids(root).get(str(dep["program"])) == dep.get("id") else "staging"
 
 
 def _file(root: Path, rel, names) -> str | None:
@@ -157,13 +175,16 @@ def problems(data: dict, root: Path = ROOT) -> list[str]:
     out += [f"{line}: it does not belong in {REPRODUCTIONS}/" for line in invalid]
     if list(data.get("stages") or []) != list(STAGES):
         out.append(f"`stages` must be {list(STAGES)}")
-    ids = json.loads((root / "programs-v2" / "program_ids.json").read_text(encoding="utf-8"))
+    public = public_ids(root)
     programs = data.get("programs") or {}
     for name, p in programs.items():
-        if ids.get(name, p.get("id")) != p.get("id") or not _ADDRESS.fullmatch(str(p.get("id", ""))):
-            out.append(f"programs.{name}: the address is not the one of programs-v2/program_ids.json")
-        if not p.get("on_chain"):
-            out.append(f"programs.{name}: `on_chain` (the version devnet runs) is missing")
+        if name not in public:
+            out.append(f"programs.{name}: not a public program (programs-v2/program_ids.json, or {GATE}): a staging "
+                       "deployment is never evidence; say what ran there in the capability's note")
+        elif public[name] != p.get("id") or not _ADDRESS.fullmatch(str(p.get("id", ""))):
+            out.append(f"programs.{name}: the address is not its public program id {public[name]}")
+        if not p.get("on_chain") or p.get("on_chain") not in (p.get("versions") or []):
+            out.append(f"programs.{name}: `on_chain` (the version devnet runs) is missing, or not one of its `versions`")
     for c in data.get("capabilities") or []:
         cid = c.get("id")
         say = lambda text: out.append(f"{cid}: {text}")       # noqa: E731
@@ -195,7 +216,10 @@ def problems(data: dict, root: Path = ROOT) -> list[str]:
                 say(f"tested: {e.get('test')} is not a test file")
             if s == "deployed":
                 p = programs.get(e.get("program"))
-                if not p or e.get("id") != p["id"]:
+                if public.get(str(e.get("program"))) != e.get("id"):
+                    say(f"deployed: {e.get('program')} {e.get('id')} is not a public program id: a staging deployment is never "
+                        f"evidence for {stage}; the capability stays `tested`, and its note says what ran there")
+                elif not p or e.get("id") != p["id"]:
                     say("deployed: the program and its address are not ones `programs` lists")
                 elif e.get("version") not in p.get("versions", []):
                     say(f"deployed: {e.get('version')!r} is not a version of {e['program']}")
@@ -203,8 +227,10 @@ def problems(data: dict, root: Path = ROOT) -> list[str]:
                     say(f"deployed: {e['program']} {e['version']} carries it, and devnet runs {p['on_chain']}")
             if s == "exercised" and not _SIG.fullmatch(str(e.get("signature", ""))):
                 say("exercised: a transaction signature on devnet is needed")
-            if s == "exercised" and e.get("ids") not in (None, ids_of(c)):
-                say(f"exercised: `ids` says {e.get('ids')!r}, and the deployed evidence says {ids_of(c)}")
+            if s == "exercised" and ids_of(c, root) != "public":
+                say(f"exercised: the transaction ran on {ids_of(c, root)} program ids; only a run at a public program id is `exercised`")
+            if s == "exercised" and e.get("ids") not in (None, "public"):
+                say(f"exercised: `ids` says {e.get('ids')!r}; only `public` is evidence")
             if s == "reproduced":
                 run = outside.get(str(e.get("file")))
                 if run is None:
@@ -305,7 +331,7 @@ def table(data: dict, prefix: str = "") -> str:
     # no count is printed: the rows are the count, and a number in README.md needs a fact in docs/facts.json
     lines += ["", "Each stage needs evidence and the stages below it: a source file, a test, the on-chain version that carries it, a devnet "
               f"transaction, someone else's run. The list is [`{MANIFEST}`]({prefix}{MANIFEST}); `python scripts/capabilities.py check` holds it "
-              "to the files, and `check --rpc` to devnet."]
+              "to the files, and `check --rpc` to devnet.", "", PUBLIC_ONLY]
     return "\n".join(lines)
 
 
@@ -316,11 +342,8 @@ def summary(data: dict) -> str:
     for s in (*reversed(STAGES), None):
         ids = [f"`{c['id']}`" for c in data["capabilities"] if c["stage"] == s]
         said.append(f"**{WORDS[s].capitalize()}:** {', '.join(ids) if ids else 'none recorded yet'}.")
-        if s == "exercised":            # which ids each ran on, by name: the staging runs are not runs of the public programs
-            there = [f"`{c['id']}`" for c in data["capabilities"] if c["stage"] == s and ids_of(c) != "public"]
-            said.append(f"{STAGING} " + ("all of them" if there and len(there) == len(ids) else ", ".join(there) if there else "none") + ".")
     return (f"**Every capability and how far it has got** ([the table with the evidence]({FULL}), from [`{MANIFEST}`]({MANIFEST}); a stage needs "
-            "its evidence and the stages below it). " + " ".join(said))
+            "its evidence and the stages below it). " + " ".join(said) + " " + PUBLIC_ONLY)
 
 
 def targets(root: Path = ROOT) -> list[Path]:

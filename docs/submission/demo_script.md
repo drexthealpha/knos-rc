@@ -8,14 +8,16 @@ programs' own logs.
 
 ## Three rules for the recording
 
-- **A shot whose capability is not at the stage the shot needs in `docs/capabilities.json` on the day is cut, not
-  staged.** [CAPABILITIES.md](../CAPABILITIES.md) is the table. The narration of the shots that remain is not
-  changed to cover for a cut one.
+- **A shot whose capability has not run where the shot is recorded is cut, not staged.** On the public ids that
+  means the stage the table below gives from `docs/capabilities.json` on the day; on staging ids it means a
+  capability whose note there records the 0.3.14 staging rehearsal with its transaction. [CAPABILITIES.md](../CAPABILITIES.md)
+  is the table. The narration of the shots that remain is not changed to cover for a cut one.
 - **Every shot says which program ids it runs on.** The newer builds of the four programs are approved upgrade
   proposals, and the multisig's public delay decides when each can execute. Until a proposal has executed, its
-  instructions are not on the public program ids: they were exercised on staging ids, which are other addresses on
-  devnet. The live state is in `web/upgrades.json`, and the recording is checked against it on the day, not against
-  this page. A shot recorded on staging ids carries the caption "staging program ids on devnet" for its whole length.
+  instructions are not on the public program ids: they were rehearsed on staging ids, which are other addresses on
+  devnet, and the manifest counts no stage for that rehearsal (those capabilities are "tested locally"). The live
+  state is in `web/upgrades.json`, and the recording is checked against it on the day, not against this page. A shot
+  recorded on staging ids carries the caption "staging program ids on devnet" for its whole length.
 - A number that only the release run can give is a slot, `[[stat: name]]`.
 
 Caption under the first shot, no narration: "Built during the hackathon: everything shown. Older work is listed in
@@ -49,19 +51,19 @@ the check fails when it differs.
 | shot | capability | stage |
 |---|---|---|
 | A | `console` | tested locally |
-| A | `buyer_page` | exercised on devnet, on staging program ids |
+| A | `buyer_page` | tested locally |
 | A | `terms_templates` | tested locally |
-| A | `work_orders` | exercised on devnet, on staging program ids |
-| A | `passkey_funder` | exercised on devnet, on staging program ids |
+| A | `work_orders` | tested locally |
+| A | `passkey_funder` | tested locally |
 | B | `check` | tested locally |
 | B | `pay_on_merge` | deployed on devnet |
 | C | `receipt_five_parts` | tested locally |
 | C | `receipt` | tested locally |
-| C | `order_pay` | exercised on devnet, on staging program ids |
-| D | `single_use_tokens` | exercised on devnet, on staging program ids |
+| C | `order_pay` | tested locally |
+| D | `single_use_tokens` | tested locally |
 | E | `statements` | tested locally |
-| E | `meter_batch` | exercised on devnet, on staging program ids |
-| E | `meter_seller_claim` | exercised on devnet, on staging program ids |
+| E | `meter_batch` | tested locally |
+| E | `meter_seller_claim` | tested locally |
 
 ## A. A buyer creates a work order (0:00, 30 seconds)
 

@@ -10,6 +10,9 @@ authorise a payment and defend it afterwards, and for the supplier on the other 
 everything in it is clients, workflows, the site, documents and tests. Everything is on Solana devnet with test USDC.
 Each line of [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) says how far a capability has got; everything this
 release adds is "tested locally", and nothing new was deployed, exercised on devnet or reproduced by someone else.
+What the 0.3.14 rehearsal ran on staging program ids of its own is "tested locally" too, with its transaction in the
+capability's note: only a public program id counts for "deployed" or "exercised", and
+`python scripts/capabilities.py check` refuses any other.
 
 ### For a buyer and a supplier
 
@@ -97,7 +100,7 @@ release adds is "tested locally", and nothing new was deployed, exercised on dev
   delay: `knos_oidc 2.1`, `knos_pay 2.1`, `knos_meter 1.1`, `knos_passkey 1.1`. This file names no time for them:
   the site's [upgrade record](https://drexthealpha.github.io/Knos/upgrades.json) and `knos status` are the record of
   the live state ([`web/upgrades.json`](web/upgrades.json) is the committed copy, of the time it names). Until each
-  has executed, what it adds runs on staging program ids only.
+  has executed, what it adds has run on staging program ids only, in the 0.3.14 rehearsal.
 - No outside security firm has examined anything. One person holds every key. Nobody outside Knos has funded an
   order with their own tokens or bought anything.
 
