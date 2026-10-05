@@ -546,7 +546,7 @@ def sample_week(monday, path, per_stratum=PER_STRATUM, max_requests=MAX_REQUESTS
     state, before = load_checkpoint(path, monday, per_stratum), agent_pr_ci.ASKED[0]
     agent_pr_ci.START = time.time()
     agent_pr_ci.SEARCH_PAUSE = min(agent_pr_ci.SEARCH_PAUSE, SEARCH_PAUSE)
-    agent_pr_ci.NO_WAIT, broken, done = True, set(), False
+    agent_pr_ci.NO_WAIT, agent_pr_ci.STOPPED[0], broken, done = True, None, set(), False
 
     def budget(reserve):
         agent_pr_ci.MAX_REQUESTS = before + max_requests - (CHECK_RESERVE[0] if reserve else 0)
@@ -566,7 +566,8 @@ def sample_week(monday, path, per_stratum=PER_STRATUM, max_requests=MAX_REQUESTS
     finally:
         agent_pr_ci.NO_WAIT, agent_pr_ci.MAX_REQUESTS = False, None
         state["runs"].append({"read": read or dt.datetime.now(dt.timezone.utc).date().isoformat(), "requests": agent_pr_ci.ASKED[0] - before,
-                              "max_requests": max_requests, "max_minutes": max_minutes, "complete": done})
+                              "max_requests": max_requests, "max_minutes": max_minutes, "complete": done,
+                              "stopped": None if done else agent_pr_ci.STOPPED[0] or ("a search was refused" if broken else "checks were left unread")})
         save_checkpoint(path, state)
     return state
 
@@ -980,7 +981,8 @@ def main():
         print(f"{NAME}, week of {monday}: this run sent {run['requests']} of {a.max_requests} requests in {time.time() - agent_pr_ci.START:.0f} s; "
               f"drew {sum(d['drawn'] for d in days)} of {sum(d['planned'] or 0 for d in days)} planned in {len(days)} strata, "
               f"read the checks of {sum(d['checks_read'] for d in days)} of {sum(d['claimed'] for d in days)} that claimed passing tests; "
-              f"capped: {str(any(x['weeks'][0]['capped'] for x in one['agents'].values())).lower()}; checkpoint {a.rows}", file=sys.stderr)
+              f"capped: {str(any(x['weeks'][0]['capped'] for x in one['agents'].values())).lower()}; checkpoint {a.rows}"
+              + (f"; stopped early: {run['stopped']}" if run.get("stopped") else ""), file=sys.stderr)
         return 0
     if a.step == "scan":
         if a.week:

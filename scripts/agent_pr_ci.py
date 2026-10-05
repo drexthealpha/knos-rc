@@ -137,14 +137,22 @@ class OutOfBudget(OutOfTime):
 MAX_REQUESTS = None
 ASKED = [0]
 NO_WAIT = False
+STOPPED = [None]        # why a bounded run stopped early, in words: its minutes, its requests, or GitHub's refusal
+
+
+def _stop(why, exc):
+    """Raise `exc`, keeping the first reason a bounded run was given for stopping (STOPPED)."""
+    if STOPPED[0] is None:
+        STOPPED[0] = why
+    raise exc()
 
 
 def _spend():
     """Count one request about to be sent; a bounded run that has none left stops here, before sending it."""
     if time_left() < 15:
-        raise OutOfTime()
+        _stop("its minutes were spent", OutOfTime)
     if MAX_REQUESTS is not None and ASKED[0] >= MAX_REQUESTS:
-        raise OutOfBudget()
+        _stop("its requests were spent", OutOfBudget)
     ASKED[0] += 1
 
 
@@ -204,7 +212,7 @@ def gh_get(path, params=None, kind="core", max_age=None):
     if hit is not None:
         return hit
     if time_left() < 15:
-        raise OutOfTime()
+        _stop("its minutes were spent", OutOfTime)
     cmd = ["gh", "api", "-X", "GET", path, "-H", "Accept: application/vnd.github+json"]
     for k, v in (params or {}).items():
         cmd += ["-f", f"{k}={v}"]
@@ -227,8 +235,9 @@ def gh_get(path, params=None, kind="core", max_age=None):
             break
         err = err + out[:500]
         if re.search(r"rate limit|HTTP 429|secondary", err, re.I):
-            if NO_WAIT:
-                raise OutOfBudget()     # a bounded run never sleeps on a limit: it stops and writes what it has
+            if NO_WAIT:                 # a bounded run never sleeps on a limit: it stops and writes what it has
+                limit = "a secondary rate limit" if re.search("secondary", err, re.I) else "a rate limit"
+                _stop(f"GitHub refused a {kind} request for {limit}", OutOfBudget)
             wait = min(90, 20 * (attempt + 1))
             if kind == "core" and not re.search("secondary", err, re.I):
                 wait = _core_reset() or wait   # the hourly budget is spent: it comes back at a known time, wait for it

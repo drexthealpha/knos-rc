@@ -915,16 +915,31 @@ def test_the_weekly_sample_stays_in_its_budget_publishes_what_it_has_and_resumes
 def test_a_run_out_of_minutes_or_refused_for_a_rate_limit_stops_without_sleeping_and_still_writes_every_agent_s_row(sampled, tmp_path):
     late = SampleApi()
     state = sampled(late, tmp_path / "late.json", max_requests=500, max_minutes=0.2)       # 12 seconds: no request fits before the end
-    assert not late.asked and state["runs"][-1] == {"read": "2026-10-05", "requests": 0, "max_requests": 500, "max_minutes": 0.2, "complete": False}
+    assert not late.asked and state["runs"][-1] == {"read": "2026-10-05", "requests": 0, "max_requests": 500, "max_minutes": 0.2, "complete": False,
+                                                    "stopped": "its minutes were spent"}
     week = _week(state)
     assert set(week) == {a for a, _ in agent_pr_ci.AGENTS}
     assert all(w["capped"] is True and w["sampled"] == 0 and w["rank"] is None and w["strata"]["Mon"] == {"date": "2026-09-28", "reported": None, "reachable": None, "planned": None, "drawn": 0, "claimed": 0, "checks_read": 0} for w in week.values())
     limited = SampleApi(refuse_search_after=50)
     state = sampled(limited, tmp_path / "limited.json", max_requests=500, max_minutes=20)   # the 51st search is refused: the run ends there (the fixture fails on any sleep)
     assert sum(a[0] == "search" for a in limited.asked) == 51 and len(limited.asked) > 51 and not state["runs"][-1]["complete"]
+    assert state["runs"][-1]["stopped"] == "GitHub refused a search request for a rate limit"   # the run says why it ended
     week = _week(state)
     assert any(w["capped"] for w in week.values()) and sum(w["sampled"] for w in week.values()) > 0 and all(w["checks"]["not_read"] == 0 for w in week.values())
     assert not agent_pr_ci.NO_WAIT and agent_pr_ci.MAX_REQUESTS is None                     # the bound is this run's, not the next caller's
+
+
+def test_a_bounded_run_refused_for_a_secondary_limit_names_it_and_does_not_sleep(sampled, tmp_path):
+    """GitHub's secondary limit on search (a few heavy searches close together) ends a bounded run at once, and the run
+    says so: on 2026-10-05 a run from the release machine was refused at its third search, and said only "capped"."""
+    class Secondary(SampleApi):
+        def __call__(self, cmd):
+            if "search/issues" in cmd and sum(a[0] == "search" for a in self.asked) >= 2:
+                return 1, "", "gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again."
+            return super().__call__(cmd)
+    state = sampled(Secondary(), tmp_path / "secondary.json", max_requests=500, max_minutes=20)
+    assert not state["runs"][-1]["complete"] and state["runs"][-1]["stopped"] == "GitHub refused a search request for a secondary rate limit"
+    assert not agent_pr_ci.NO_WAIT and agent_pr_ci.MAX_REQUESTS is None
 
 
 def test_when_graphql_refuses_the_token_the_checks_are_read_over_rest_and_say_the_same(sampled, tmp_path):
