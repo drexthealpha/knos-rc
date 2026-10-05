@@ -48,6 +48,7 @@ import json
 import os
 import random
 import re
+import subprocess
 import sys
 import time
 
@@ -734,11 +735,19 @@ def test_the_corpus_is_the_same_on_every_machine_and_holds_every_kind():
     assert hashlib.sha256("\n".join(token for _, token in first).encode()).hexdigest() == CORPUS_SHA256
 
 
+def committed_sums() -> str:
+    """tests/fixtures/SHA256SUMS as this commit has it. program.yml builds the test binaries again in place of the
+    committed ones and the build script rewrites their lines, so on that runner the file on disk names the runner's own
+    build, which is not byte for byte the committed one. The file on disk only where this is not a git checkout."""
+    r = subprocess.run(["git", "-C", str(ROOT), "show", "HEAD:tests/fixtures/SHA256SUMS"], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 and r.stdout.strip() else (FIX / "SHA256SUMS").read_text(encoding="utf-8")
+
+
 def test_the_recorded_long_run_is_of_this_program_this_seed_and_this_corpus():
     """docs/fuzz.json is the long run, made by `python tests/test_oidc_differential.py --cases N --record`. It is a
     record of one run: its program hash is the committed test build's, its seed and its kinds are this file's."""
     rec = json.loads(RECORD.read_text(encoding="utf-8"))["differential"]
-    sums = dict(reversed(line.split()) for line in (FIX / "SHA256SUMS").read_text(encoding="utf-8").splitlines() if line.strip())
+    sums = dict(reversed(line.split()) for line in committed_sums().splitlines() if line.strip())
     assert rec["program"] == f"tests/fixtures/{PROGRAM}" and rec["program_sha256"] == sums[f"tests/fixtures/{PROGRAM}"]
     assert rec["seed"] == SEED and rec["kinds"] == len(KINDS) and rec["corpus_sha256"] == CORPUS_SHA256
     assert rec["disagreements"] == 0 and rec["accepted_with_an_invalid_signature"] == 0
