@@ -334,6 +334,14 @@ def test_the_example_signs_in_a_job_that_installs_nothing_and_its_file_is_one_th
     assert wrong == [] and made.name == "octo-widgets-36905461215.json" and facts["passed"] == ["payment", "programs", "claim"]
     # and the text it prints is the one `knos reproduce --pack` prints
     assert rp.body(json.loads(made.read_text(encoding="utf-8")), facts) in (tmp_path / "summary.md").read_text(encoding="utf-8")
+    # in Knos's own account it says that the run is not a reproduction, and never "I am not the maintainer" (the first
+    # real run, in drexthealpha/knos-e2e, printed that sentence)
+    own = {**env, "GITHUB_REPOSITORY": "drexthealpha/knos-e2e", "GITHUB_STEP_SUMMARY": str(tmp_path / "own.md")}
+    got = subprocess.run([sys.executable, "-c", pack], cwd=str(tmp_path), env=own, capture_output=True, text=True, encoding="utf-8")
+    said = (tmp_path / "own.md").read_text(encoding="utf-8")
+    assert got.returncode == 0 and (tmp_path / "out" / "drexthealpha-knos-e2e-36905461215.json").is_file()
+    assert "an account of Knos's own, so it is not a reproduction" in said and "I am not the maintainer" not in said and "use this as its text" not in said
+    assert "I am not the maintainer" in (tmp_path / "summary.md").read_text(encoding="utf-8")
 
 
 # ---- the command ----------------------------------------------------------------------------------------------------------
