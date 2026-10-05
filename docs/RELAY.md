@@ -130,27 +130,27 @@ Three things follow, and one does not.
   seconds and cannot be split from those files. `scripts/latency_stages.py` splits a payment only where its log line
   carries the stage fields (`workflow=`, `wait=`, `chain=`), and the 164 s payment's line does not.
 
-`scripts/latency_stages.py` on the live log (5 October 2026, 07:56 to 08:02 UTC; the escrows' history read by
-`scripts/network_stats.py` at 07:44 UTC, block times from devnet's public endpoint). Each row is measured only where
+`scripts/latency_stages.py` on the live log (5 October 2026, 20:54 to 21:17 UTC; the escrows' history and the
+block times read from devnet's public endpoint by the script itself, `--rpc`). Each row is measured only where
 the line carries it, so each has its own n:
 
 | stage | n | median | 95th percentile | slowest |
 | --- | --- | --- | --- | --- |
-| the whole wait, as this script timed it | 39 | 25 s | 164 s | 1,220 s |
-| runner queue: the merge to the start of the run | 3 | 4 s | 1,184 s | 1,184 s |
-| of it, the run waiting for a runner (GitHub's record) | 3 | 0 s | 0 s | 0 s |
-| workflow: the start of the run to the token's comment | 3 | 17 s | 24 s | 24 s |
-| relay wait: the comment to the relay picking it up | 3 | 3 s | 5 s | 5 s |
-| first send: the pickup to the first transaction's block | 3 | 3 s | 5 s | 5 s |
-| confirm: that block to the paying transaction's block | 3 | 5 s | 8 s | 8 s |
-| the relay's side (first send and confirm together) | 3 | 10 s | 11 s | 11 s |
+| the whole wait, as this script timed it | 40 | 25 s | 58 s | 1,220 s |
+| runner queue: the merge to the start of the run | 4 | 3 s | 1,184 s | 1,184 s |
+| of it, the run waiting for a runner (GitHub's record) | 4 | 0 s | 0 s | 0 s |
+| workflow: the start of the run to the token's comment | 4 | 15 s | 24 s | 24 s |
+| relay wait: the comment to the relay picking it up | 4 | 2 s | 5 s | 5 s |
+| first send: the pickup to the first transaction's block | 4 | 2 s | 5 s | 5 s |
+| confirm: that block to the paying transaction's block | 4 | 4 s | 8 s | 8 s |
+| the relay's side (first send and confirm together) | 4 | 7 s | 11 s | 11 s |
 
 Few lines carry the stage fields yet, so the stage rows are a handful of payments, not a distribution: read them as
 those payments. The slowest of them spent its time in the runner queue (before the run began, with no wait for a
 runner recorded by GitHub), not in the relay.
 
-The attempts, over every payment line of the log: 42 of 51
-pull requests asked for were paid; the log has 55 lines with a token, of which
+The attempts, over every payment line of the log: 43 of 52
+pull requests asked for were paid; the log has 56 lines with a token, of which
 13 say fail and 0 took more than one try;
 1 were paid only after a failed line, and 9 were never
 paid. A failure here is a relay's answer (a token too long, no bounty on the issue, a token for the other

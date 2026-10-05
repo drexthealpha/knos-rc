@@ -537,396 +537,6 @@
   },
   {
    "say": [
-    "39"
-   ],
-   "what": "payments in which this stage is measured: the merge to the payment, the whole wait, as scripts/latency_stages.py timed it over the public relay's log. Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_whole_payments.value",
-   "equals": 39,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "25"
-   ],
-   "what": "the median seconds: the merge to the payment, the whole wait, as scripts/latency_stages.py timed it over the public relay's log. Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_whole_median.value",
-   "equals": 25,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "164"
-   ],
-   "what": "the 95th percentile, by nearest rank, in seconds: the merge to the payment, the whole wait, as scripts/latency_stages.py timed it over the public relay's log. Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_whole_ninety_fifth.value",
-   "equals": 164,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "1,220"
-   ],
-   "what": "the longest, in seconds: the merge to the payment, the whole wait, as scripts/latency_stages.py timed it over the public relay's log. Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_whole_slowest.value",
-   "equals": 1220,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "3"
-   ],
-   "what": "payments in which this stage is measured: the merge to the start of the workflow run (runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_runner_queue_payments.value",
-   "equals": 3,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "4"
-   ],
-   "what": "the median seconds: the merge to the start of the workflow run (runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_runner_queue_median.value",
-   "equals": 4,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "1,184"
-   ],
-   "what": "the 95th percentile, by nearest rank, in seconds: the merge to the start of the workflow run (runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_runner_queue_ninety_fifth.value",
-   "equals": 1184,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "1,184"
-   ],
-   "what": "the longest, in seconds: the merge to the start of the workflow run (runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_runner_queue_slowest.value",
-   "equals": 1184,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "3"
-   ],
-   "what": "payments in which this stage is measured: the run waiting for a runner, as GitHub records it (inside the runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_queued_payments.value",
-   "equals": 3,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "0"
-   ],
-   "what": "the median seconds: the run waiting for a runner, as GitHub records it (inside the runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_queued_median.value",
-   "equals": 0,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "0"
-   ],
-   "what": "the 95th percentile, by nearest rank, in seconds: the run waiting for a runner, as GitHub records it (inside the runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_queued_ninety_fifth.value",
-   "equals": 0,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "0"
-   ],
-   "what": "the longest, in seconds: the run waiting for a runner, as GitHub records it (inside the runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_queued_slowest.value",
-   "equals": 0,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "3"
-   ],
-   "what": "payments in which this stage is measured: the start of the workflow run to the token's comment (workflow), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_workflow_payments.value",
-   "equals": 3,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "17"
-   ],
-   "what": "the median seconds: the start of the workflow run to the token's comment (workflow), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_workflow_median.value",
-   "equals": 17,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "24"
-   ],
-   "what": "the 95th percentile, by nearest rank, in seconds: the start of the workflow run to the token's comment (workflow), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_workflow_ninety_fifth.value",
-   "equals": 24,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "24"
-   ],
-   "what": "the longest, in seconds: the start of the workflow run to the token's comment (workflow), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_workflow_slowest.value",
-   "equals": 24,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "3"
-   ],
-   "what": "payments in which this stage is measured: the token's comment to the relay picking it up (relay wait), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_relay_wait_payments.value",
-   "equals": 3,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "3"
-   ],
-   "what": "the median seconds: the token's comment to the relay picking it up (relay wait), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_relay_wait_median.value",
-   "equals": 3,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "5"
-   ],
-   "what": "the 95th percentile, by nearest rank, in seconds: the token's comment to the relay picking it up (relay wait), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_relay_wait_ninety_fifth.value",
-   "equals": 5,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "5"
-   ],
-   "what": "the longest, in seconds: the token's comment to the relay picking it up (relay wait), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_relay_wait_slowest.value",
-   "equals": 5,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "3"
-   ],
-   "what": "payments in which this stage is measured: the relay's pickup to the block of the token's first transaction (first send), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_first_send_payments.value",
-   "equals": 3,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "3"
-   ],
-   "what": "the median seconds: the relay's pickup to the block of the token's first transaction (first send), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_first_send_median.value",
-   "equals": 3,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "5"
-   ],
-   "what": "the 95th percentile, by nearest rank, in seconds: the relay's pickup to the block of the token's first transaction (first send), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_first_send_ninety_fifth.value",
-   "equals": 5,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "5"
-   ],
-   "what": "the longest, in seconds: the relay's pickup to the block of the token's first transaction (first send), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_first_send_slowest.value",
-   "equals": 5,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "3"
-   ],
-   "what": "payments in which this stage is measured: that block to the block of the transaction that paid (confirm), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_confirm_payments.value",
-   "equals": 3,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "5"
-   ],
-   "what": "the median seconds: that block to the block of the transaction that paid (confirm), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_confirm_median.value",
-   "equals": 5,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "8"
-   ],
-   "what": "the 95th percentile, by nearest rank, in seconds: that block to the block of the transaction that paid (confirm), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_confirm_ninety_fifth.value",
-   "equals": 8,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "8"
-   ],
-   "what": "the longest, in seconds: that block to the block of the transaction that paid (confirm), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_confirm_slowest.value",
-   "equals": 8,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "3"
-   ],
-   "what": "payments in which this stage is measured: the relay's pickup to its last confirmation (first send and confirm together), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_chain_payments.value",
-   "equals": 3,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "10"
-   ],
-   "what": "the median seconds: the relay's pickup to its last confirmation (first send and confirm together), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_chain_median.value",
-   "equals": 10,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "11"
-   ],
-   "what": "the 95th percentile, by nearest rank, in seconds: the relay's pickup to its last confirmation (first send and confirm together), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_chain_ninety_fifth.value",
-   "equals": 11,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "11"
-   ],
-   "what": "the longest, in seconds: the relay's pickup to its last confirmation (first send and confirm together), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.stage_chain_slowest.value",
-   "equals": 11,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "42"
-   ],
-   "what": "of those, the ones with a line that says ok (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.pay_attempts_completed.value",
-   "equals": 42,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "51"
-   ],
-   "what": "pull requests whose payment the public relay log has a line for (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.pay_attempts_asked.value",
-   "equals": 51,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "55"
-   ],
-   "what": "log lines with a token's id, one per token a relay answered for (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.pay_attempts_lines.value",
-   "equals": 55,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "13"
-   ],
-   "what": "of those lines, the ones that say fail (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.pay_attempts_failed.value",
-   "equals": 13,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "0"
-   ],
-   "what": "ok lines that took more than one try (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.pay_attempts_retried.value",
-   "equals": 0,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "1"
-   ],
-   "what": "payments completed only after a failed line (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.pay_attempts_after_failure.value",
-   "equals": 1,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
-    "9"
-   ],
-   "what": "payments asked for that no line says ok (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --json on the public relay log of drexthealpha/Knos, run 2026-10-05 07:56-08:02 UTC, events from scripts/network_stats.py --events-out at 07:44 UTC, block times from api.devnet.solana.com",
-   "json": "docs/bench.json",
-   "path": "release.pay_attempts_never.value",
-   "equals": 9,
-   "doc": "docs/RELAY.md"
-  },
-  {
-   "say": [
     "1.0%"
    ],
    "doc": "docs/MARKET.md",
@@ -972,6 +582,396 @@
    "what": "Stripe Billing's pay-as-you-go price: \"0.7% of Billing volume\" (Stripe's pricing page)",
    "source": "https://stripe.com/billing/pricing",
    "read": "2026-10-05"
+  },
+  {
+   "say": [
+    "40"
+   ],
+   "what": "payments in which this stage is measured: the merge to the payment, the whole wait, as scripts/latency_stages.py timed it over the public relay's log. Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_whole_payments.value",
+   "equals": 40,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "25"
+   ],
+   "what": "the median seconds: the merge to the payment, the whole wait, as scripts/latency_stages.py timed it over the public relay's log. Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_whole_median.value",
+   "equals": 25,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "58"
+   ],
+   "what": "the 95th percentile, by nearest rank, in seconds: the merge to the payment, the whole wait, as scripts/latency_stages.py timed it over the public relay's log. Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_whole_ninety_fifth.value",
+   "equals": 58,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "1,220"
+   ],
+   "what": "the longest, in seconds: the merge to the payment, the whole wait, as scripts/latency_stages.py timed it over the public relay's log. Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_whole_slowest.value",
+   "equals": 1220,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "4"
+   ],
+   "what": "payments in which this stage is measured: the merge to the start of the workflow run (runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_runner_queue_payments.value",
+   "equals": 4,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "3"
+   ],
+   "what": "the median seconds: the merge to the start of the workflow run (runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_runner_queue_median.value",
+   "equals": 3,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "1,184"
+   ],
+   "what": "the 95th percentile, by nearest rank, in seconds: the merge to the start of the workflow run (runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_runner_queue_ninety_fifth.value",
+   "equals": 1184,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "1,184"
+   ],
+   "what": "the longest, in seconds: the merge to the start of the workflow run (runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_runner_queue_slowest.value",
+   "equals": 1184,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "4"
+   ],
+   "what": "payments in which this stage is measured: the run waiting for a runner, as GitHub records it (inside the runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_queued_payments.value",
+   "equals": 4,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "0"
+   ],
+   "what": "the median seconds: the run waiting for a runner, as GitHub records it (inside the runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_queued_median.value",
+   "equals": 0,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "0"
+   ],
+   "what": "the 95th percentile, by nearest rank, in seconds: the run waiting for a runner, as GitHub records it (inside the runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_queued_ninety_fifth.value",
+   "equals": 0,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "0"
+   ],
+   "what": "the longest, in seconds: the run waiting for a runner, as GitHub records it (inside the runner queue), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_queued_slowest.value",
+   "equals": 0,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "4"
+   ],
+   "what": "payments in which this stage is measured: the start of the workflow run to the token's comment (workflow), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_workflow_payments.value",
+   "equals": 4,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "15"
+   ],
+   "what": "the median seconds: the start of the workflow run to the token's comment (workflow), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_workflow_median.value",
+   "equals": 15,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "24"
+   ],
+   "what": "the 95th percentile, by nearest rank, in seconds: the start of the workflow run to the token's comment (workflow), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_workflow_ninety_fifth.value",
+   "equals": 24,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "24"
+   ],
+   "what": "the longest, in seconds: the start of the workflow run to the token's comment (workflow), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_workflow_slowest.value",
+   "equals": 24,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "4"
+   ],
+   "what": "payments in which this stage is measured: the token's comment to the relay picking it up (relay wait), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_relay_wait_payments.value",
+   "equals": 4,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "2"
+   ],
+   "what": "the median seconds: the token's comment to the relay picking it up (relay wait), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_relay_wait_median.value",
+   "equals": 2,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "5"
+   ],
+   "what": "the 95th percentile, by nearest rank, in seconds: the token's comment to the relay picking it up (relay wait), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_relay_wait_ninety_fifth.value",
+   "equals": 5,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "5"
+   ],
+   "what": "the longest, in seconds: the token's comment to the relay picking it up (relay wait), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_relay_wait_slowest.value",
+   "equals": 5,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "4"
+   ],
+   "what": "payments in which this stage is measured: the relay's pickup to the block of the token's first transaction (first send), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_first_send_payments.value",
+   "equals": 4,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "2"
+   ],
+   "what": "the median seconds: the relay's pickup to the block of the token's first transaction (first send), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_first_send_median.value",
+   "equals": 2,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "5"
+   ],
+   "what": "the 95th percentile, by nearest rank, in seconds: the relay's pickup to the block of the token's first transaction (first send), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_first_send_ninety_fifth.value",
+   "equals": 5,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "5"
+   ],
+   "what": "the longest, in seconds: the relay's pickup to the block of the token's first transaction (first send), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_first_send_slowest.value",
+   "equals": 5,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "4"
+   ],
+   "what": "payments in which this stage is measured: that block to the block of the transaction that paid (confirm), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_confirm_payments.value",
+   "equals": 4,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "4"
+   ],
+   "what": "the median seconds: that block to the block of the transaction that paid (confirm), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_confirm_median.value",
+   "equals": 4,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "8"
+   ],
+   "what": "the 95th percentile, by nearest rank, in seconds: that block to the block of the transaction that paid (confirm), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_confirm_ninety_fifth.value",
+   "equals": 8,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "8"
+   ],
+   "what": "the longest, in seconds: that block to the block of the transaction that paid (confirm), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_confirm_slowest.value",
+   "equals": 8,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "4"
+   ],
+   "what": "payments in which this stage is measured: the relay's pickup to its last confirmation (first send and confirm together), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_chain_payments.value",
+   "equals": 4,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "7"
+   ],
+   "what": "the median seconds: the relay's pickup to its last confirmation (first send and confirm together), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_chain_median.value",
+   "equals": 7,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "11"
+   ],
+   "what": "the 95th percentile, by nearest rank, in seconds: the relay's pickup to its last confirmation (first send and confirm together), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_chain_ninety_fifth.value",
+   "equals": 11,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "11"
+   ],
+   "what": "the longest, in seconds: the relay's pickup to its last confirmation (first send and confirm together), over the public relay's log (scripts/latency_stages.py). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.stage_chain_slowest.value",
+   "equals": 11,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "43"
+   ],
+   "what": "of those, the ones with a line that says ok (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.pay_attempts_completed.value",
+   "equals": 43,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "52"
+   ],
+   "what": "pull requests whose payment the public relay log has a line for (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.pay_attempts_asked.value",
+   "equals": 52,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "56"
+   ],
+   "what": "log lines with a token's id, one per token a relay answered for (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.pay_attempts_lines.value",
+   "equals": 56,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "13"
+   ],
+   "what": "of those lines, the ones that say fail (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.pay_attempts_failed.value",
+   "equals": 13,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "0"
+   ],
+   "what": "ok lines that took more than one try (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.pay_attempts_retried.value",
+   "equals": 0,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "1"
+   ],
+   "what": "payments completed only after a failed line (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.pay_attempts_after_failure.value",
+   "equals": 1,
+   "doc": "docs/RELAY.md"
+  },
+  {
+   "say": [
+    "9"
+   ],
+   "what": "payments asked for that no line says ok (scripts/latency_stages.py, network_stats.attempts). Measured: scripts/latency_stages.py --rpc https://api.devnet.solana.com --json on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC",
+   "json": "docs/bench.json",
+   "path": "release.pay_attempts_never.value",
+   "equals": 9,
+   "doc": "docs/RELAY.md"
   }
  ]
 }
