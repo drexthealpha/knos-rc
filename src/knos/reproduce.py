@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import http.client
 import json
 import os
 import platform
@@ -243,11 +244,16 @@ def _fetch_json(url: str):
         return json.load(r)
 
 
+# A host that could not be asked: no connection, a timeout, or an answer cut off before its end (http.client's
+# IncompleteRead is not an OSError). None of these says anything about what was asked, so none of them is a failure.
+UNASKED = (OSError, http.client.HTTPException)
+
+
 def _asked(what: str, fn, *args):
     """`fn(*args)`, with a host that could not be asked turned into a Skip that says which."""
     try:
         return fn(*args)
-    except OSError as why:
+    except UNASKED as why:
         raise Skip(f"{what} could not be asked ({' '.join(str(why).split())[:160]}). Run it again; --rpc names another Solana RPC.") from None
 
 
@@ -283,7 +289,7 @@ def payment(call, jwks: Callable[[], dict], target: dict = PAYMENT) -> dict:
             raise Fail("the token does not carry the RS256 signature of the key the chain holds")
         try:
             live = keys_of(jwks())
-        except OSError:
+        except UNASKED:
             live = None
         kid = str(head.get("kid"))
         if live is not None and kid in live and live[kid] != n:
@@ -335,7 +341,7 @@ def programs(account, feed: Callable[[], dict], ids: dict | None = None) -> dict
     ms, said, waiting, state, buffers = _asked("devnet", read)
     try:
         entries = [e for e in (feed() or {}).get("entries", []) if isinstance(e, dict)]
-    except (OSError, ValueError) as why:
+    except (*UNASKED, ValueError) as why:
         raise Skip(f"the upgrade feed at {FEED} could not be read ({' '.join(str(why).split())[:120]})") from None
     out, wrong = {"multisig": ids["upgrade_multisig"], "multisig_state": said, "programs": {}}, []
     if ms is None or ms.time_lock != mc.TIME_LOCK:

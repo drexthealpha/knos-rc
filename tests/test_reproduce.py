@@ -199,6 +199,22 @@ def test_a_failing_check_does_not_count_and_the_others_still_do():
     assert facts["capabilities"] == ["check", "order_pay"] and "upgrade_delay" not in facts["capabilities"]
 
 
+def test_an_answer_cut_off_before_its_end_is_a_host_not_asked_and_never_a_failed_check():
+    """A first real run (0.3.15) read a program's account over a connection that dropped: http.client.IncompleteRead,
+    which is not an OSError, came out as a failed check, and a failed check is a bug report. It is a skip: run it again."""
+    import http.client
+
+    def cut(_address):
+        raise http.client.IncompleteRead(b"x" * 418574, 112465)
+    row = rp.run_check("programs", lambda: rp.programs(cut, lambda: {"entries": []}))
+    assert row["result"] == "skipped" and "devnet could not be asked" in row["why"] and "Run it again" in row["why"]
+
+    def dropped(*_):
+        raise http.client.RemoteDisconnected("closed")
+    with pytest.raises(rp.Skip, match="devnet could not be asked"):
+        rp._asked("devnet", dropped, "getTransaction", [])
+
+
 # ---- scripts/capabilities.py: `reproduced` needs such a file ------------------------------------------------------------
 
 def _stage(cid: str, evidence: dict) -> dict:
