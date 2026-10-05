@@ -130,7 +130,10 @@ async function open(w, { hold = false } = {}) {
   const page = await ctx.newPage();
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
   page.on("pageerror", (e) => errors.push(String(e)));
-  await page.clock.install({ time: new Date(NOW) });
+  // install() alone leaves the page's clock running with real time (and each new document adds the real time since);
+  // paused, it moves only by runFor, so a slow runner looks as often and reads the same times as a fast one
+  await page.clock.install({ time: new Date(NOW - 1000) });
+  await page.clock.pauseAt(new Date(NOW));
   return { ctx, page, net };
 }
 const text = async (page, sel) => ((await page.textContent(sel)) || "").replace(/\s+/g, " ").trim();
@@ -240,7 +243,8 @@ const stages = (page) => page.$$eval("#live-line li", (l) => l.map((x) => `${x.d
   const step = async (upTo, want) => {
     net.w = world(start, upTo).w;
     const before = net.github.length;
-    for (let i = 0; i < 6 && (await stages(page)) !== want; i++) { await page.clock.runFor(30_000); await page.waitForFunction((n) => document.getElementById("live-watching").textContent !== n, await text(page, "#live-watching")).catch(() => {}); }
+    // the line as it was before the clock moves: read after, it may already be the new look's, and nothing would change again
+    for (let i = 0; i < 6 && (await stages(page)) !== want; i++) { const was = await text(page, "#live-watching"); await page.clock.runFor(30_000); await page.waitForFunction((n) => document.getElementById("live-watching").textContent.replace(/\s+/g, " ").trim() !== n, was).catch(() => {}); }
     return net.github.length - before;
   };
   const toMerge = await step("merge", "ask:done fund:done open:done merge:done sign:now pay:wait");
