@@ -148,7 +148,7 @@ python scripts/pinned_workflows.py lock dist/knos-0.3.16-py3-none-any.whl --writ
 python scripts/release.py workflows <checkout of knos-workflows>     # the published set with that lock, committed there
 git -C <checkout of knos-workflows> push         # the commit must exist on GitHub before anything names it
 python scripts/pinned_workflows.py stamp <that commit>               # the examples, knos.yml, docs/ and the site name it
-python scripts/small_repos.py build knos-task <checkout>             # and knos-attest, knos-claim-org: commit and push each
+python scripts/small_repos.py build knos-task <checkout>             # and knos-playground, knos-attest, knos-claim-org: commit and push each
 python scripts/release.py verify <checkout of knos-workflows>        # versions, the lock, the wheel built again, the pin
 ```
 

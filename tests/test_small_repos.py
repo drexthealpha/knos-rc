@@ -215,3 +215,14 @@ def test_the_starter_file_fails_its_checks_and_one_changed_line_passes_them(tmp_
 @pytest.mark.parametrize("name", sorted(SOURCES))
 def test_the_tree_id_is_the_one_the_pinned_workflows_script_computes(name):
     assert r.tree_id(r.files(name)) == _script("pinned_workflows").tree_id(r.files(name))
+
+
+def test_the_release_plan_rebuilds_after_the_stamp_every_repository_that_calls_the_pinned_workflows():
+    pub, plan = _script("pinned_workflows"), (ROOT / "docs" / "RELEASE.md").read_text(encoding="utf-8")
+    [step] = [ln for ln in plan.splitlines() if ln.startswith("python scripts/small_repos.py build ")]
+    callers = [name for name in r.REPOS if any(pub.NAMED.search(data.decode("utf-8")) for data in r.files(name).values())]
+    assert {"knos-task", "knos-playground", "knos-attest"} <= set(callers)          # each names the commit the stamp writes
+    assert [name for name in callers if name not in step] == [] and plan.index("pinned_workflows.py stamp") < plan.index(step)
+    # and the script's own page says which of them are templates (the playground is not one)
+    first, second, third = (n for n in r.REPOS if r.SETTINGS[n][0][2]["is_template"])
+    assert f"{first}, {second} and {third} are template repositories" in " ".join((r.__doc__ or "").split())

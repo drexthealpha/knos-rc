@@ -26,7 +26,7 @@ own files, byte for byte, with nothing in them that is not derived from the sour
                     holds examples/knos-claim-org.yml, which calls the pinned claim workflow with kind org. (A person's
                     template is drexthealpha/knos-claim, which `knos claim` uses.)
 
-The first three are template repositories on GitHub (`settings` sets `is_template` through PATCH /repos/{owner}/{repo},
+knos-task, knos-attest and knos-claim-org are template repositories on GitHub (`settings` sets `is_template` through PATCH /repos/{owner}/{repo},
 https://docs.github.com/en/rest/repos/repos#update-a-repository). Build them AFTER `pinned_workflows.py stamp`:
 the callers name the commit of the published workflows, and a caller that still held the placeholder would call
 nothing. The output has no date and no name in it: the same sources give the same tree (scripts/pinned_workflows.py,
