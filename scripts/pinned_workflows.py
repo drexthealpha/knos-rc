@@ -56,6 +56,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.util
+import os
 import re
 import sys
 from pathlib import Path
@@ -248,7 +249,10 @@ def differences(folder: Path, want: dict[str, bytes]) -> list[str]:
             said.append(f"{rel} is missing")
         elif path.read_bytes() != data:
             said.append(f"{rel} is not the file this repository publishes")
-    have = {p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file() and ".git" not in p.relative_to(folder).parts}
+    have: set[str] = set()
+    for top, dirs, names in os.walk(folder):
+        dirs[:] = [d for d in dirs if d != ".git"]      # not walked: git may be packing its loose objects there meanwhile
+        have |= {(Path(top) / n).relative_to(folder).as_posix() for n in names if n != ".git" and os.path.isfile(os.path.join(top, n))}
     said += [f"{rel} is not part of the published set" for rel in sorted(have - set(want))]
     return said
 
