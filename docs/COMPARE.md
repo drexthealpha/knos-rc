@@ -5,9 +5,10 @@ again on 3 Oct 2026. The Knos row is the second deployment (`programs-v2`) as Kn
 Solana devnet and its money is test USDC; several of the others move real money today. Where another product is
 ahead, this page says so.
 
-Knos is the neutral count and settlement for software work priced per outcome. Two comparisons follow from that.
-The first is with whoever keeps the count today. The second, which most of this page is about, is with the other
-ways to pay for a merged pull request.
+**The neutral meter for AI agent work: neither side keeps the count.** Three comparisons follow from that. The first is with whoever keeps the count today. The second is with
+the platforms and billing companies that already meter agents and move payments. The third, which most of this
+page is about, is with the other ways to pay for a merged pull request. No count of capabilities is given here:
+[CAPABILITIES.md](CAPABILITIES.md) has each one and its stage.
 
 ## Counting an accepted outcome
 
@@ -20,6 +21,20 @@ ways to pay for a merged pull request.
 Where the others are ahead here: a vendor's count needs nothing installed and comes with a company that answers
 for it. Knos's count trusts the forge's hosted runner and the pinned workflow's reading of the forge's record, runs
 on devnet, and has been used by nobody but Knos.
+
+## Platforms and billing companies
+
+| | what it sells | whose count it is | source |
+|---|---|---|---|
+| **Amazon Web Services, Bedrock AgentCore** | Agent identity, policy, evaluations and payments, as priced services for agents that run on it. A custom evaluation is listed at 1.50 USD per 1,000. | The platform's, for the agents on the platform. | [pricing](https://aws.amazon.com/bedrock/agentcore/pricing/), read 5 Oct 2026 |
+| **Stripe, Billing** | Subscription and usage billing at 0.7% of billing volume. | The seller's: it bills the usage its customer, the seller, reports. | [pricing](https://stripe.com/billing/pricing), read 5 Oct 2026 |
+| **Knos** | Acceptance that is independent of every vendor: terms fixed before the work, a verdict from evidence the forge signed, one record for every supplier, and each side's count beside the other's. | Neither side's. A difference is a named dispute, not an invoice line. | this repository |
+
+Where they are ahead: everywhere but independence. They have customers, companies that answer for the service,
+real money, and the agents already run there. Metering agents and moving payments is what they sell, so it is not
+what makes Knos different. The one thing a platform cannot be is neutral about the agents it hosts or sells, and a
+billing system cannot be neutral about the seller who is its customer. Whether buyers want that neutrality enough
+to pay for it is not known ([MARKET.md](MARKET.md), section 9).
 
 ## Paying for a merged pull request
 

@@ -321,6 +321,8 @@ refused token only when it takes the signature check on chain to tell. The token
 | of those, paid to someone other than the funder | 0 |
 | funders among them | 0 |
 | funders who funded again after one of their tasks was paid | 0 |
+| repositories that are not Knos's in which an outside funder funded a task (scripts/outsiders.py) | measured at release |
+| accounts and wallets that are not Knos's, paid by a task somebody else funded (scripts/outsiders.py) | measured at release |
 | payments timed from the merge, over the public relay's log (n) | 39 |
 | seconds from the merge to the payment, median (p50) | 25 |
 | seconds from the merge to the payment, 95th percentile (p95) | 164 |

@@ -55,6 +55,53 @@ them, with the repository's own key, took a median of 22 s and, at the 95th perc
 `merged_at` to the block of the paying transaction ([CAPABILITIES.md](CAPABILITIES.md), "The 0.3.14 rehearsal on
 devnet", item 10). The public relay's own figure, over its log, is in [BENCH.md](BENCH.md).
 
+## The five states of a payment
+
+One vocabulary, used the same in the workflow's comment, in the relay's log and on the site. Each state has one
+timestamp, and each timestamp says whose clock it is read from.
+
+| State | What has happened | Its timestamp is taken from | The wait before it is |
+| --- | --- | --- | --- |
+| `received` | the event (a merge, a `/knos settle` comment, the judge's success) reached `knos settle` | the job's clock when the command starts (`Run.began`) | GitHub's: starting a runner for the push, and the install step. Nobody but GitHub shortens the first; no Knos code runs before it |
+| `accepted` | the terms were checked against the pull request's last commit and passed, and GitHub signed the token for this run | the job's clock, right after GitHub's OIDC endpoint answered | Knos's reads of GitHub and Solana, a required check that has not finished (GitHub's), and GitHub's signature |
+| `submitted` | the relay handed the first transaction to the cluster | the relay's clock at its first send: the job's own when it relays its token (`KNOS_RELAY_KEY`), else the `sent_at` of the public worker's log line | the relay's: for the public worker, a pass reading the comment (see "Where a token waits") |
+| `confirmed` | the paying transaction reached Solana's `confirmed` commitment | the relay's clock when its last transaction confirmed (`confirmed_at`) | the cluster's |
+| `finalized` | the cluster finalized that transaction | the job's clock when `getSignatureStatuses` first answered `finalized`, asked for at most 40 s (`FINAL_WAIT`) | the cluster's. The payment is said at `confirmed`; this state is added to the same comment afterwards |
+
+Where each is written:
+
+- **One comment on the pull request.** `knos settle` posts it at `received` ("Knos: received."), edits it at `accepted`
+  ("Knos: accepted, settling.") before the token goes anywhere, and edits it again into the comment a settlement has
+  always written (paid, held, or why not) with the time of every state under it, then once more when the payment is
+  finalized. It is never a new comment per state: one settlement is one comment creation. A pull request with nothing
+  in escrow still gets no comment from a push. Under the words the comment carries one line for people (each state,
+  its UTC time, the seconds since the merge) and one for programs:
+  `<!-- knos-states since=<t> received=<t> accepted=<t> submitted=<t> confirmed=<t> finalized=<t> tx=<signature>`
+  (Unix seconds; a state not reached is absent). `web/live.js` shows the five states of the canary's latest round
+  from that line.
+- **The relay's log line.** Every `ok` line carries `queued_at=`, `seen_at=`, `sent_at=` and `confirmed_at=` (Unix
+  seconds), whoever relayed: the public worker writes it to its log, a job that relays its own token writes the same
+  line into its comment and onto the run's page, and `knos relay --token-file` prints it on standard error, beside the JSON result on standard output.
+  `queued_at` is when the token was posted for a relay, which is the moment after `accepted`. A token the chain
+  already showed done was sent by someone else: its line says `sent_at=-` and `confirmed_at=-`.
+- **The status view.** `web/status_data.js` gives the five states of the newest carried token from its log line
+  (`latest`); the log never has `finalized`, because no relay waits for it.
+
+What is not done, and why:
+
+- **No commit status or check on the merge commit.** Writing one needs `statuses: write` (or `checks: write`). The
+  `settle` job of `prove.yml` has `statuses: read`, and GitHub starts a called workflow only when the calling job
+  grants what it asks for, so the permission would have to be added to every adopter's `knos.yml` before their next
+  merge could be paid. The comment carries the states instead.
+- **`submitted` is not shown while the transaction is in flight** when the job relays its own token: an edit there
+  would be a request to GitHub in the middle of the send. `submitted` and `confirmed` are written together, each
+  with its own time.
+- **The two clocks differ.** `submitted` and `confirmed` come from the public worker's clock when it relayed, the
+  others from the job's. A state is never shown earlier than the one before it.
+- **No figure on this page was measured with these states.** They are in the repository and its tests;
+  `scripts/latency_stages.py` reports them (n, p50, p95, max for each state) for every payment whose log line
+  carries the four times, and lists the payments it cannot place by token.
+
 ## Where a token waits
 
 What was measured. The site's files of 5 October 2026, 00:37 UTC
@@ -135,6 +182,15 @@ What a relay keeps, in `KNOS_HOME/ghrelay.json` (the public worker saves the fol
 - **A status line.** Once a minute the log repository's own worker (`worker.yml` of the repository that holds the log; a relay
   of your own writes none unless `KNOS_RELAY_STATUS=1`) rewrites one comment of its log:
   `knos-relay status - - ok at=<time> round=<s> tokens=<n> waiting=<n> oldest=<s> retried=<n> refused=<n>`.
+  Under it, in the same comment, the last 10 tokens the relay took up (`ROUNDS`), newest first, one line each:
+  `knos-relay round <owner/repo>#<n> <first 8 of the token id> ok order=<address or -> state=<state> seconds=<s> kind=<kind>`.
+  So a round is found in the comment without reading the relay's notes. The comment stays under 2,600 characters.
+- **Two runs at a handover log a token once.** `worker.yml` starts the next run before this one stops, so two runs
+  relay together for some seconds. The run that finds the chain already shows a token done, on its first try of it, does not write
+  its line at once: it keeps it for 15 s (`ALREADY_WAIT`), reads the log again on each pass, drops the line when the other run's
+  own line is there, and writes it when none came (a stranger carried the token). In the 0.3.15 run one funding was
+  logged twice at a handover, with the same three signatures; `tests/test_ghrelay.py` reproduces that with two
+  overlapping runs.
   `web/status_data.js` turns the log and `stats.json` into what a status view shows: whether the worker ran in the
   last 10 minutes, the last pass and how long it took, the tokens waiting and the oldest's age, and the refusals
   (with reasons) and retries of the last 24 hours.
