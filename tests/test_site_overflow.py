@@ -40,8 +40,11 @@ def _run(tmp_path: Path, script: str, says: str) -> None:
                            env=env, capture_output=True, text=True, encoding="utf-8", timeout=120)
     assert built.returncode == 0, built.stdout + built.stderr
     run = subprocess.run([node, str(ROOT / "tests" / "web" / script), str(site)], env=env, capture_output=True, text=True, encoding="utf-8", timeout=600)
-    if run.returncode == 0 and run.stdout.startswith("SKIP"):
-        pytest.skip(run.stdout.strip()[5:])
+    said = run.stdout.strip().splitlines()
+    if run.returncode == 0 and said and said[-1].startswith("SKIP"):
+        # a script may hold what needs no browser (motion.mjs's weights) before it looks for one: those still count
+        assert all(line.startswith("ok") for line in said[:-1]) and "FAIL" not in run.stderr, run.stdout + run.stderr
+        pytest.skip(said[-1][5:])
     assert run.returncode == 0, "\n".join(line for line in (run.stdout + run.stderr).splitlines() if not line.startswith("ok"))
     assert says in run.stdout
 
