@@ -45,10 +45,10 @@
   "tx": "63wT5rhYhEKbgmF5k8vEKdexzoCaXZCiDvRG2GQMGSMBBsc9avGfDw3izER9D6LHoe4ucJeinTBiWaWGWpnFWvfq",
   "amount": "10.00",
   "seconds": 25,
-  "payments": 39,
+  "payments": 40,
   "window": {
    "from": "2026-10-02",
-   "to": "2026-10-04"
+   "to": "2026-10-05"
   }
  },
  "replay": {

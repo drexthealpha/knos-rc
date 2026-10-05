@@ -123,16 +123,16 @@ The job's own relay is the job sending the transactions itself with a fee key th
 | Workflow jobs | 2 | 2 | counted |
 | GitHub requests with the repository's token, the work itself | 29 | 31 | counted |
 | Reads of the relay log while waiting, at the median wait | 0 | 20 | derived: one read every 3 s for the median of merge-to-paid, 25 s |
-| the same at the p95 wait (164 s) | 0 | 112 | derived |
+| the same at the p95 wait (58 s) | 0 | 42 | derived |
 | the same when no relay answers (600 s) | 0 | 404 | derived |
-| Requests in all, at the p95 wait | 29 | 143 | counted + derived |
+| Requests in all, at the p95 wait | 29 | 73 | counted + derived |
 | Comments made in the repository | 3 | 5 | counted |
 | Comments the public worker adds to its log | 0 | 2 | from the code (`ghrelay.once` logs a carried token at once) |
 | Tokens GitHub signs (OIDC) | 2 | 2 | counted |
 | Solana transactions | 12 | 12 | measured in the simulator (section 2) |
 | Bytes of signed transactions | 8,647 | 8,647 | measured in the simulator (p50) |
 | Compute units | 3,559,369 | 3,559,369 | measured in the simulator (mean) |
-| Seconds from merge to paid | not timed apart | median 25, p95 164 | recorded on devnet: 39 payments in the public relay's log, 2026-10-02 to 2026-10-04 (`docs/bench.json`) |
+| Seconds from merge to paid | not timed apart | median 25, p95 58 | recorded on devnet: 40 payments in the public relay's log, 2026-10-02 to 2026-10-05 (`docs/bench.json`) |
 | Actions minutes | not measured | not measured | a job's time on the runner was not recorded; standard runners are free in public repositories |
 | RPC requests to send the transactions | not measured | not measured | |
 
@@ -157,11 +157,11 @@ For a customer with R repositories and N accepted deliverables a day, the work s
 | Repositories | Deliverables a day | Token carried by | Binds first | Binds at (a day) | This volume fits | Limits this volume is past |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 10 | the job's own relay | GITHUB_TOKEN requests an hour | 827 | yes | none |
-| 1 | 10 | the public worker | GITHUB_TOKEN requests an hour | 167 | yes | none |
-| 10 | 1,000 | the job's own relay | concurrent jobs (Free plan) | 5,268 | yes | none |
-| 10 | 1,000 | the public worker | GITHUB_TOKEN requests an hour | 1,678 | yes | none |
-| 100 | 100,000 | the job's own relay | concurrent jobs (Free plan) | 5,268 | **no** | the meter's statement, recomputed from the logs; concurrent jobs (Free plan); GITHUB_TOKEN requests an hour |
-| 100 | 100,000 | the public worker | the public relay's pass, one token at a time | 1,728 | **no** | the public relay's pass, one token at a time; the meter's statement, recomputed from the logs; concurrent jobs (Free plan); the public relay's log comments; GITHUB_TOKEN requests an hour |
+| 1 | 10 | the public worker | GITHUB_TOKEN requests an hour | 328 | yes | none |
+| 10 | 1,000 | the job's own relay | GITHUB_TOKEN requests an hour | 8,275 | yes | none |
+| 10 | 1,000 | the public worker | the public relay's pass, one token at a time | 1,728 | yes | none |
+| 100 | 100,000 | the job's own relay | concurrent jobs (Free plan) | 14,896 | **no** | the meter's statement, recomputed from the logs; concurrent jobs (Free plan); GITHUB_TOKEN requests an hour |
+| 100 | 100,000 | the public worker | the public relay's pass, one token at a time | 1,728 | **no** | the public relay's pass, one token at a time; the meter's statement, recomputed from the logs; the public relay's log comments; concurrent jobs (Free plan); GITHUB_TOKEN requests an hour |
 
 Every limit, for the largest of the three (100 repositories, 100,000 a day), soonest first:
 
@@ -169,9 +169,9 @@ Every limit, for the largest of the three (100 repositories, 100,000 a day), soo
 | --- | --- | --- | --- | --- |
 | the public relay's pass, one token at a time (the public worker) | every customer of the public worker | 1,728 | 2 tokens a deliverable, carried one after another; a token taken as the median of merge-to-paid, 25 s (recorded; it includes the runner's start, so the relay's own share is smaller and one relayer carries at least this many) | the job's own relay; or several relayers (anyone can run one: the chain takes each token once, whoever carries it) |
 | the meter's statement, recomputed from the logs | each buyer and seller, each month | 3,333 | `knos statement --meter` reads at most 100,000 transactions of a month's account, one RPC request each (src/knos/settle/v2/meter.py); a 30-day month, one evaluation a deliverable, one transaction an evaluation. Not a limit on the work: past it the month's account is still the count, and the recomputation from logs is cut short | batching the meter: one RecordBatch token carries up to 100,000 evaluations under one Merkle root, so a month is a few transactions whatever its volume |
-| concurrent jobs (Free plan) | the customer's account | 5,268 | 2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 164 s (recorded, 39 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub) | a larger plan (Pro 40, Team 60, Enterprise 500); self-hosted runners, which this limit does not count |
 | the public relay's log comments (the public worker) | every customer of the public worker | 6,000 | 2 tokens a deliverable, one log comment each (src/knos/proof/ghrelay.py posts a carried token's line at once); 500 content-generating requests an hour (GitHub) | the job's own relay with the repository's fee key (KNOS_RELAY_KEY): nothing is logged by the public worker; or several workers, each logging in a repository of its own (KNOS_RELAY_LOG_REPO) |
-| GITHUB_TOKEN requests an hour (the public worker) | each repository | 16,783 | 143 requests a deliverable (23 reads and 8 writes counted, 112 polls of the relay log at the p95 wait); 1,000 an hour for a repository (GitHub) | the job's own relay (no polling); more repositories; GitHub Enterprise Cloud (15,000 an hour) |
+| concurrent jobs (Free plan) | the customer's account | 14,896 | 2 jobs a deliverable (counted), each taken as busy for the p95 of merge-to-paid, 58 s (recorded, 40 samples; a job's own time on the runner was not measured apart); 20 jobs at once (GitHub) | a larger plan (Pro 40, Team 60, Enterprise 500); self-hosted runners, which this limit does not count |
+| GITHUB_TOKEN requests an hour (the public worker) | each repository | 32,876 | 73 requests a deliverable (23 reads and 8 writes counted, 42 polls of the relay log at the p95 wait); 1,000 an hour for a repository (GitHub) | the job's own relay (no polling); more repositories; GitHub Enterprise Cloud (15,000 an hour) |
 | GITHUB_TOKEN requests an hour (the job's own relay) | each repository | 82,758 | 29 requests a deliverable (23 reads and 6 writes counted); 1,000 an hour for a repository (GitHub) | more repositories; GitHub Enterprise Cloud (15,000 an hour) |
 | comments made in one repository (the public worker) | each repository | 240,000 | 5 comments a deliverable (counted); 500 content-generating requests an hour (GitHub) | more repositories; or the job's own relay, which posts no token comment |
 | comments made in one repository (the job's own relay) | each repository | 400,000 | 3 comments a deliverable (counted); 500 content-generating requests an hour (GitHub) | more repositories |
@@ -187,7 +187,7 @@ What this says. The public worker is a convenience for small volumes. The reads 
 | --- | --- |
 | Compute units, transactions and bytes of an order; paid once, none lost | measured in the local simulator, 1,000 orders (sections 1 and 2) |
 | Token verification, funding from a wallet, refund and close on a cluster | measured on devnet, 2026-10-04: 200 orders, 0 failures (section 4). PayOrder, funding from a Balance and the meter were not sent in that run |
-| Seconds from merge to paid | recorded on devnet, 39 payments (`docs/bench.json`) |
+| Seconds from merge to paid | recorded on devnet, 40 payments (`docs/bench.json`) |
 | Requests, comments, tokens and jobs of a word | counted from the code against a stand-in for GitHub; not observed on GitHub |
 | Limits of GitHub and of Solana | published by them, read on 2026-10-05 (links below); GitHub says its secondary limits may change without notice, and its page does not say whether the content limit is counted per repository for a workflow's token, which this page assumes |
 | Cluster rates, the relay log polling, statement requests, every "binds at" | derived |
