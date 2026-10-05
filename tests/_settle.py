@@ -34,10 +34,10 @@ class SeedKey:
     (pins.rs TEST_GENESIS). Signs PKCS#1 v1.5 SHA-256 in plain Python."""
     DIGEST_INFO = bytes.fromhex("3031300d060960864801650304020105000420")
 
-    def __init__(self, bits: int):
+    def __init__(self, bits: int, seed: str | None = None):
         import math
         import random
-        rng = random.Random(f"knos-oidc test key {bits}")
+        rng = random.Random(seed or f"knos-oidc test key {bits}")
         count = 2 if bits == 2048 else 4
         size = bits // count
 
