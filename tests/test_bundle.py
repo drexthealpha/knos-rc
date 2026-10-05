@@ -211,6 +211,19 @@ def test_no_bundle_is_made_when_the_verdict_does_not_follow_or_the_chain_is_gone
         bundle.gather(gone.call, gone.events(), ORDER, host())
 
 
+def test_the_payment_of_an_issues_bounty_is_named_for_what_it_is_and_no_bundle_is_made_of_it():
+    """The first real run (0.3.15) on the public program ids, where every payment is an issue's bounty (knos2 lines):
+    `knos bundle make` of knos-e2e issue 211's paying transaction said the history showed no payment of it."""
+    paid_tx, keys = _sig(70), [RELAYER, _addr(71), PAY]
+    events = [{"event": "funded", "v": 2, "at": NOW, "tx": _sig(69), "signer": RELAYER, "keys": keys, "repo": REPO, "issue": 211, "amount": 5_000_000,
+               "mode": 0, "by": SELLER, "source": FUNDER, "faucet": 1},
+              {"event": "paid", "v": 2, "at": NOW + 59, "tx": paid_tx, "signer": RELAYER, "keys": keys, "repo": REPO, "issue": 211, "payee": SELLER,
+               "amount": 4_875_000, "fee": 125_000, "to": WALLET}]
+    with pytest.raises(ValueError, match=rf"{paid_tx} is the payment of an issue's bounty \(repository id {REPO}, issue 211\), not of a work order"):
+        bundle.gather(None, events, paid_tx, None)
+    with pytest.raises(bundle.Unavailable, match="shows no payment"):     # what the history does not hold is still not there
+        bundle.gather(None, events, _sig(72), None)
+
 def test_the_mirror_is_deterministic_keeps_what_the_chain_lost_and_verify_reads_it(net, built, tmp_path, monkeypatch):
     from knos import cli
     r = built[0]

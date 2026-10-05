@@ -681,6 +681,11 @@ def gather(call, events: list[dict], target: str, get, published=None, verdict: 
     hit = next(((o, row["tx"]) for o in reversed(orders) for row in o["payments"]
                 if row["kind"] == "paid" and (row["tx"] == target or (o["order"] == target and row["tx"] == o.get("paid_tx")))), None)
     if hit is None:
+        bounty = next((j for j in records.jobs_of(events)[0] if j["state"] == "paid" and target in (j["paid_tx"], j["address"])), None)
+        if bounty is not None:
+            raise ValueError(f"{target} is the payment of an issue's bounty (repository id {bounty['repo']}, issue {bounty['issue']}), not of a "
+                             "work order: a receipt and its bundle are built from a work order's payment, whose token names the order, its "
+                             "terms and the commit (docs/RECEIPT.md)")
         raise Unavailable(f"the escrow's history on this cluster shows no payment of {target}")
     o, sig = hit
     if o["private"] or not o["terms"]:
