@@ -95,8 +95,10 @@ def test_a_second_deployment_is_a_job_beside_the_first_not_more_steps_in_it():
             "tests/test_order*.py", "tests/test_meter*.py", "tests/test_passkey*.py", "tests/test_cpi_fund.py", "tests/test_workflow_vault.py",
             "tests/test_upgrade_gate.py"} <= paths
     # every path the workflow watches exists (a pattern that matches nothing is a trigger that never fires)
+    # the first match is enough: walking all of `crates/**` races a test beside this one whose cargo build writes and
+    # removes files under crates/*/target while the walk lists them
     for path in paths:
-        assert list(ROOT.glob(path)) or (ROOT / path).exists(), path
+        assert next(iter(ROOT.glob(path)), None) is not None or (ROOT / path).exists(), path
     # what the job keeps: every program its workspace built (the second deployment's four, the first's two)
     upload = next(s for s in build["steps"] if (s.get("with") or {}).get("name") == "programs${{ matrix.suffix }}")
     assert upload["with"]["path"] == "${{ matrix.workspace }}/target/deploy/knos_*.so" and upload["with"]["if-no-files-found"] == "error"
