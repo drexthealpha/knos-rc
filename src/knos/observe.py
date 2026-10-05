@@ -201,6 +201,17 @@ def _find(src, target: str) -> tuple[str, list[dict]]:
     return order, src.transactions(order, RECENT) if order else []
 
 
+def _bounty(src, target: str, txs: list[dict]) -> dict | None:
+    """The first line of an issue's bounty (a job: knos2:funded, paid, ...) in `txs`, or in the transaction `target`
+    names; None when there is none. A bounty is not a work order, and is not to be called nothing."""
+    if not txs:
+        try:
+            txs = [tx for tx in [src.transaction(target)] if tx] if len(_unb58(target)) == 64 else []
+        except ValueError:
+            txs = []
+    return next((ev for ev in events_in(txs) if ev["event"] in records.JOB_EVENTS and "repo" in ev), None)
+
+
 def _about(events: list[dict], address: str) -> list[dict]:
     """The events of one order: the lines that name it, and the terms line that follows its funding (which names none)."""
     out: list[dict] = []
@@ -218,6 +229,11 @@ def order_facts(src, target: str, names=None) -> dict:
     mine = _about(events_in(txs), address)
     orders, _ = records.orders_of(mine)
     if not orders:
+        bounty = _bounty(src, target, txs)
+        if bounty is not None:
+            raise LookupError(f"{target} is an issue's bounty (repository id {bounty['repo']}, issue {bounty['issue']}), not a work order: its escrow's "
+                              f"lines are knos2:{bounty['event']}, and this table is read from a work order's (knos3) lines. "
+                              f"Its payments are in the graph: knos observe --graph <the funder's GitHub id>.")
         raise LookupError(f"No work order was found for {target}: the Knos programs logged nothing about it in the transactions this cluster gave.")
     o = orders[-1]                    # an address is used again once its order is closed: the newest one
     private, source = o["private"], o["source"]
@@ -321,33 +337,48 @@ def _cadence(times: list[int]) -> dict:
             "median_days_between": round(statistics.median(gaps) / 86_400, 2) if gaps else None}
 
 
+def _owner(o: dict) -> int:
+    """The GitHub id whose money an order or a bounty is: its Balance's owner, or the commenter who funded it from a
+    Balance the history read does not show opened (the devnet faucet's, opened long before)."""
+    return int(o["owner"] or (o.get("by") or 0 if o.get("from_balance", True) else 0))
+
+
+def _payments(o: dict) -> list[dict]:
+    """An order's payments; a bounty's one payment, once it is paid, in the same shape."""
+    if "payments" in o:
+        return o["payments"]
+    return [{"payee": o["payee"], "amount": o["net"], "to": o.get("to", ""), "at": o["paid_at"], "kind": "paid"}] if o["state"] == "paid" else []
+
+
 def graph(events: list[dict], owner_id: int, names=None) -> dict:
     """The commercial relationships of one GitHub id, from the escrow's log alone: {"owner", "name", "orders",
-    "private_orders", "funded", "pays": [...], "paid_by": [...]}. `pays`: each supplier a Balance of this id paid
+    "bounties" (issues' bounties, paid as an order is), "private_orders", "funded", "pays": [...], "paid_by": [...]}. `pays`: each supplier a Balance of this id paid
     ({id, name, wallets, orders, paid, sizes, first, last, payments, median_days_between}); `paid_by`: each funder that
     paid this id. A private order is in it like any other: its line names the payee, the amount and the time."""
-    orders, _ = records.orders_of(events)
+    work, _ = records.work_of(events)     # work orders (knos3) and issues' bounties (knos2): a bounty is paid as an order is
     sides: dict[str, dict] = {"pays": {}, "paid_by": {}}
-    for o in orders:
-        for p in o["payments"]:
+    for o in work:
+        for p in _payments(o):
             if p["kind"] not in ("paid", "released", "kill") or not p["payee"]:
                 continue
-            for side, who, here in (("pays", p["payee"], o["owner"] == owner_id), ("paid_by", o["funder"], p["payee"] == owner_id)):
+            for side, who, here in (("pays", p["payee"], _owner(o) == owner_id), ("paid_by", o["funder"], p["payee"] == owner_id)):
                 if here:
                     c = sides[side].setdefault(who, {"orders": set(), "wallets": set(), "units": 0, "sizes": [], "times": [], "private": 0})
-                    c["orders"].add((o["order"], o["tx"]))
+                    c["orders"].add((o["address"], o["tx"]))
                     c["wallets"] |= {p["to"]} if p["to"] else set()
                     c["units"] += p["amount"]
                     c["sizes"].append(p["amount"])
                     c["times"].append(p["at"])
-                    c["private"] += o["private"]
+                    c["private"] += o.get("private", False)
     def told(who, c: dict) -> dict:
         number = who if isinstance(who, int) else int(who[3:]) if str(who).startswith("gh:") else 0
         return {"id": who, "name": names.user(number) if names is not None and number else "", "wallets": sorted(c["wallets"]), "orders": len(c["orders"]),
                 "paid": records.units_text(c["units"]), "paid_units": c["units"], "sizes": [records.units_text(a) for a in c["sizes"]],
                 "payments_of_private_orders": c["private"], **_cadence(sorted(c["times"]))}
-    mine = [o for o in orders if o["owner"] == owner_id]
-    return {"owner": owner_id, "name": names.user(owner_id) if names is not None else "", "orders": len(mine), "private_orders": sum(o["private"] for o in mine),
+    mine = [o for o in work if _owner(o) == owner_id]
+    orders = [o for o in mine if "payments" in o]
+    return {"owner": owner_id, "name": names.user(owner_id) if names is not None else "", "orders": len(orders), "bounties": len(mine) - len(orders),
+            "private_orders": sum(o["private"] for o in orders),
             "funded": records.units_text(sum(o["amount"] for o in mine)), "sources": sorted({o["source"] for o in mine}),
             **{side: sorted((told(who, c) for who, c in got.items()), key=lambda r: -r["paid_units"]) for side, got in sides.items()}}
 
@@ -383,8 +414,9 @@ def table_text(facts: dict) -> list[str]:
 
 
 def graph_text(g: dict) -> list[str]:
-    out = [f"GitHub id {g['owner']}{' (' + g['name'] + ')' if g['name'] else ''}: {g['orders']} work orders funded from its Balances "
-           f"({g['private_orders']} private), {g['funded']} in all."]
+    out = [f"GitHub id {g['owner']}{' (' + g['name'] + ')' if g['name'] else ''}: {g['orders']} work orders "
+           + (f"and {g['bounties']} {'bounty on an issue' if g['bounties'] == 1 else 'bounties on issues'} " if g.get("bounties") else "")
+           + f"funded from its Balances ({g['private_orders']} private), {g['funded']} in all."]
     for side, word in (("pays", "It pays"), ("paid_by", "It is paid by")):
         for c in g[side]:
             every = "" if c["median_days_between"] is None else f", a payment every {c['median_days_between']} days (median)"
