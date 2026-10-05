@@ -54,6 +54,7 @@ PERMISSIONS = {      # exactly what each job's command needs, and nothing else
 }
 SETUP_UV = {"version": "0.8.20", "python-version": "3.12", "enable-cache": False, "ignore-empty-workdir": True}
 SIGNS = {("fund.yml", "command"), ("prove.yml", "settle"), ("prove.yml", "attest"), (ATTEST, "attest")}      # the called jobs that mint a token
+LOCKED = SIGNS | {(ATTEST, "refused")}      # the called jobs that install from the lock: those, and the one that posts a refused verdict
 ATTEST_COMMAND = 'knos attest --repository "$R" --pull "$P" --order "$O" --kind "$K" ${PAYEES:+--payees "$PAYEES"}'
 ATTEST_INPUTS = ("repository", "pull", "order", "kind", "payees")
 # What a job that signs runs to install: every file named by its hash, nothing resolved, nothing built, and the list
@@ -106,7 +107,7 @@ def _mine() -> list[Path]:
 
 def _install(name: str, job: str) -> str:
     """The one script that installs knos in a job of the three called workflows."""
-    if (name, job) in SIGNS:
+    if (name, job) in LOCKED:
         return LOCKED_INSTALL
     return (JUDGE_INSTALL if job == "judge" else INSTALL).format(release=_release())
 
@@ -464,7 +465,7 @@ def test_no_caller_can_change_which_code_judges():
             steps.append(uv["with"])
             assert install["run"] == _install(name, job_name)
             assert "--no-config" in install["run"]
-            if (name, job_name) in SIGNS:
+            if (name, job_name) in LOCKED:
                 # named by hash: no date cutoff, which hashes make moot; the list is the one thing a release writes in
                 assert "env" not in install and "--require-hashes" in install["run"] and "UV_EXCLUDE_NEWER" not in json.dumps(job)
             else:
@@ -1071,7 +1072,9 @@ def test_attest_takes_facts_never_code_reads_the_public_record_and_asks_for_one_
     assert {k: (v["required"], v["type"]) for k, v in called.items()} == {
         "repository": (True, "string"), "pull": (True, "number"), "order": (True, "string"), "kind": (True, "string"), "payees": (False, "string")}
     assert "secrets" not in doc["on"]["workflow_call"] and "secrets." not in json.dumps(doc)       # no secret, optional or not
-    assert doc["permissions"] == {} and list(doc["jobs"]) == ["rerun", "attest"]
+    assert doc["permissions"] == {} and list(doc["jobs"]) == ["rerun", "attest", "refused"]
+    # the third job only says why nothing was signed (tests/test_attest_rerun.py): it can ask for no token
+    assert doc["jobs"]["refused"]["permissions"] == {"contents": "read", "issues": "write"} and doc["jobs"]["refused"]["cache-mode"] == "read"
     job = doc["jobs"]["attest"]
     # read GitHub's record; post the signed statement on the "knos tokens" issue, where a relayer finds it; the statement itself
     assert job["permissions"] == {"contents": "read", "issues": "write", "id-token": "write"}
@@ -1371,14 +1374,14 @@ def test_the_published_set_is_the_source_byte_for_byte_with_the_lock_written_in(
     for name in PUBLISHED:
         published, source = (out / ".github" / "workflows" / name).read_text(encoding="utf-8"), (WF / name).read_text(encoding="utf-8")
         assert "KNOS_LOCK" not in published, name                          # written in everywhere it stood
-        assert published.count(text.rstrip("\n").splitlines()[-1]) == sum(1 for j in _jobs(name) if (name, j) in SIGNS), name
+        assert published.count(text.rstrip("\n").splitlines()[-1]) == sum(1 for j in _jobs(name) if (name, j) in LOCKED), name
         for job_name, job in _doc(out / ".github" / "workflows" / name)["jobs"].items():
-            if (name, job_name) in SIGNS:    # the published job installs from exactly the published list, hash by hash
+            if (name, job_name) in LOCKED:    # the published job installs from exactly the published list, hash by hash
                 run = _installer(job)["run"]
                 assert run.split("<<'LOCK'\n")[1].split("\nLOCK\n")[0] == text.rstrip("\n"), (name, job_name)
                 assert "--require-hashes" in run
         # and in the source it is the one word KNOS_LOCK in those jobs, so an unfilled copy installs nothing
-        assert source.count("\n          KNOS_LOCK\n") == sum(1 for j in _jobs(name) if (name, j) in SIGNS), name
+        assert source.count("\n          KNOS_LOCK\n") == sum(1 for j in _jobs(name) if (name, j) in LOCKED), name
     assert (out / "LICENSE").read_bytes() == (ROOT / "LICENSE").read_bytes()
     readme = (out / "README.md").read_text(encoding="utf-8")
     assert f"knos {_release()} from PyPI" in readme and "REHEARSAL" not in readme and all(f"`.github/workflows/{n}`" in readme for n in PUBLISHED)

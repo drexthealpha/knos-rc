@@ -21,7 +21,8 @@ name: knos attest (reusable workflow)
 # (attest) reads that verdict as untrusted text, reads the order, the pull request and the bundle again itself, and
 # asks for the token only for a verdict that passed on exactly that order, pull request, pair of commits and bundle.
 # When the suite does not pass here, the first job fails, the second never starts, and nothing is signed, whatever
-# the check results in the order's repository say.
+# the check results in the order's repository say. A third job (refused) then starts instead: it can ask for no token
+# either, and it posts the failed verdict as a `knos-verdict:` comment that says why nothing was signed.
 # An order that is paid on the merge has no suite to run: its terms name checks of the repository's own, and those
 # cannot be run from outside. The first job then runs nothing, and the verdict says: "this judge read the buyer
 # repository's check results; it did not run them".
@@ -255,6 +256,45 @@ jobs:
           LOCK
           echo "$RUNNER_TEMP/knos/bin" >> "$GITHUB_PATH"
       - name: knos attest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          R: ${{ inputs.repository }}
+          P: ${{ inputs.pull }}
+          O: ${{ inputs.order }}
+          K: ${{ inputs.kind }}
+          PAYEES: ${{ inputs.payees }}
+          KNOS_RERUN: ${{ needs.rerun.outputs.verdict }}    # the first job's verdict: text this command validates and does not trust
+        run: knos attest --repository "$R" --pull "$P" --order "$O" --kind "$K" ${PAYEES:+--payees "$PAYEES"}
+
+  # Says why nothing was signed. It starts only when the job above failed after it reached a verdict (the suite ran
+  # here and did not pass), runs the same command as attest with that verdict, and has no id-token permission: the
+  # command refuses the verdict, posts it as a `knos-verdict:` comment on the "knos tokens" issue with the reasons,
+  # and ends 1. Like attest it checks nothing out and runs nothing of the pull request.
+  refused:
+    needs: rerun
+    if: ${{ failure() && needs.rerun.outputs.verdict != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    cache-mode: read
+    permissions:
+      contents: read          # GitHub's public record, read through its API (there is no checkout)
+      issues: write           # the verdict is posted on the "knos tokens" issue of the repository the run is in
+    steps:
+      - name: uv, with no cache
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.8.20"
+          python-version: "3.12"
+          enable-cache: false      # nothing is restored into a job that runs here, and nothing is saved from it
+          ignore-empty-workdir: true
+      - name: install knos and what it needs, each by its hash, and nothing else
+        run: |
+          uv venv --no-config --python 3.12 "$RUNNER_TEMP/knos"
+          uv pip install --no-config --python "$RUNNER_TEMP/knos/bin/python" --require-hashes --no-deps --no-build -r - <<'LOCK'
+          KNOS_LOCK
+          LOCK
+          echo "$RUNNER_TEMP/knos/bin" >> "$GITHUB_PATH"
+      - name: knos attest, refused, with the reasons posted
         env:
           GH_TOKEN: ${{ github.token }}
           R: ${{ inputs.repository }}

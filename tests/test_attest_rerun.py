@@ -131,6 +131,35 @@ def test_the_buyers_checks_say_success_and_the_suite_fails_when_it_is_run_again_
     assert code == 1 and w.signer.asked == [] and "this order is paid by its acceptance checks, and they were not run again here" in text
 
 
+def test_a_suite_that_fails_when_it_is_run_again_is_posted_as_a_verdict_that_says_why_nothing_was_signed(tmp_path):
+    # attest.yml's job `refused`: after the first job failed with a verdict, the same command, with no id-token, posts
+    # that verdict on the "knos tokens" issue with the reason, signs nothing and ends 1 (the first job of 0.3.15's
+    # real run left the verdict only in its log and its artifact)
+    w, head, trees = staged(tmp_path)
+    code, out, _text = rerun(w, trees, Judge(passed=False))
+    assert code == 1 and json.loads(out["verdict"])["passed"] is False
+    sellers = Sellers(w)
+    w.env.pop("KNOS_RELAY_KEY")
+    code, run, text = signs(w, out["verdict"], sellers)
+    assert code == 1 and w.signer.asked == [] and "token" not in run.outputs and len(w.chain.orders(7)) == 1
+    [said] = sellers.comments
+    first, *rest = said["body"].split("\n")
+    assert said["issue"] == 1 and sellers.issues[0]["title"] == "knos tokens" and first.startswith(flow.VERDICT)
+    assert json.loads(first.removeprefix(flow.VERDICT)) == json.loads(out["verdict"]) == json.loads(run.outputs["verdict"])
+    assert f"How this run reached its verdict: {RAN}" in said["body"]
+    assert said["body"].endswith("\n\nNothing was signed: the acceptance suite did not pass when it was run again here: pr: acceptance checks not "
+                                 "passed: blackbox. Whatever the check results in the order's repository say, this judge signs only what it ran itself.")
+    assert "nothing was signed" in text
+    # the workflow: the job that posts it starts only after a failed first job that handed on a verdict, and cannot sign
+    yaml = pytest.importorskip("yaml")
+    jobs = yaml.safe_load((Path(__file__).resolve().parents[1] / ".github" / "workflows" / "attest.yml").read_text(encoding="utf-8"))["jobs"]
+    refused, attest = jobs["refused"], jobs["attest"]
+    assert refused["needs"] == "rerun" and refused["if"] == "${{ failure() && needs.rerun.outputs.verdict != '' }}" and "if" not in attest
+    assert refused["permissions"] == {"contents": "read", "issues": "write"}
+    for key in ("uses", "with", "run", "env"):          # uv, the hash-locked install and the same command, with the same facts
+        assert [s.get(key) for s in refused["steps"]] == [s.get(key) for s in attest["steps"]], key
+
+
 def test_the_honest_case_is_signed_on_the_run_the_attester_made_and_the_verdict_is_posted_beside_the_token(tmp_path):
     w, head, trees = staged(tmp_path)
     code, out, text = rerun(w, trees, Judge())

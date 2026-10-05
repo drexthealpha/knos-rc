@@ -780,6 +780,9 @@ paid by its acceptance checks (tests mode) took no neutral run at all: only its 
   this order, repository, pull request, issue, base commit, head commit and bundle hash, with the terms' image when
   they name one. The token and its audience are what the program accepts today: `knos3:pay:...` with the order's
   own mode.
+- `refused` starts only when `rerun` failed after it reached a verdict. It has no `id-token` permission. It runs the
+  same command with that verdict, which refuses it, and posts the verdict on the "knos tokens" issue with the sentence
+  that says why nothing was signed.
 
 **What the verdict records.** `reexecuted` (true or false), `passed`, `assurance` (`black-box` or `hermetic`),
 `image` (`ref` and the `digest` the runtime reported), `artifact` (a hash of each of the two trees, the ones

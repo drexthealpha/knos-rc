@@ -2843,9 +2843,11 @@ def _rerun_job(run: Run, plan: dict | None, folder: str, judging: bool, judge_fn
     return 0 if v["passed"] else 1
 
 
-def _rerun_said(run: Run, v: dict | None) -> None:
+def _rerun_said(run: Run, v: dict | None, refused: str = "") -> None:
     """Post a verdict where the token is posted: one comment on the "knos tokens" issue of the repository the run is in.
-    It is a record, not a condition: when it cannot be posted the run's page still has it, and says so."""
+    `refused`: why nothing was signed on it, said after the verdict (attest.yml's job `refused` posts a suite that did
+    not pass here this way). It is a record, not a condition: when it cannot be posted the run's page still has it,
+    and says so."""
     if v is None:
         return
     line = json.dumps(v, sort_keys=True, separators=(",", ":"))
@@ -2853,8 +2855,10 @@ def _rerun_said(run: Run, v: dict | None) -> None:
     here = str(run.env.get("GITHUB_REPOSITORY") or "")
     if here.count("/") != 1:
         return
+    why = f"\n\nNothing was signed: {' '.join(refused.split()).rstrip('.')}." if refused else ""     # its untrusted parts are _plain already
     try:
-        run.github(f"repos/{here}/issues/{_tokens_issue(run.github, here)}/comments", {"body": f"{VERDICT}{line}\n\nHow this run reached its verdict: {v['sentence']}."})
+        run.github(f"repos/{here}/issues/{_tokens_issue(run.github, here)}/comments",
+                   {"body": f"{VERDICT}{line}\n\nHow this run reached its verdict: {v['sentence']}.{why}"})
     except Exception as why:  # noqa: BLE001
         run.note(f"Knos attest: the verdict could not be posted on the \"{TOKENS}\" issue of {here} ({_short(why)}). It is this job's output `verdict`.")
 
@@ -2970,8 +2974,8 @@ def attest(run: Run, order: str, kind: str, pull: int | None = None, payees: str
                 return no(f"{_short(why)}. Run the workflow again.")
             if plan:
                 return _rerun_job(run, todo, plan, False)
-            verdict = _rerun_verdict(None, run.env)
-            if todo is not None:        # paid by its acceptance checks: only on a verdict this run's own first job reached by running them
+            verdict, refused = _rerun_verdict(None, run.env), ""
+            if todo is not None:       # paid by its acceptance checks: only on a verdict this run's own first job reached by running them
                 verdict = _rerun_read(str(run.env.get(RERUN_ENV) or "")) if run.env.get(RERUN_ENV) else (
                     "this order is paid by its acceptance checks, and they were not run again here: attest.yml's first job does that")
                 if isinstance(verdict, dict) and not verdict["reexecuted"]:
@@ -2986,7 +2990,7 @@ def attest(run: Run, order: str, kind: str, pull: int | None = None, payees: str
                      f"at commit `{head[:7]}`" + _rows(c) + _pays(c, "pays").replace("\nIt pays", "\n- it pays"))
             found += f"\n- how this verdict was reached: {(verdict or {}).get('sentence') or 'the acceptance suite was not run again here'}"
             if c.verdict() != "yes":
-                _rerun_said(run, verdict)
+                _rerun_said(run, verdict, refused)
                 return no(f"Pull request #{number} does not take {what} as GitHub's record stands"
                           + (", or something could not be read: run the workflow again." if c.verdict() in ("unread", "wait") else "."), found)
             aud = _order_audience(pull_, c, c.where.get("address") if c.where.get("from") == "comment" else None)
