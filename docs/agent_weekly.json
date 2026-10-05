@@ -5,7 +5,7 @@
   "2026-07-03",
   "2026-10-04"
  ],
- "source": "the weeks read on 2026-10-05 are cut from a capped sample of 2026-09-21 to 2026-10-04 (each agent's newest claimed pull requests, up to a cap, by agent_pr_index.py scan), not whole weeks; the others are the sample read on 2026-10-01, cut by week",
+ "source": "each week says how it was read (`design`, `capped`, `strata`). The newest: week of 2026-09-28, read 2026-10-05, stratified-seeded-v1; read on 2026-10-05 and not whole weeks: the weeks of 2026-09-21, 2026-09-28 (`full_week` false)",
  "agents_told_by": {
   "copilot": "author:app/copilot-swe-agent",
   "devin": "author:app/devin-ai-integration",
@@ -533,66 +533,143 @@
      "week": "2026-09-28",
      "read": "2026-10-05",
      "full_week": false,
-     "sampled": 169,
-     "claimed_passing": 66,
-     "ci_finished": 58,
-     "failed_a_check": {
-      "k": 13,
-      "n": 58,
-      "share": 0.2241,
+     "design": "stratified-seeded-v1",
+     "capped": true,
+     "strata": {
+      "Mon": {
+       "date": "2026-09-28",
+       "reported": 87,
+       "reachable": 87,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Tue": {
+       "date": "2026-09-29",
+       "reported": 68,
+       "reachable": 68,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 1,
+       "checks_read": 1
+      },
+      "Wed": {
+       "date": "2026-09-30",
+       "reported": 78,
+       "reachable": 78,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 1,
+       "checks_read": 1
+      },
+      "Thu": {
+       "date": "2026-10-01",
+       "reported": 114,
+       "reachable": 114,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 1,
+       "checks_read": 1
+      },
+      "Fri": {
+       "date": "2026-10-02",
+       "reported": 104,
+       "reachable": 104,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Sat": {
+       "date": "2026-10-03",
+       "reported": 123,
+       "reachable": 123,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 1,
+       "checks_read": 1
+      },
+      "Sun": {
+       "date": "2026-10-04",
+       "reported": 103,
+       "reachable": 103,
+       "planned": 30,
+       "drawn": 2,
+       "claimed": 0,
+       "checks_read": 0
+      }
+     },
+     "not_derived": {},
+     "sampled": 6,
+     "claimed_passing": 4,
+     "ci_finished": 4,
+     "checks": {
+      "passed": 4,
+      "failed": 0,
+      "other": 0,
+      "pending": 0,
+      "no_checks": 0,
+      "not_read": 0
+     },
+     "verified_acceptance_rate": {
+      "k": 4,
+      "n": 4,
+      "share": 1.0,
       "ci95": [
-       0.1359,
-       0.3466
+       0.5101,
+       1.0
+      ]
+     },
+     "failed_a_check": {
+      "k": 0,
+      "n": 4,
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.4899
       ],
-      "test_or_build": 7
+      "test_or_build": 0
      },
      "merged_despite_failed_check": {
-      "k": 12,
-      "n": 45,
-      "share": 0.2667,
+      "k": 0,
+      "n": 2,
+      "share": 0.0,
       "ci95": [
-       0.1596,
-       0.4104
+       0.0,
+       0.6576
       ]
      },
      "verified": 0,
-     "rank": 3,
-     "design": "newest-first-capped-v0",
-     "capped": true,
-     "strata": null,
-     "checks": null,
-     "verified_acceptance_rate": null,
-     "ranked_by": "failed_a_check",
-     "not_derived": {
-      "strata": "this design has no strata: see `designs`",
-      "checks": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published",
-      "verified_acceptance_rate": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published"
-     }
+     "rank": null,
+     "ranked_by": "verified_acceptance_rate",
+     "seed": "2026-W40",
+     "per_stratum": 30
     }
    ],
    "all_weeks": {
     "sampled": null,
-    "claimed_passing": 175,
-    "ci_finished": 150,
+    "claimed_passing": 113,
+    "ci_finished": 96,
     "checks": null,
     "verified_acceptance_rate": null,
     "failed_a_check": {
-     "k": 40,
-     "n": 150,
-     "share": 0.2667,
+     "k": 27,
+     "n": 96,
+     "share": 0.2812,
      "ci95": [
-      0.2024,
-      0.3426
+      0.2011,
+      0.3783
      ],
-     "test_or_build": 20
+     "test_or_build": 13
     },
     "merged_despite_failed_check": {
-     "k": 30,
-     "n": 108,
-     "share": 0.2778,
+     "k": 18,
+     "n": 65,
+     "share": 0.2769,
      "ci95": [
-      0.202,
-      0.3688
+      0.1829,
+      0.3958
      ]
     },
     "verified": 0
@@ -1028,66 +1105,158 @@
      "week": "2026-09-28",
      "read": "2026-10-05",
      "full_week": false,
-     "sampled": 140,
-     "claimed_passing": 120,
-     "ci_finished": 109,
-     "failed_a_check": {
-      "k": 70,
-      "n": 109,
-      "share": 0.6422,
+     "design": "stratified-seeded-v1",
+     "capped": true,
+     "strata": {
+      "Mon": {
+       "date": "2026-09-28",
+       "reported": 598,
+       "reachable": 598,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 1,
+       "checks_read": 1
+      },
+      "Tue": {
+       "date": "2026-09-29",
+       "reported": 631,
+       "reachable": 631,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 2,
+       "checks_read": 2
+      },
+      "Wed": {
+       "date": "2026-09-30",
+       "reported": 545,
+       "reachable": 545,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Thu": {
+       "date": "2026-10-01",
+       "reported": 608,
+       "reachable": 608,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 2,
+       "checks_read": 2
+      },
+      "Fri": {
+       "date": "2026-10-02",
+       "reported": 711,
+       "reachable": 711,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 1,
+       "checks_read": 1
+      },
+      "Sat": {
+       "date": "2026-10-03",
+       "reported": 1247,
+       "reachable": 1247,
+       "planned": 30,
+       "drawn": 2,
+       "claimed": 1,
+       "checks_read": 1
+      },
+      "Sun": {
+       "date": "2026-10-04",
+       "reported": 1503,
+       "reachable": 1503,
+       "planned": 30,
+       "drawn": 2,
+       "claimed": 1,
+       "checks_read": 1
+      }
+     },
+     "not_derived": {},
+     "sampled": 11,
+     "claimed_passing": 8,
+     "ci_finished": 8,
+     "checks": {
+      "passed": 3,
+      "failed": 5,
+      "other": 0,
+      "pending": 0,
+      "no_checks": 0,
+      "not_read": 0
+     },
+     "verified_acceptance_rate": {
+      "k": 3,
+      "n": 8,
+      "share": 0.375,
       "ci95": [
-       0.5488,
-       0.7259
+       0.1368,
+       0.6943
+      ]
+     },
+     "failed_a_check": {
+      "k": 5,
+      "n": 8,
+      "share": 0.625,
+      "ci95": [
+       0.3057,
+       0.8632
       ],
-      "test_or_build": 5
+      "test_or_build": 4
      },
      "merged_despite_failed_check": {
-      "k": 2,
-      "n": 37,
-      "share": 0.0541,
+      "k": 5,
+      "n": 7,
+      "share": 0.7143,
       "ci95": [
-       0.015,
-       0.177
+       0.3589,
+       0.9178
       ]
      },
      "verified": 0,
-     "rank": 4,
-     "design": "newest-first-capped-v0",
-     "capped": true,
-     "strata": null,
-     "checks": null,
-     "verified_acceptance_rate": null,
-     "ranked_by": "failed_a_check",
-     "not_derived": {
-      "strata": "this design has no strata: see `designs`",
-      "checks": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published",
-      "verified_acceptance_rate": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published"
-     }
+     "rank": null,
+     "ranked_by": "verified_acceptance_rate",
+     "seed": "2026-W40",
+     "per_stratum": 30
     }
    ],
    "all_weeks": {
     "sampled": null,
-    "claimed_passing": 193,
-    "ci_finished": 171,
-    "checks": null,
-    "verified_acceptance_rate": null,
-    "failed_a_check": {
-     "k": 84,
-     "n": 171,
-     "share": 0.4912,
+    "claimed_passing": 81,
+    "ci_finished": 70,
+    "checks": {
+     "passed": 49,
+     "failed": 19,
+     "other": 2,
+     "pending": 0,
+     "no_checks": 11,
+     "not_read": 0
+    },
+    "verified_acceptance_rate": {
+     "k": 49,
+     "n": 81,
+     "share": 0.6049,
      "ci95": [
-      0.4173,
-      0.5655
+      0.4961,
+      0.7043
+     ]
+    },
+    "failed_a_check": {
+     "k": 19,
+     "n": 70,
+     "share": 0.2714,
+     "ci95": [
+      0.1812,
+      0.3854
      ],
-     "test_or_build": 16
+     "test_or_build": 15
     },
     "merged_despite_failed_check": {
-     "k": 7,
-     "n": 76,
-     "share": 0.0921,
+     "k": 10,
+     "n": 46,
+     "share": 0.2174,
      "ci95": [
-      0.0453,
-      0.1781
+      0.1226,
+      0.3557
      ]
     },
     "verified": 0
@@ -1523,66 +1692,158 @@
      "week": "2026-09-28",
      "read": "2026-10-05",
      "full_week": false,
-     "sampled": 242,
-     "claimed_passing": 120,
-     "ci_finished": 115,
-     "failed_a_check": {
-      "k": 13,
-      "n": 115,
-      "share": 0.113,
+     "design": "stratified-seeded-v1",
+     "capped": true,
+     "strata": {
+      "Mon": {
+       "date": "2026-09-28",
+       "reported": 75,
+       "reachable": 75,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 2,
+       "checks_read": 2
+      },
+      "Tue": {
+       "date": "2026-09-29",
+       "reported": 54,
+       "reachable": 54,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 2,
+       "checks_read": 2
+      },
+      "Wed": {
+       "date": "2026-09-30",
+       "reported": 78,
+       "reachable": 78,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Thu": {
+       "date": "2026-10-01",
+       "reported": 58,
+       "reachable": 58,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Fri": {
+       "date": "2026-10-02",
+       "reported": 54,
+       "reachable": 54,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 3,
+       "checks_read": 3
+      },
+      "Sat": {
+       "date": "2026-10-03",
+       "reported": 57,
+       "reachable": 57,
+       "planned": 30,
+       "drawn": 2,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Sun": {
+       "date": "2026-10-04",
+       "reported": 48,
+       "reachable": 48,
+       "planned": 30,
+       "drawn": 2,
+       "claimed": 0,
+       "checks_read": 0
+      }
+     },
+     "not_derived": {},
+     "sampled": 19,
+     "claimed_passing": 7,
+     "ci_finished": 6,
+     "checks": {
+      "passed": 5,
+      "failed": 1,
+      "other": 0,
+      "pending": 0,
+      "no_checks": 1,
+      "not_read": 0
+     },
+     "verified_acceptance_rate": {
+      "k": 5,
+      "n": 7,
+      "share": 0.7143,
       "ci95": [
-       0.0673,
-       0.1838
+       0.3589,
+       0.9178
+      ]
+     },
+     "failed_a_check": {
+      "k": 1,
+      "n": 6,
+      "share": 0.1667,
+      "ci95": [
+       0.0301,
+       0.5635
       ],
-      "test_or_build": 2
+      "test_or_build": 0
      },
      "merged_despite_failed_check": {
-      "k": 10,
-      "n": 101,
-      "share": 0.099,
+      "k": 1,
+      "n": 5,
+      "share": 0.2,
       "ci95": [
-       0.0547,
-       0.1727
+       0.0362,
+       0.6245
       ]
      },
      "verified": 0,
-     "rank": 1,
-     "design": "newest-first-capped-v0",
-     "capped": true,
-     "strata": null,
-     "checks": null,
-     "verified_acceptance_rate": null,
-     "ranked_by": "failed_a_check",
-     "not_derived": {
-      "strata": "this design has no strata: see `designs`",
-      "checks": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published",
-      "verified_acceptance_rate": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published"
-     }
+     "rank": null,
+     "ranked_by": "verified_acceptance_rate",
+     "seed": "2026-W40",
+     "per_stratum": 30
     }
    ],
    "all_weeks": {
     "sampled": null,
-    "claimed_passing": 212,
-    "ci_finished": 205,
-    "checks": null,
-    "verified_acceptance_rate": null,
-    "failed_a_check": {
-     "k": 21,
-     "n": 205,
-     "share": 0.1024,
+    "claimed_passing": 99,
+    "ci_finished": 96,
+    "checks": {
+     "passed": 86,
+     "failed": 9,
+     "other": 1,
+     "pending": 0,
+     "no_checks": 3,
+     "not_read": 0
+    },
+    "verified_acceptance_rate": {
+     "k": 86,
+     "n": 99,
+     "share": 0.8687,
      "ci95": [
-      0.068,
-      0.1515
+      0.7882,
+      0.9216
+     ]
+    },
+    "failed_a_check": {
+     "k": 9,
+     "n": 96,
+     "share": 0.0938,
+     "ci95": [
+      0.0501,
+      0.1687
      ],
-     "test_or_build": 7
+     "test_or_build": 5
     },
     "merged_despite_failed_check": {
-     "k": 15,
-     "n": 183,
-     "share": 0.082,
+     "k": 6,
+     "n": 87,
+     "share": 0.069,
      "ci95": [
-      0.0503,
-      0.1308
+      0.032,
+      0.1424
      ]
     },
     "verified": 0
@@ -2007,66 +2268,158 @@
      "week": "2026-09-28",
      "read": "2026-10-05",
      "full_week": false,
-     "sampled": 423,
-     "claimed_passing": 120,
-     "ci_finished": 102,
-     "failed_a_check": {
-      "k": 13,
-      "n": 102,
-      "share": 0.1275,
+     "design": "stratified-seeded-v1",
+     "capped": true,
+     "strata": {
+      "Mon": {
+       "date": "2026-09-28",
+       "reported": 222621,
+       "reachable": 2000,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Tue": {
+       "date": "2026-09-29",
+       "reported": 235389,
+       "reachable": 2000,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Wed": {
+       "date": "2026-09-30",
+       "reported": 238024,
+       "reachable": 2000,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 1,
+       "checks_read": 1
+      },
+      "Thu": {
+       "date": "2026-10-01",
+       "reported": 239087,
+       "reachable": 2000,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Fri": {
+       "date": "2026-10-02",
+       "reported": 233646,
+       "reachable": 2000,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Sat": {
+       "date": "2026-10-03",
+       "reported": 215483,
+       "reachable": 2000,
+       "planned": 30,
+       "drawn": 2,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Sun": {
+       "date": "2026-10-04",
+       "reported": 225648,
+       "reachable": 2000,
+       "planned": 30,
+       "drawn": 2,
+       "claimed": 0,
+       "checks_read": 0
+      }
+     },
+     "not_derived": {},
+     "sampled": 7,
+     "claimed_passing": 1,
+     "ci_finished": 1,
+     "checks": {
+      "passed": 1,
+      "failed": 0,
+      "other": 0,
+      "pending": 0,
+      "no_checks": 0,
+      "not_read": 0
+     },
+     "verified_acceptance_rate": {
+      "k": 1,
+      "n": 1,
+      "share": 1.0,
       "ci95": [
-       0.076,
-       0.2059
+       0.2065,
+       1.0
+      ]
+     },
+     "failed_a_check": {
+      "k": 0,
+      "n": 1,
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.7935
       ],
-      "test_or_build": 6
+      "test_or_build": 0
      },
      "merged_despite_failed_check": {
-      "k": 6,
-      "n": 76,
-      "share": 0.0789,
+      "k": 0,
+      "n": 1,
+      "share": 0.0,
       "ci95": [
-       0.0367,
-       0.1617
+       0.0,
+       0.7935
       ]
      },
      "verified": 0,
-     "rank": 2,
-     "design": "newest-first-capped-v0",
-     "capped": true,
-     "strata": null,
-     "checks": null,
-     "verified_acceptance_rate": null,
-     "ranked_by": "failed_a_check",
-     "not_derived": {
-      "strata": "this design has no strata: see `designs`",
-      "checks": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published",
-      "verified_acceptance_rate": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published"
-     }
+     "rank": null,
+     "ranked_by": "verified_acceptance_rate",
+     "seed": "2026-W40",
+     "per_stratum": 30
     }
    ],
    "all_weeks": {
     "sampled": null,
-    "claimed_passing": 147,
-    "ci_finished": 123,
-    "checks": null,
-    "verified_acceptance_rate": null,
-    "failed_a_check": {
-     "k": 14,
-     "n": 123,
-     "share": 0.1138,
+    "claimed_passing": 28,
+    "ci_finished": 22,
+    "checks": {
+     "passed": 21,
+     "failed": 1,
+     "other": 0,
+     "pending": 0,
+     "no_checks": 6,
+     "not_read": 0
+    },
+    "verified_acceptance_rate": {
+     "k": 21,
+     "n": 28,
+     "share": 0.75,
      "ci95": [
-      0.069,
-      0.182
+      0.5664,
+      0.8732
+     ]
+    },
+    "failed_a_check": {
+     "k": 1,
+     "n": 22,
+     "share": 0.0455,
+     "ci95": [
+      0.0081,
+      0.218
      ],
-     "test_or_build": 6
+     "test_or_build": 0
     },
     "merged_despite_failed_check": {
-     "k": 7,
-     "n": 97,
-     "share": 0.0722,
+     "k": 1,
+     "n": 22,
+     "share": 0.0455,
      "ci95": [
-      0.0354,
-      0.1415
+      0.0081,
+      0.218
      ]
     },
     "verified": 0
@@ -2687,66 +3040,129 @@
      "week": "2026-09-28",
      "read": "2026-10-05",
      "full_week": false,
-     "sampled": 83,
-     "claimed_passing": 2,
-     "ci_finished": 2,
+     "design": "stratified-seeded-v1",
+     "capped": true,
+     "strata": {
+      "Mon": {
+       "date": "2026-09-28",
+       "reported": 14,
+       "reachable": 14,
+       "planned": 14,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Tue": {
+       "date": "2026-09-29",
+       "reported": 15,
+       "reachable": 15,
+       "planned": 15,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Wed": {
+       "date": "2026-09-30",
+       "reported": 2,
+       "reachable": 2,
+       "planned": 2,
+       "drawn": 2,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Thu": {
+       "date": "2026-10-01",
+       "reported": 77,
+       "reachable": 77,
+       "planned": 30,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Fri": {
+       "date": "2026-10-02",
+       "reported": 15,
+       "reachable": 15,
+       "planned": 15,
+       "drawn": 3,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Sat": {
+       "date": "2026-10-03",
+       "reported": 12,
+       "reachable": 12,
+       "planned": 12,
+       "drawn": 2,
+       "claimed": 0,
+       "checks_read": 0
+      },
+      "Sun": {
+       "date": "2026-10-04",
+       "reported": 2,
+       "reachable": 2,
+       "planned": 2,
+       "drawn": 2,
+       "claimed": 0,
+       "checks_read": 0
+      }
+     },
+     "not_derived": {},
+     "sampled": 5,
+     "claimed_passing": 0,
+     "ci_finished": 0,
+     "checks": {
+      "passed": 0,
+      "failed": 0,
+      "other": 0,
+      "pending": 0,
+      "no_checks": 0,
+      "not_read": 0
+     },
+     "verified_acceptance_rate": {
+      "k": 0,
+      "n": 0,
+      "share": null,
+      "ci95": null
+     },
      "failed_a_check": {
       "k": 0,
-      "n": 2,
-      "share": 0.0,
-      "ci95": [
-       0.0,
-       0.6576
-      ],
+      "n": 0,
+      "share": null,
+      "ci95": null,
       "test_or_build": 0
      },
-     "merged_despite_failed_check": {
-      "k": 0,
-      "n": 2,
-      "share": 0.0,
-      "ci95": [
-       0.0,
-       0.6576
-      ]
-     },
+     "merged_despite_failed_check": null,
      "verified": 0,
      "rank": null,
-     "design": "newest-first-capped-v0",
-     "capped": true,
-     "strata": null,
-     "checks": null,
-     "verified_acceptance_rate": null,
-     "ranked_by": "failed_a_check",
-     "not_derived": {
-      "strata": "this design has no strata: see `designs`",
-      "checks": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published",
-      "verified_acceptance_rate": "the reading of 2026-10-05 published, for each agent and week, how many claimed pull requests had finished CI and how many of those failed a check. It did not publish how many passed every check, and its rows were not kept, so the share that passed cannot be worked out from what was published"
-     }
+     "ranked_by": "verified_acceptance_rate",
+     "seed": "2026-W40",
+     "per_stratum": 30
     }
    ],
    "all_weeks": {
     "sampled": null,
-    "claimed_passing": 52,
-    "ci_finished": 52,
+    "claimed_passing": 50,
+    "ci_finished": 50,
     "checks": null,
     "verified_acceptance_rate": null,
     "failed_a_check": {
      "k": 9,
-     "n": 52,
-     "share": 0.1731,
+     "n": 50,
+     "share": 0.18,
      "ci95": [
-      0.0938,
-      0.2973
+      0.0977,
+      0.308
      ],
      "test_or_build": 8
     },
     "merged_despite_failed_check": {
      "k": 3,
-     "n": 44,
-     "share": 0.0682,
+     "n": 42,
+     "share": 0.0714,
      "ci95": [
-      0.0235,
-      0.1823
+      0.0246,
+      0.1901
      ]
     },
     "verified": 0

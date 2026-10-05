@@ -17,38 +17,41 @@ and every count are public, so a rating can be worked again by anyone.
 ## The latest table
 
 <!-- weekly:begin (written by scripts/agent_pr_index.py weekly; do not edit by hand) -->
-**Agent PR Index, week of 2026-09-28.** Read 2026-10-05. Design: newest-first-capped-v0. Capped: true for at least one agent (see Sample). Verified acceptance rate: of the pull requests that claimed passing tests and whose checks were read, the share whose checks all passed. An agent with fewer than 30 such pull requests that week is "too few to rank" and has no place.
+**Agent PR Index, week of 2026-09-28.** Read 2026-10-05. Design: stratified-seeded-v1. Capped: true for at least one agent (see Sample). Verified acceptance rate: of the pull requests that claimed passing tests and whose checks were read, the share whose checks all passed. An agent with fewer than 30 such pull requests that week is "too few to rank" and has no place.
 
 | Place | Agent | Verified acceptance rate (95% interval) | Sampled | Claimed passing | Failed a check anyway (95% interval) | Merged despite a failed check (95% interval) | Also paid through Knos on a black-box check | Sample |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| not ranked: rate not recorded | copilot | not recorded | 169 | 66 | 13 of 58 (22.4%; 13.6% to 34.7%) | 12 of 45 (26.7%; 16.0% to 41.0%) | 0 | capped: newest-first-capped-v0 |
-| not ranked: rate not recorded | devin | not recorded | 140 | 120 | 70 of 109 (64.2%; 54.9% to 72.6%) | 2 of 37 (5.4%; 1.5% to 17.7%) | 0 | capped: newest-first-capped-v0 |
-| not ranked: rate not recorded | claude-bot | not recorded | 242 | 120 | 13 of 115 (11.3%; 6.7% to 18.4%) | 10 of 101 (9.9%; 5.5% to 17.3%) | 0 | capped: newest-first-capped-v0 |
-| not ranked: rate not recorded | claude-code | not recorded | 423 | 120 | 13 of 102 (12.8%; 7.6% to 20.6%) | 6 of 76 (7.9%; 3.7% to 16.2%) | 0 | capped: newest-first-capped-v0 |
-| not ranked: rate not recorded | codex | not recorded | 83 | 2 | 0 of 2 (0.0%; 0.0% to 65.8%) | 0 of 2 (0.0%; 0.0% to 65.8%) | 0 | capped: newest-first-capped-v0 |
+| too few to rank | copilot | 4 of 4 (100.0%; 51.0% to 100.0%) | 6 | 4 | 0 of 4 (0.0%; 0.0% to 49.0%) | 0 of 2 (0.0%; 0.0% to 65.8%) | 0 | capped: drew 20 of 210 planned, of 677 the search reported |
+| too few to rank | devin | 3 of 8 (37.5%; 13.7% to 69.4%) | 11 | 8 | 5 of 8 (62.5%; 30.6% to 86.3%) | 5 of 7 (71.4%; 35.9% to 91.8%) | 0 | capped: drew 19 of 210 planned, of 5,843 the search reported |
+| too few to rank | claude-bot | 5 of 7 (71.4%; 35.9% to 91.8%) | 19 | 7 | 1 of 6 (16.7%; 3.0% to 56.4%) | 1 of 5 (20.0%; 3.6% to 62.5%) | 0 | capped: drew 19 of 210 planned, of 424 the search reported |
+| too few to rank | claude-code | 1 of 1 (100.0%; 20.6% to 100.0%) | 7 | 1 | 0 of 1 (0.0%; 0.0% to 79.3%) | 0 of 1 (0.0%; 0.0% to 79.3%) | 0 | capped: drew 19 of 210 planned, of 1,609,898 the search reported |
+| too few to rank | codex | 0 of 0 | 5 | 0 | 0 of 0 | not read | 0 | capped: drew 18 of 90 planned, of 137 the search reported |
 
 Also paid through Knos, checked against: no list of Knos payments was joined to this sample, so the count is 0 for every agent: every Knos payment so far is test USDC on Solana devnet. It takes a sampled pull request that was also paid through Knos under terms with a black-box check, and that list given to the script (--paid).
 
-Every week in the file added up (2026-07-03 to 2026-10-04; never ranked: the weeks were not all read the same way). Source: the weeks read on 2026-10-05 are cut from a capped sample of 2026-09-21 to 2026-10-04 (each agent's newest claimed pull requests, up to a cap, by agent_pr_index.py scan), not whole weeks; the others are the sample read on 2026-10-01, cut by week.
+Every week in the file added up (2026-07-03 to 2026-10-04; never ranked: the weeks were not all read the same way). Source: each week says how it was read (`design`, `capped`, `strata`). The newest: week of 2026-09-28, read 2026-10-05, stratified-seeded-v1; read on 2026-10-05 and not whole weeks: the weeks of 2026-09-21, 2026-09-28 (`full_week` false).
 
 | Place | Agent | Verified acceptance rate (95% interval) | Sampled | Claimed passing | Failed a check anyway (95% interval) | Merged despite a failed check (95% interval) | Also paid through Knos on a black-box check | Sample |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| not ranked | copilot | not recorded | not kept | 175 | 40 of 150 (26.7%; 20.2% to 34.3%) | 30 of 108 (27.8%; 20.2% to 36.9%) | 0 | weeks added up |
-| not ranked | devin | not recorded | not kept | 193 | 84 of 171 (49.1%; 41.7% to 56.5%) | 7 of 76 (9.2%; 4.5% to 17.8%) | 0 | weeks added up |
-| not ranked | claude-bot | not recorded | not kept | 212 | 21 of 205 (10.2%; 6.8% to 15.2%) | 15 of 183 (8.2%; 5.0% to 13.1%) | 0 | weeks added up |
-| not ranked | claude-code | not recorded | not kept | 147 | 14 of 123 (11.4%; 6.9% to 18.2%) | 7 of 97 (7.2%; 3.5% to 14.1%) | 0 | weeks added up |
-| not ranked | codex | not recorded | not kept | 52 | 9 of 52 (17.3%; 9.4% to 29.7%) | 3 of 44 (6.8%; 2.4% to 18.2%) | 0 | weeks added up |
+| not ranked | copilot | not recorded | not kept | 113 | 27 of 96 (28.1%; 20.1% to 37.8%) | 18 of 65 (27.7%; 18.3% to 39.6%) | 0 | weeks added up |
+| not ranked | devin | 49 of 81 (60.5%; 49.6% to 70.4%) | not kept | 81 | 19 of 70 (27.1%; 18.1% to 38.5%) | 10 of 46 (21.7%; 12.3% to 35.6%) | 0 | weeks added up |
+| not ranked | claude-bot | 86 of 99 (86.9%; 78.8% to 92.2%) | not kept | 99 | 9 of 96 (9.4%; 5.0% to 16.9%) | 6 of 87 (6.9%; 3.2% to 14.2%) | 0 | weeks added up |
+| not ranked | claude-code | 21 of 28 (75.0%; 56.6% to 87.3%) | not kept | 28 | 1 of 22 (4.5%; 0.8% to 21.8%) | 1 of 22 (4.5%; 0.8% to 21.8%) | 0 | weeks added up |
+| not ranked | codex | not recorded | not kept | 50 | 9 of 50 (18.0%; 9.8% to 30.8%) | 3 of 42 (7.1%; 2.5% to 19.0%) | 0 | weeks added up |
 <!-- weekly:end -->
 
-**What is published today.** The table above is the newest week of `agent_weekly.json`. The weeks of 21 and 28
-September 2026 were read on 2026-10-05 by a capped scan, before this design: each agent's newest claimed pull
-requests, at most 120, from 21 September to 4 October (`newest-first-capped-v0`), 467 claimed pull requests in all.
-Their numbers are kept as published. That reading recorded how many of the claimed had finished CI and how many of
-those failed a check. It did not record how many passed every check, and its rows were not kept, so the verified
-acceptance rate of those two weeks is `null` and each row says why (`not_derived`); a row with no rate has no place.
+**What is published today.** The table above is the newest week of `agent_weekly.json`: the week of 28 September
+2026, read on 2026-10-05 with the design below (`stratified-seeded-v1`) from the release machine, one bounded run
+continued from its checkpoint. GitHub's secondary rate limit refused a search after a few requests each time, and a
+run never waits on a limit, so the week is `capped`: 95 of the 930 planned draws, 20 of them claiming passing tests,
+every one of those with its checks read. Too few to rank any agent: read each interval, not each share. That week
+had first been read on 2026-10-05 by a capped scan before this design (each agent's newest claimed pull requests,
+at most 120, `newest-first-capped-v0`), which did not record how many passed every check; the newer reading of the
+same week replaced it. The week of 21 September keeps that scan's numbers as published (39 claimed pull requests),
+with its verified acceptance rate `null` and `not_derived` saying why; a row with no rate has no place.
 The older weeks are the sample read once, on 2026-10-01 (`search-window-sample-v0`, at most 20 hits a search window);
 its rows are in [`agent_pr_ci.json`](agent_pr_ci.json), so their rate is worked out, and none has 30 claims in a week.
-No week has been read with the design below on GitHub yet: the first Monday run after this release adds one.
+No week has been read with the design on GitHub's runners yet: the first Monday run after this release adds one.
 
 ## The sampling design
 

@@ -600,6 +600,9 @@ def test_the_committed_weekly_file_is_the_committed_sample_cut_by_week_and_the_p
     for name, was in PUBLISHED_0315.items():
         for week, (sampled, claimed, finished, failed, merged, place) in was.items():
             w = next(w for w in series["agents"][name]["weeks"] if w["week"] == week)
+            if w["design"] == agent_pr_index.DESIGN:     # read again with the design since: the newer reading replaced the week (weekly --into)
+                assert w["read"] >= "2026-10-05" and len(w["strata"]) == 7 and w["verified_acceptance_rate"] is not None and w["capped"] is not None
+                continue
             assert (w["sampled"], w["claimed_passing"], w["ci_finished"], w["failed_a_check"]["k"], (w["merged_despite_failed_check"] or {}).get("k"), w["rank"]) == (sampled, claimed, finished, failed, merged, place)
             assert w["read"] == "2026-10-05" and w["design"] == "newest-first-capped-v0" and w["capped"] is True and w["ranked_by"] == "failed_a_check"
             assert w["verified_acceptance_rate"] is None and w["checks"] is None and w["strata"] is None
@@ -607,7 +610,9 @@ def test_the_committed_weekly_file_is_the_committed_sample_cut_by_week_and_the_p
             assert agent_pr_index.with_new_fields(w) is w                       # written once: a second pass changes nothing
     assert sum(c for was in PUBLISHED_0315.values() for _, c, *_ in was.values()) == 467      # the capped sample of 467
     assert set(series["designs"]) >= {w["design"] for a in series["agents"].values() for w in a["weeks"]} | {agent_pr_index.DESIGN}
-    assert "Capped: true" in page and "| not ranked: rate not recorded | devin | not recorded | 140 | 120 | 70 of 109 (64.2%;" in page
+    devin = next(w for w in series["agents"]["devin"]["weeks"] if w["week"] == "2026-09-28")
+    assert "Capped: true" in page and ("| not ranked: rate not recorded | devin | not recorded | 140 | 120 | 70 of 109 (64.2%;" in page
+                                       if devin["design"] == "newest-first-capped-v0" else "| capped: drew " in page)
     again = tmp_path / "again.json"
     again.write_text(json.dumps(series), encoding="utf-8")                   # the format is the script's: restating the file changes nothing
     assert subprocess.run([sys.executable, str(ROOT / "scripts" / "agent_pr_index.py"), "weekly", "--sample", "docs/agent_pr_ci.json", "--restate", str(again)],
