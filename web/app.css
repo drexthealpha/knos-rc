@@ -639,6 +639,22 @@ html.k-printing .k-statement td{overflow-wrap:anywhere}
    is made explicit, as an implicit one would not count), so a long list of lines never has the glow running through it. */
 .hero:has(> #front-result:not([hidden])) { grid-template-rows: auto; }
 .hero:has(> #front-result:not([hidden]))::before { grid-row: 1 / 2; grid-column: 1 / -1; }
+/* The first screen's line about a pending upgrade (web/front.js, from upgrades.json): it sits in the hero's own top
+   margin, out of the flow, so it moves nothing when it appears. The margin is wide enough for it at every width. */
+.hero-upgrades { position: absolute; top: 10px; left: 0; z-index: 3; max-width: min(100%, 640px); margin: 0; }
+.hero-upgrades[hidden] { display: none; }
+.hero-upgrades > summary { list-style: none; display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 3px 12px; border: 1px solid var(--warn);
+  border-radius: 999px; background: color-mix(in srgb, var(--warn) 10%, var(--paper)); color: var(--ink); font: 500 var(--s-1)/1.4 var(--text); white-space: nowrap; }
+.hero-upgrades > summary::-webkit-details-marker { display: none; }
+.hero-upgrades > summary::before { content: attr(data-count); flex: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--warn); color: var(--paper);
+  font: 700 11px/18px var(--text); text-align: center; font-variant-numeric: tabular-nums; }
+.hero-upgrades > summary::after { content: ""; flex: none; width: 6px; height: 6px; margin: 0 0 3px 2px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; rotate: 45deg; }
+.hero-upgrades[open] > summary::after { rotate: -135deg; margin: 3px 0 0 2px; }
+.hero-upgrades > summary:hover { background: color-mix(in srgb, var(--warn) 18%, var(--paper)); }
+.hero-upgrades-body { margin-top: 8px; padding: 10px 14px; border: 1px solid var(--warn); border-radius: 10px; background: color-mix(in srgb, var(--warn) 8%, var(--paper-2));
+  box-shadow: var(--depth-3); font-size: var(--s0); max-height: min(60vh, 520px); overflow-y: auto; overscroll-behavior: contain; }
+.hero-upgrades-body p { margin: 6px 0; overflow-wrap: anywhere; }
+@media (max-width: 899px) { .hero { padding-top: 48px; } }
 /* The bar's search button (#search, [data-palette]) opens the command palette (web/motion.js); its keys, Ctrl K, are in
    its title: the first screen has 40 words and no more. */
 

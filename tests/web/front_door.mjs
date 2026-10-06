@@ -126,6 +126,25 @@ async function page() {
     ok(`${width}px: the sentence, then the number`, hero.h1 === "The neutral meter for AI agent work: neither side keeps the count." && hero.fact === "241 merged agent “tests pass” pull requests: 30 had a failed check." && words(hero.fact) <= 12, hero);
     ok(`${width}px: one control (a box, its button, a sample), above the fold, and the round below`, hero.controls.join() === "fd-in,run,sample" && hero.below && hero.boxTop <= hero.fold, hero);
     ok(`${width}px: the first screen does not scroll sideways`, (await measure(p)).over <= 0, await measure(p));
+    // the upgrades that are waiting, in one line on the first screen, from upgrades.json (a file of the site): inside the 40
+    // words counted above, in the hero's top margin above the sentence, and opened it says each proposal in the file's words
+    const feed = JSON.parse(readFileSync(join(built, "upgrades.json"), "utf8")), pending = feed.entries.filter((e) => e.status === "pending");
+    const up = await p.evaluate(() => { const d = document.getElementById("hero-upgrades"), r = d.getBoundingClientRect(), w = document.querySelector(".hero-words").getBoundingClientRect();
+      const h = document.getElementById("hero-upgrades-line");
+      return { shown: !d.hidden && r.height > 0, words: h.textContent, badge: getComputedStyle(h, "::before").content, label: h.getAttribute("aria-label"), bottom: r.bottom, wordsTop: w.top, fold: innerHeight,
+        inHero: d.parentElement.classList.contains("hero"), place: getComputedStyle(d).position }; });
+    const n = pending.length, due = Math.min(...pending.map((e) => e.earliest_execution)), now = await p.evaluate(() => Date.now() / 1000), over = pending.every((e) => e.squads_status === "Approved") && now >= due;
+    const want = { words: over ? "Upgrades approved" : "Upgrades pending", badge: `"${n}"`, label: `${n} program upgrade${n === 1 ? "" : "s"} ${over ? "approved, delay over" : "pending"}` };
+    ok(`${width}px: the upgrade line is on the first screen: "${want.label}" (the count a badge, two words), from upgrades.json, above the sentence and out of the flow`,
+      n ? up.shown && up.words === want.words && up.badge === want.badge && up.label === want.label && up.bottom <= up.wordsTop + 1 && up.bottom <= up.fold && up.inHero && up.place === "absolute" && first.join(" ").includes(want.words) : !up.shown, [up, want]);
+    if (n) {
+      await p.click("#hero-upgrades > summary");
+      const told = await p.$$eval("#hero-upgrades-body p.upgrade", (l) => l.map((x) => [x.dataset.program, x.dataset.index, x.textContent]));
+      same(`${width}px: opened, it says each pending proposal in the file's own sentence, newest first, and when the file was written`, [told, (await p.textContent("#upgrade-source")).includes(feed.generated.slice(0, 10))],
+        [pending.map((e) => [e.program, String(e.index), e.words]), true]);
+      ok(`${width}px:   opened, nothing runs off the side`, (await measure(p)).over <= 0, await measure(p));
+      await p.click("#hero-upgrades > summary");
+    }
     ok(`${width}px: the first screen asks nobody at all: not GitHub, not devnet`, strangers.length === 0, strangers);
     // THE GLOW belongs to the sentence and the mark: before an answer it fills the hero; once the sample's lines are drawn
     // under them it ends above the first of them, at every width (it used to run down through the list at 1280)

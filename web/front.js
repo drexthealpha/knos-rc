@@ -716,6 +716,47 @@ function initBar() {
   if (film && video) { video.addEventListener("loadedmetadata", () => { film.hidden = false; }); video.addEventListener("error", () => { film.hidden = true; }); }
 }
 
+// ---- an upgrade of the programs that is waiting, said on the first screen -------------------------------------------------
+// The first screen asks devnet nothing (tests/web/front_door.mjs), so it reads upgrades.json: a file of this site that
+// scripts/upgrade_feed.py writes from the upgrade multisig's accounts when the site is built. One line in the hero's top
+// margin (#hero-upgrades, a fold) says how many proposals were pending then; opened, it says each proposal in the file's
+// own sentence, written into the fold only then. A page that reads Solana (web/app.js) reads the multisig itself, and its
+// banner under the bar takes this line's place.
+// Every line is true whenever it is read: before the earliest time one of them can run they are pending; after it the
+// file cannot say whether they ran, so the line says they were approved and that their delay is over. The line is two
+// words and a figure (the count, drawn as a badge): the first screen keeps to its 40 words.
+export const feedPending = (feed) => (Array.isArray(feed?.entries) ? feed.entries : []).filter((e) => e && e.status === "pending" && typeof e.program === "string");
+export function feedLine(feed, now = Date.now() / 1000) {
+  const p = feedPending(feed), n = p.length;
+  if (!n) return null;
+  const what = `${n} program upgrade${n === 1 ? "" : "s"}`, due = Math.min(...p.map((e) => (Number.isFinite(e.earliest_execution) ? e.earliest_execution : Infinity)));
+  const over = p.every((e) => e.squads_status === "Approved") && now >= due;
+  return { n, words: over ? "Upgrades approved" : "Upgrades pending", said: over ? `${what} approved, delay over` : `${what} pending` };
+}
+const utc = (iso) => String(iso || "").replace("T", " ").replace(/:\d\d(\.\d+)?Z$/, " UTC");
+export function feedBanner(feed) {
+  const p = feedPending(feed);
+  if (!p.length) return "";
+  return `<p class="fine" id="upgrade-source">Pending when this site was built (${esc(utc(feed.generated))}), as <a href="upgrades.json">upgrades.json</a> records them.
+      The pages that read Solana read the upgrade multisig itself.</p>`
+    + p.map((e) => `<p class="upgrade" data-program="${esc(e.program)}" data-status="${esc(e.squads_status || e.status)}" data-index="${esc(e.index)}">${esc(e.words || `An upgrade of ${e.program} is pending.`)}</p>`).join("")
+    + `<p class="fine">Follow every proposal: <a id="upgrade-feed" href="upgrades.xml" type="application/atom+xml">the upgrade feed (Atom)</a>.
+      What the delay protects: <a id="upgrade-security" href="https://github.com/drexthealpha/Knos/blob/main/docs/SECURITY.md#7-the-upgrade-authority" target="_blank" rel="noopener">docs/SECURITY.md</a>, section 7.</p>`;
+}
+function initUpgrades() {
+  const fold = $("hero-upgrades"), body = $("hero-upgrades-body"), root = document.documentElement;
+  if (!fold || !body || pageNow() !== "check") return;
+  fetch("upgrades.json").then((r) => (r.ok ? r.json() : null)).then((feed) => {
+    const line = feed && feedLine(feed), handle = $("hero-upgrades-line");
+    if (!line || root.dataset.upgrades) return;           // nothing pending, or the chain has been read already
+    handle.textContent = line.words; handle.dataset.count = String(line.n); handle.setAttribute("aria-label", line.said); handle.title = line.said;
+    fold.hidden = false;
+    const fill = () => { if (!body.childElementCount) body.innerHTML = feedBanner(feed); };
+    handle.addEventListener("click", fill);              // before the fold opens, so it opens with its words in it
+    fold.addEventListener("toggle", () => { if (fold.open) fill(); });
+  }).catch(() => { /* no file in this build: no line, and nothing guessed */ });
+}
+
 // ---- light and dark -------------------------------------------------------------------------------------------------------
 function initTheme() {
   const set = (t) => { document.documentElement.dataset.theme = t; try { localStorage.setItem("knos-theme", t); } catch { /* private mode */ } };
@@ -756,6 +797,7 @@ if (typeof document !== "undefined" && $("pr-form")) {
   initBar();
   initCopy();
   initMotion();
+  initUpgrades();
   // THE FRONT DOOR (web/front_door.js): the first screen's one control, your own invoice checked in place. Mounted
   // here, before anything else of the page is read, so it answers even when GitHub and devnet do not.
   if ($("front-door")) import("./front_door.js").then((m) => m.renderFrontDoor($("front-door"))).catch(() => {});

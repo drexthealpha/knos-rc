@@ -134,6 +134,19 @@ for (const [width, height] of [[1280, 800], [390, 844], [1440, 900]]) {
     check(`  ${hash || "(first screen)"}: none of ${m.looked} elements has an animation or a transition longer than 0`, m.looked > 200 && m.bad.length === 0 && (await page.evaluate(() => document.getAnimations().length)) === 0, m.bad);
   }
   await page.goto(base); await page.waitForSelector("#mark3d .face", { state: "attached" });
+  // the first screen's upgrade line opens at once, and the sample's lines are sorted into their groups at once
+  if (await page.waitForSelector("#hero-upgrades:not([hidden])", { timeout: 3000 }).then(() => true, () => false)) {
+    await page.click("#hero-upgrades > summary");
+    const up = await page.evaluate(() => [document.getElementById("hero-upgrades").open, document.querySelectorAll("#hero-upgrades-body p.upgrade").length, document.getAnimations().length]);
+    check("  the upgrade line opens at once", up[0] && up[1] > 0 && up[2] === 0, up);
+    await page.click("#hero-upgrades > summary");
+  }
+  await page.click('[data-fd="sample"]'); await page.waitForSelector("#front-result[data-done]");
+  const sorted = await page.evaluate(() => [document.querySelectorAll("#front-result .fd-line").length, document.getAnimations().length]);
+  check("  the sample's seven lines are in their groups at once, and nothing runs", sorted[0] === 7 && sorted[1] === 0, sorted);
+  const after = await movers(page);
+  check("  with the sample's answer drawn, none of its elements has an animation or a transition longer than 0", after.bad.length === 0, after.bad);
+  await page.goto(base); await page.waitForSelector("#mark3d .face", { state: "attached" });
   // and every state still changes, at once
   const fold = await page.evaluate(() => { const d = document.querySelector("#view-check details.k-more"); d.open = false; const shut = d.getBoundingClientRect().height; d.open = true; return [shut, d.getBoundingClientRect().height, document.getAnimations().length]; });
   check("  a fold opens to its full height at once", fold[1] > fold[0] + 10 && fold[2] === 0, fold);

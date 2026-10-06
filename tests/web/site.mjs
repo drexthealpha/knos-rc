@@ -2143,8 +2143,21 @@ const BAL = await k.balance(7000001, WALLET, USDC), BALTOK = await k.baltok(BAL)
   const banner = async (hash) => { await reset(); load(); await visit(page, hash); await page.waitForSelector("#upgrade-banner:not([hidden])"); };
   // the first screen reads no chain: the banner is read with the first page that reads Solana, and stays from then on
   await reset(); load(); await visit(page, ""); await page.waitForTimeout(300);
-  check("upgrade: the first screen asks devnet nothing and shows no banner", await page.isHidden("#upgrade-banner") && called("getMultipleAccounts").length === 0 && called("getAccountInfo").length === 0);
+  check("upgrade: the first screen asks devnet nothing and shows no banner under the bar", await page.isHidden("#upgrade-banner") && called("getMultipleAccounts").length === 0 && called("getAccountInfo").length === 0);
+  // what it shows instead: one line from upgrades.json, the file of the site scripts/upgrade_feed.py writes from the multisig
+  const feed = JSON.parse(readFileSync(join(root, "upgrades.json"), "utf8")), feedPending = feed.entries.filter((e) => e.status === "pending");
+  await page.waitForSelector("#hero-upgrades:not([hidden])", { timeout: 5000 }).catch(() => {});
+  check("  but the pending upgrades in one line, from the site's upgrades.json: the count and two words", feedPending.length === 4 && await page.isVisible("#hero-upgrades")
+    && /^Upgrades (pending|approved)$/.test(await text(page, "#hero-upgrades-line")) && (await page.getAttribute("#hero-upgrades-line", "data-count")) === "4"
+    && /^4 program upgrades (pending|approved, delay over)$/.test(await page.getAttribute("#hero-upgrades-line", "aria-label")), await text(page, "#hero-upgrades-line"));
+  const lib0 = await import(pathToFileURL(join(root, "front.js")).href), said = (l) => (l ? `${l.n}|${l.words}|${l.said}` : null);
+  check("  the line is true before and after the earliest time one can run: pending before it, approved with the delay over after it, nothing for a file with none pending",
+    said(lib0.feedLine(feed, Math.min(...feedPending.map((e) => e.earliest_execution)) - 1)) === "4|Upgrades pending|4 program upgrades pending"
+    && said(lib0.feedLine(feed, Math.max(...feedPending.map((e) => e.earliest_execution)))) === "4|Upgrades approved|4 program upgrades approved, delay over"
+    && lib0.feedLine({ ...feed, entries: feed.entries.map((e) => ({ ...e, status: "executed" })) }) === null && lib0.feedLine(null) === null
+    && said(lib0.feedLine({ entries: [{ ...feedPending[0], squads_status: "Active" }] }, 4e9)) === "1|Upgrades pending|1 program upgrade pending");
   await banner("#fund");
+  check("  a page that reads Solana reads the multisig itself, and its banner takes the line's place", await page.isHidden("#hero-upgrades") && (await page.evaluate(() => document.documentElement.dataset.upgrades)) === "chain");
   const paras = await page.$$eval("#upgrade-banner p.upgrade", (p) => p.map((x) => [x.dataset.program, x.dataset.status, x.dataset.index, x.textContent.replace(/\s+/g, " ").trim()]));
   const day = (t) => `${new Date(t * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
   const payUp = rec.pending.find((p) => p.index === 4), oidcUp = rec.pending.find((p) => p.index === 3);

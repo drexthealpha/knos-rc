@@ -514,7 +514,12 @@ const upgradesP = (async () => {
     return { upgrades, ms, now: await knos.chainTime(RPC).catch(() => null) };
   } catch { return { upgrades: [], ms: null, now: null, failed: true }; }          // not readable just now: no banner, and nothing guessed
 })();
-upgradesP.then(({ upgrades, ms, now }) => {
+upgradesP.then(({ upgrades, ms, now, failed }) => {
+  // what the chain says takes the place of the first screen's line from upgrades.json (web/front.js); a chain that did not
+  // answer leaves that line as it is: opened, it says when the file was written
+  if (failed) return;
+  document.documentElement.dataset.upgrades = "chain";
+  if ($("hero-upgrades")) $("hero-upgrades").hidden = true;
   if (!upgrades.length) return;
   const each = upgrades.map((p) => { const w = upgradeWords(p, ms.timeLock, now);
     return `<p class="upgrade" data-program="${esc(p.name)}" data-status="${esc(p.status)}" data-index="${p.index}"><strong>${esc(w.what)}</strong>
