@@ -106,11 +106,12 @@ any issuer in this table was verified**: a row says what a token of that issuer 
 Not yet, for any issuer: ES384, ES512, PS256, EdDSA. The deployed verifier checks RSA PKCS#1 v1.5 with SHA-256 and
 nothing else. ES256 is in the next build of `knos_oidc`, tested here and not deployed ([ES256.md](ES256.md)).
 
-**One issuer that is not a forge was taken end to end, in tests.** `.github/workflows/outcome-k8s.yml` starts a
+**One issuer that is not a forge was taken end to end in tests, and verified offline once in staging.** `.github/workflows/outcome-k8s.yml` starts a
 Kubernetes cluster and has its service-account issuer sign an evaluation; `scripts/outcome_k8s.py` checks that token
 offline by this verifier's rule and carries it to devnet under a private key. Here that is tested with a token of a
 projected service-account token's shape, signed by a test key (`tests/test_outcome_k8s.py`, in the test build of the
-verifier). The cluster and devnet parts run when the release run executes them:
+verifier). A kind cluster's token was verified offline in staging run 37483745385 of drexthealpha/knos-rc; the
+devnet part runs when the release run executes it, and the meter does not count such a token on chain:
 [OUTCOMES.md](OUTCOMES.md#a-kubernetes-cluster-signs-an-outcome).
 
 ## What it proves, and what it does not

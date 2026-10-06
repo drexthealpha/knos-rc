@@ -2060,7 +2060,7 @@
      "names": "test_the_verifier_takes_the_token_under_a_private_key_through_the_instructions_chain_would_send"
     }
    },
-   "note": "Test key; no cluster-signed token verified yet; the meter does not count it on chain."
+   "note": "Tested with a test key; a kind cluster's token was verified offline in staging run 37483745385 of drexthealpha/knos-rc (https://github.com/drexthealpha/knos-rc/actions/runs/37483745385); nothing of it is on devnet, and the meter does not count it on chain."
   },
   {
    "id": "events_ledger",

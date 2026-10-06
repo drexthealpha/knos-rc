@@ -55,8 +55,9 @@ anyone else.
   and the forge's signed token leave, and what a dispute needs is sealed to both parties. No private-repository
   customer has run it, and its record pays nothing yet ([`docs/PRIVATE.md`](docs/PRIVATE.md)).
 - **A signer that is not a forge.** A Kubernetes cluster's service-account token signs one evaluation of the
-  data-transformation example. The check is tested on a token of the same shape; the cluster itself runs only when
-  the release run starts its workflow ([`docs/OUTCOMES.md`](docs/OUTCOMES.md)).
+  data-transformation example. The check is tested on a token of the same shape, and a kind cluster's token was
+  verified offline in staging run 37483745385; nothing of it is on chain, and the meter does not count it
+  ([`docs/OUTCOMES.md`](docs/OUTCOMES.md)).
 - **ES256 tokens, in one transaction.** `knos_oidc` gains an instruction that checks what Solana's secp256r1
   precompile verified. A token's signing input can be 780 bytes at most. It ships in the same build as the strict
   JSON reader of 0.3.16, and that build is not deployed ([`docs/ES256.md`](docs/ES256.md)).

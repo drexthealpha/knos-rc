@@ -59,10 +59,10 @@ example and has a Kubernetes cluster sign its evaluation: a workload identity, a
 
 | Step | What happens | Where it is | State |
 |---|---|---|---|
-| 1. The cluster | A kind cluster starts on a GitHub-hosted runner with the service-account issuer `https://kind.knos-outcome.invalid` | [`outcome-k8s.yml`](../.github/workflows/outcome-k8s.yml) | written; not run here (no cluster in this build). Exercised when the release run dispatches it |
-| 2. The Job | The example's black-box suite judges `transform.sql` in a Kubernetes Job under the service account `knos-judge` | [`outcome_k8s_job.yaml`](../scripts/outcome_k8s_job.yaml), `scripts/outcome_k8s.py job` | the judging step is tested here outside a cluster; the Job itself is not run here |
-| 3. The token | The pod asks its own cluster (the TokenRequest API) for a token of `knos-judge` whose audience is the evaluation, `knosm:eval:...`, the meter's audience | `scripts/outcome_k8s.py job` | written; needs a cluster |
-| 4. Offline check | The token is checked against the cluster's key set (`kubectl get --raw /openid/v1/jwks`) by the on-chain verifier's rule, and a receipt is written | `scripts/outcome_k8s.py verify` | implemented and tested here, on a token of the same shape signed by a test key |
+| 1. The cluster | A kind cluster starts on a GitHub-hosted runner with the service-account issuer `https://kind.knos-outcome.invalid` | [`outcome-k8s.yml`](../.github/workflows/outcome-k8s.yml) | run in staging: [run 37483745385](https://github.com/drexthealpha/knos-rc/actions/runs/37483745385) of drexthealpha/knos-rc, commit 92f6197, started the kind cluster on a GitHub-hosted runner; nothing of it is on devnet |
+| 2. The Job | The example's black-box suite judges `transform.sql` in a Kubernetes Job under the service account `knos-judge` | [`outcome_k8s_job.yaml`](../scripts/outcome_k8s_job.yaml), `scripts/outcome_k8s.py job` | the judging step is tested here outside a cluster; the Job ran in the kind cluster of staging [run 37483745385](https://github.com/drexthealpha/knos-rc/actions/runs/37483745385) |
+| 3. The token | The pod asks its own cluster (the TokenRequest API) for a token of `knos-judge` whose audience is the evaluation, `knosm:eval:...`, the meter's audience | `scripts/outcome_k8s.py job` | the kind cluster of staging [run 37483745385](https://github.com/drexthealpha/knos-rc/actions/runs/37483745385) issued it |
+| 4. Offline check | The token is checked against the cluster's key set (`kubectl get --raw /openid/v1/jwks`) by the on-chain verifier's rule, and a receipt is written | `scripts/outcome_k8s.py verify` | tested here on a token of the same shape signed by a test key; the kind cluster's token of staging [run 37483745385](https://github.com/drexthealpha/knos-rc/actions/runs/37483745385) verified offline against that cluster's key set |
 | 5. Devnet | A wallet registers the cluster's key as a private key, the token is written and stepped, and its account is VERIFIED | `scripts/outcome_k8s.py chain` | implemented; tested here in the test build of the verifier (LiteSVM); sent to devnet only by the release run, after the pending upgrade |
 | 6. The count | The evaluation is one line of the seller's ledger | `knos meter batch --claim` | the line is written by step 5; see "What the meter does with it" |
 
@@ -130,8 +130,10 @@ above; sixteen wrong ones are refused (ES256, another key, a broken signature, a
 key set, a key id the set lacks, another issuer, an `exp` too far ahead or not a number, an expired token, another audience, two audiences,
 another service account, a claim written twice, a payload that is not strict JSON); and the test build of the
 verifier verifies the same token under a private key through the instructions `chain` builds, and refuses another
-key's signature with the program's own error. **What was not run here:** the cluster, the Job in it, the
-TokenRequest, and anything on devnet. No token a real cluster signed has been verified by Knos yet.
+key's signature with the program's own error. **What ran in staging:** [run 37483745385](https://github.com/drexthealpha/knos-rc/actions/runs/37483745385) of drexthealpha/knos-rc (commit 92f6197) started a kind cluster, ran the
+Job in it and had the cluster issue the token by the TokenRequest API; `scripts/outcome_k8s.py verify` verified that
+token offline against the cluster's own key set (`https://kind.knos-outcome.invalid`, RS256). **What was not run:**
+anything on devnet. No transaction carries a cluster's token, and the meter does not count it on chain.
 
 **What was looked up, and where** (read 2026-10-06):
 
