@@ -710,9 +710,14 @@ def template_parts(name: str) -> dict:
     return {"mode": tm["mode"], "checks": list(cmd.checks or ()), "paths": list(cmd.paths or ())}
 
 
+SAMPLE_REPOSITORY = "drexthealpha/knos-playground"     # where the sample below is set: web/buyer.js PLAYGROUND
+
+
 def sample() -> dict:
     """One small organisation's four files and its approvals so far, as data: what the console shows before a
-    repository is named, and what the tests and docs/CONTROLS.md use. Nobody real: acme and its accounts are made up."""
+    repository is named, and what the tests and docs/CONTROLS.md use. It is set in this project's own playground
+    repository, drexthealpha/knos-playground, so that no link of the console leads to somebody else's; the files and the
+    people in them (the -acme accounts) are made up."""
     hashes = published_terms()
     card = {"version": 1, "kind": "rate-card", "name": "maintenance-2026q4", "currency": "test USDC", "valid_from": "2026-10-01", "valid_to": "2026-12-31",
             "outcomes": [{"name": "bug-fix", "price": 50, "unit": "accepted pull request", "terms": "bugfix", "terms_hash": hashes["bugfix"]},
@@ -727,7 +732,7 @@ def sample() -> dict:
               "roles": {"requester": [holder("ravi-acme"), holder("mei-acme")], "approver": [holder("mei-acme", limit=25000), holder("sam-acme"), {"account": "lee-acme", "from": "2026-01-01", "until": "2026-06-30"}],
                         "finance": [holder("dana-acme")], "auditor": [holder("noor-acme")]},
               "thresholds": [{"up_to": 1000, "approvers": 1}, {"up_to": 25000, "approvers": 2}, {"approvers": 2, "finance": 1}]}
-    return {"owner": "acme", "repository": "acme/widgets", "branch": "main", "today": "2026-10-06", "rate_card": card, "envelope": envelope, "offers": [offer], "policy": policy}
+    return {"owner": "drexthealpha", "repository": SAMPLE_REPOSITORY, "branch": "main", "today": "2026-10-06", "rate_card": card, "envelope": envelope, "offers": [offer], "policy": policy}
 
 
 # ---- the commands -------------------------------------------------------------------------------------------------------

@@ -313,7 +313,7 @@ def gate(files: dict[str, str], *, vendor: str, rate: int, budget: int, on: str,
 
 def sample_events() -> list[dict]:
     """The approvals of controls.sample()'s one open offer so far: one approver has signed, a second is awaited."""
-    src = {"kind": "forge comment", "forge": "github", "url": "https://github.com/acme/widgets/issues/12#issuecomment-2291", "comment_id": 2291,
+    src = {"kind": "forge comment", "forge": "github", "url": f"https://github.com/{controls.SAMPLE_REPOSITORY}/issues/12#issuecomment-2291", "comment_id": 2291,
            "body_sha256": sha256_hex(comment_line("offer:bug-fix-octocat"))}
     return [event(subject="offer:bug-fix-octocat", amount=1_200_000_000, requester="ravi-acme", approver="mei-acme", approver_id=7001, role="approver",
                   at="2026-10-02T09:14:00Z", authority="approver from 2026-01-01 to 2026-12-31, up to 25,000.00", source=src, policy_sha256="")]
@@ -322,10 +322,10 @@ def sample_events() -> list[dict]:
 def sample_deliverable() -> dict:
     """One accepted deliverable of the sample offer, as the invoice approver's screen takes it (web/console.js sevenOf)."""
     from . import ids
-    return {"id": ids.deliverable(controls.published_terms()["bugfix"], "acme/widgets#31"), "offer": "bug-fix-octocat", "outcome": "bug-fix", "supplier": "octocat",
+    return {"id": ids.deliverable(controls.published_terms()["bugfix"], f"{controls.SAMPLE_REPOSITORY}#31"), "offer": "bug-fix-octocat", "outcome": "bug-fix", "supplier": "octocat",
             "artifact": "pull request #31", "requirements": [{"name": "unit", "passed": True}, {"name": "lint", "passed": True}, {"name": "only src/ and tests/ changed", "passed": True}],
             "verdict": "accepted", "evaluations": 2, "invoice_lines": 1, "amount": "50", "paid": "50", "held": "0", "credited": "0", "owed": "0", "disputed": False,
-            "evidence": "audit/acme.json"}
+            "evidence": "audit/drexthealpha.json"}
 
 
 # ---- the commands -------------------------------------------------------------------------------------------------------

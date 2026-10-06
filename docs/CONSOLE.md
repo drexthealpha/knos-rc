@@ -97,7 +97,8 @@ evidence for the supplier. [SECURITY.md](SECURITY.md) has the full account.
 
 (0.3.17) The four parts of the page read files in the buyer's repository (`.knos/procurement/`;
 [CONTROLS.md](CONTROLS.md), section 9, is their schema). Until a repository is named they show a made-up
-organisation, acme, and say so. Naming a public repository reads its files through GitHub's API. The page writes
+organisation, set in this project's own playground repository (drexthealpha/knos-playground) with made-up
+accounts, and say so. Naming a public repository reads its files through GitHub's API. The page writes
 nothing anywhere.
 
 | Screen | What it shows | What leaves the page |

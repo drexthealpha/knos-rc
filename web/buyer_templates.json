@@ -189,8 +189,8 @@
    "private-attested": "6053bb7383ac533926cde0864f7c3a56963d730d45d9d0a6154bae46313642c5"
   },
   "sample": {
-   "owner": "acme",
-   "repository": "acme/widgets",
+   "owner": "drexthealpha",
+   "repository": "drexthealpha/knos-playground",
    "branch": "main",
    "today": "2026-10-06",
    "rate_card": {
@@ -322,7 +322,7 @@
     {
      "type": "knos.approval",
      "version": 1,
-     "id": "apr_0689c214cca602d75fa8c11b",
+     "id": "apr_d33c1092c494b13bba414374",
      "subject": "offer:bug-fix-octocat",
      "amount": "1200",
      "requested_by": "ravi-acme",
@@ -334,7 +334,7 @@
      "source": {
       "kind": "forge comment",
       "forge": "github",
-      "url": "https://github.com/acme/widgets/issues/12#issuecomment-2291",
+      "url": "https://github.com/drexthealpha/knos-playground/issues/12#issuecomment-2291",
       "comment_id": 2291,
       "body_sha256": "4d5b226379b5d35e99cbe0599f404e317fbb6e786ed9dfd4641eab59e9a2b5d9"
      },
@@ -342,7 +342,7 @@
     }
    ],
    "deliverable": {
-    "id": "dlv_33aa42e1865c16aa8df36399",
+    "id": "dlv_7f55a55c53b415d2f03c2788",
     "offer": "bug-fix-octocat",
     "outcome": "bug-fix",
     "supplier": "octocat",
@@ -370,7 +370,7 @@
     "credited": "0",
     "owed": "0",
     "disputed": false,
-    "evidence": "audit/acme.json"
+    "evidence": "audit/drexthealpha.json"
    }
   }
  }
