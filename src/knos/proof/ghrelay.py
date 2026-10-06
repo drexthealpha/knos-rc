@@ -157,7 +157,6 @@ MAX_TRIES = 12          # failed passes a token gets when the failure may clear 
 LATE = 3600             # the chain takes a token until this long after its `exp` (knos.settle.v2.oidc.LATE); until then a failure that may clear is tried again
 BACKOFF_MOST = 60       # the longest a token is left alone between two tries, in seconds
 REST_MOST = 3600        # the longest the relay stays away from GitHub because GitHub asked it to (its hourly limit resets within the hour)
-JOURNAL = 500           # tokens the journal keeps: the newest
 HORIZON = 70 * 60       # how far back a pass looks: a token is accepted for an hour
 SEARCH_EVERY = 30       # seconds between two searches for repositories the worker does not know yet
 ALREADY_WAIT = 15       # seconds a line about a token someone else carried waits for that someone's own line in the log
