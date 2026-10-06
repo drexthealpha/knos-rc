@@ -31,6 +31,7 @@ evidence bundle (`knos bundle make`, called as it is), and what memory holds of 
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import re
@@ -272,19 +273,21 @@ def run(read: dict, changes: list[tuple[str, str]] | None, *, tree: Path | None 
     warnings, record = [], None
     if store is not None and memory.get("on"):
         name = repo or (tree.resolve().name if tree is not None else "")
+        held = getattr(store, "held", None)
         try:
-            touched = {r["path"] for r in rows}
-            for b in history.refused_before(store, name, thash):
-                n = b["count"]
-                what = f"touching {b['path']}" if b["path"] else ghwords.refusal(b["code"])[0].rstrip(".").lower()
-                warnings.append({"code": b["code"], "path": b["path"], "count": n, "yours": b["path"] in touched,
-                                 "said": f"{n} earlier submission{'s were' if n != 1 else ' was'} refused for {what}"
-                                         + (": your change touches it too." if b["path"] in touched else ".")})
-            tree_id = hashlib.sha256(json.dumps([thash, sorted(changes or [])]).encode()).hexdigest()[:24]
-            history.preflight_seen(store, name, thash, ready, [(r["code"], r["path"]) for r in refused_rows], supplier, tree_id, now)
-            memory["remembered"] = True
-            if supplier:
-                record = history.supplier_record(store, name, supplier)
+            with held() if held is not None else contextlib.nullcontext(store):      # the recall and the remembering on one connection
+                touched = {r["path"] for r in rows}
+                for b in history.refused_before(store, name, thash):
+                    n = b["count"]
+                    what = f"touching {b['path']}" if b["path"] else ghwords.refusal(b["code"])[0].rstrip(".").lower()
+                    warnings.append({"code": b["code"], "path": b["path"], "count": n, "yours": b["path"] in touched,
+                                     "said": f"{n} earlier submission{'s were' if n != 1 else ' was'} refused for {what}"
+                                             + (": your change touches it too." if b["path"] in touched else ".")})
+                tree_id = hashlib.sha256(json.dumps([thash, sorted(changes or [])]).encode()).hexdigest()[:24]
+                history.preflight_seen(store, name, thash, ready, [(r["code"], r["path"]) for r in refused_rows], supplier, tree_id, now)
+                memory["remembered"] = True
+                if supplier:
+                    record = history.supplier_record(store, name, supplier)
         except Exception as why:  # noqa: BLE001 - a memory that fails never stops a preflight; it is said, as memory being off
             memory = {"on": False, "said": f"Memory is off: the memory engine did not answer ({ghwords.first_line(why, 80)})."}
     protected = [{"pattern": g, "says": _cite(read, "deny", g)} for g in terms["deny"]] + \

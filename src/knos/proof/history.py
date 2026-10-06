@@ -39,6 +39,7 @@ that history makes required.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import re
@@ -77,6 +78,9 @@ class NullStore:
     def find(self, category: str, query: str, limit: int = 200) -> list[tuple[str, dict]]:
         return []
 
+    def held(self):
+        return contextlib.nullcontext(self)
+
 
 class SibylStore:
     """The repo's Sibyl store (the same one Knos's memory uses), through the public MemoryClient API."""
@@ -85,6 +89,19 @@ class SibylStore:
 
     def __init__(self, client):
         self.client = client
+        self._held = 0                              # how many batches (held) keep Sibyl's connection open now
+
+    @contextlib.contextmanager
+    def held(self):
+        """Many calls on one connection, released once when the batch ends. Each release closes Sibyl's connection and
+        the next call opens it again; on a slow disk the two cost seconds per call, so loading a knos-memory issue of a
+        few dozen lessons (knos.proof.memory.pull, `knos preflight --issue`) took minutes one lesson at a time."""
+        self._held += 1
+        try:
+            yield self
+        finally:
+            self._held -= 1
+            self._release()
 
     @classmethod
     def local(cls, root, tenant_id: str = "knos-judge") -> "SibylStore":
@@ -105,7 +122,9 @@ class SibylStore:
     def _release(self) -> None:
         """Close Sibyl's connections after each call: an open SQLite handle locks memory.db (and its -wal/-shm) on
         Windows, so the store could not be moved, deleted or restored from a cache while a SibylStore is alive.
-        Sibyl's Storage reopens on the next call."""
+        Sibyl's Storage reopens on the next call. Inside `held` it waits for the batch to end."""
+        if self._held:
+            return
         storage = getattr(self.client, "storage", None)
         if storage is not None:
             storage.close()
@@ -713,24 +732,28 @@ def import_lessons(store, lines) -> int:
 
     A pull request that was paid stays paid: a settlement lesson that says "not paid" never replaces one under the
     same name that says "paid", whichever was written or read last. A merge's settlement and the attestor's run can
-    both settle the same pull request at the same commit at the same time; the one that paid is the fact."""
+    both settle the same pull request at the same commit at the same time; the one that paid is the fact.
+
+    The whole load is one batch on the store's connection (SibylStore.held), released once at its end."""
     n, paid = 0, None
-    for line in (lines.splitlines() if isinstance(lines, str) else lines or []):
-        if isinstance(line, str):
-            try:
-                line = json.loads(line) if line.strip() else None
-            except ValueError:
-                continue
-        row = lesson(line)
-        if row:
-            n += 1
-            if row["category"] == "settlement":
-                paid = paid_settlements(store) if paid is None else paid
-                if row["body"]["paid"]:
-                    paid.add(row["name"])
-                elif row["name"] in paid:
+    held = getattr(store, "held", None)
+    with held() if held is not None else contextlib.nullcontext(store):
+        for line in (lines.splitlines() if isinstance(lines, str) else lines or []):
+            if isinstance(line, str):
+                try:
+                    line = json.loads(line) if line.strip() else None
+                except ValueError:
                     continue
-            store.put(row["category"], row["name"], row["body"])
+            row = lesson(line)
+            if row:
+                n += 1
+                if row["category"] == "settlement":
+                    paid = paid_settlements(store) if paid is None else paid
+                    if row["body"]["paid"]:
+                        paid.add(row["name"])
+                    elif row["name"] in paid:
+                        continue
+                store.put(row["category"], row["name"], row["body"])
     return n
 
 
