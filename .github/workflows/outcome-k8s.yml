@@ -70,7 +70,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf 'FROM python:3.12-slim\nCOPY . /knos\nRUN pip install --no-cache-dir /knos\nWORKDIR /knos\n' > "$RUNNER_TEMP/Dockerfile"
+          # the base is pulled by tag and built FROM the digest that pull got: BuildKit keeps no local copy of a base it
+          # pulled itself, so the digest is read here, before the build, and the Job's image is built from exactly it
+          docker pull -q python:3.12-slim
+          base="$(docker image inspect python:3.12-slim --format '{{index .RepoDigests 0}}')"
+          case "$base" in python@sha256:*) ;; *) echo "::error::no digest for python:3.12-slim: $base"; exit 1 ;; esac
+          echo "$base" > "$RUNNER_TEMP/base"
+          printf 'FROM %s\nCOPY . /knos\nRUN pip install --no-cache-dir /knos\nWORKDIR /knos\n' "$base" > "$RUNNER_TEMP/Dockerfile"
           docker build -q -t knos-outcome:run -f "$RUNNER_TEMP/Dockerfile" .
           kind load docker-image knos-outcome:run --name knos-outcome
       - name: judge the transformation in a Job; the pod asks the cluster to sign the evaluation
@@ -94,7 +100,7 @@ jobs:
           kubectl get --raw /openid/v1/jwks > out/jwks.json
           python -c 'import json; print(json.load(open("out/openid-configuration.json"))["issuer"])' > out/issuer
           { kind version; kubectl version -o json | python -c 'import json,sys; print("kubernetes", json.load(sys.stdin)["serverVersion"]["gitVersion"])';
-            docker image inspect knos-outcome:run --format 'image {{.Id}}'; docker image inspect python:3.12-slim --format 'base {{index .RepoDigests 0}}'; } > out/cluster.txt
+            docker image inspect knos-outcome:run --format 'image {{.Id}}'; echo "base $(cat "$RUNNER_TEMP/base")"; } > out/cluster.txt
           cat out/issuer out/cluster.txt
       - name: verify the token offline with the on-chain verifier's rule, and write the receipt
         shell: bash

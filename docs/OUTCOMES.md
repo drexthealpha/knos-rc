@@ -146,9 +146,9 @@ TokenRequest, and anything on devnet. No token a real cluster signed has been ve
 
 What the sources do not settle and the run will: that this version of kind accepts the patch as written, and that
 this cluster's key is RSA. The workflow fails in plain words on either (the key set is printed with each key's type
-and size). The Job's base image is `python:3.12-slim` by tag, not by digest; the run records the digest it got in
-`cluster.txt`. The pod is privileged, because the judge's sandbox takes the network from the submission with
-`unshare -n`; the cluster is deleted when the job ends.
+and size). The Job's base image is `python:3.12-slim`: the run pulls the tag, builds the Job's image from the digest
+that pull got, and records that digest in `cluster.txt`. The pod is privileged, because the judge's sandbox takes
+the network from the submission with `unshare -n`; the cluster is deleted when the job ends.
 
 ## What is the same in every domain
 

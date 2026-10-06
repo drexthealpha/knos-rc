@@ -194,4 +194,8 @@ def test_the_workflow_runs_the_script_and_pins_what_it_uses():
     assert by["Role"]["rules"] == [{"apiGroups": [""], "resources": ["serviceaccounts/token"], "resourceNames": [k8s.SERVICE_ACCOUNT], "verbs": ["create"]}]
     pod = by["Job"]["spec"]["template"]["spec"]
     assert pod["serviceAccountName"] == k8s.SERVICE_ACCOUNT and pod["containers"][0]["command"] == ["python", "scripts/outcome_k8s.py", "job"]
+    # the Job's image is built FROM the base's digest, read from the pull before the build (BuildKit keeps no copy to inspect after)
+    run = "\n".join(st.get("run", "") for st in wf["jobs"]["outcome"]["steps"])
+    assert "docker pull -q python:3.12-slim" in run and "printf 'FROM %s" in run and '"$base" > "$RUNNER_TEMP/Dockerfile"' in run
+    assert run.index("docker pull -q python:3.12-slim") < run.index("docker build") and "--format 'base " not in run
     assert "id-token" not in text and "secrets." not in text        # it asks GitHub for no token and holds no key: it cannot send a transaction
