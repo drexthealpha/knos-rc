@@ -24,7 +24,7 @@ Three judges see each one:
 | **all** | **63** | **56** | **7** | **0** |
 
 <!-- measured:begin -->
-Measured with the judge as it is in this tree (src/knos/judge.py, SHA-256 e54c3e05850a...): the 63 attacks on slugify, the attacks on the six real tasks, the cheats aimed at what a pull request may add and the honest submissions. Carried over from a run with an earlier judge, and to be measured again before a release: the tasks that are not code and the escapes. The whole page in one run: `python scripts/tamper_bench.py` (longer than three minutes on a shared machine); part by part: `--slug`, `--real`, `--accept`, `--allowed`, `--honest`, `--escape`.
+Measured with the judge as it is in this tree (src/knos/judge.py, SHA-256 c217674c3d7a...): the 63 attacks on slugify, the attacks on the six real tasks, the tasks that are not code, the cheats aimed at what a pull request may add, the honest submissions and the escapes. Nothing on this page is carried over from an earlier judge. The whole page in one run: `python scripts/tamper_bench.py` (longer than three minutes on a shared machine); part by part: `--slug`, `--real`, `--accept`, `--allowed`, `--honest`, `--escape`.
 <!-- measured:end -->
 
 <!-- honest:begin -->
@@ -104,7 +104,7 @@ A file outside every protected path is the pull request's source and is in the t
 
 ## Python, pytest
 
-tests/bench_tamper/sample, attacked by tests/bench_tamper/attacks.py. Measured with Python 3.11.15 and pytest 9.1.1.
+tests/bench_tamper/sample, attacked by tests/bench_tamper/attacks.py. Measured with Python 3.12.3 and pytest 9.1.1.
 
 **CI green fooled 17/21. Knos, tests: fooled 2/21. Knos, black box: fooled 0/21.**
 
@@ -136,7 +136,7 @@ Control (the honest fix): CI green passes, Knos, tests passes, Knos, black box p
 
 ## JavaScript, node:test
 
-tests/bench_tamper/sample_node, attacked by tests/bench_tamper/attacks_node.py. Measured with Node 22.22.2 and npm 10.9.7.
+tests/bench_tamper/sample_node, attacked by tests/bench_tamper/attacks_node.py. Measured with Node 22.23.3 and npm 10.9.9.
 
 **CI green fooled 20/21. Knos, tests: fooled 3/21. Knos, black box: fooled 0/21.**
 
@@ -176,7 +176,7 @@ What plain CI lets through depends on the version of node: on Node 20.20.2, atta
 
 ## Ruby, minitest
 
-tests/bench_tamper/sample_ruby, attacked by tests/bench_tamper/attacks_ruby.py. Measured with Ruby 3.3.6 and minitest 5.20.0.
+tests/bench_tamper/sample_ruby, attacked by tests/bench_tamper/attacks_ruby.py. Measured with Ruby 3.2.3 and minitest 5.16.3.
 
 **CI green fooled 19/21. Knos, tests: fooled 2/21. Knos, black box: fooled 0/21.**
 
@@ -221,7 +221,7 @@ mode, which pays on a maintainer's merge.
 <!-- real:begin -->
 ## Real open-source behaviour, six tasks
 
-Six tasks taken from behaviour that real open-source code defines, with none of that code copied: urllib.parse.urljoin, packaging.version, csv.Sniffer, configparser, datetime.fromisoformat, fnmatch.fnmatchcase. The sample repository of each (tests/bench_tamper/real_tasks.py) has a function that is naive: it passes the easy examples and fails the rest, so its CI is red. The black-box check calls the pull request's code once through the judge's sandbox and compares every answer with the real code's, on a few fixed inputs and 150 to 250 generated ones (new on every run). Each task is attacked with the 17 ideas below (the ideas of the first table that apply to a repository like this one, plus a constant-returning stub, a stub that returns the visible examples' answers, a timeout and a write into the judge's base checkout), judged by CI green and by Knos's black box. Measured with Python 3.11.15 and pytest 9.1.1.
+Six tasks taken from behaviour that real open-source code defines, with none of that code copied: urllib.parse.urljoin, packaging.version, csv.Sniffer, configparser, datetime.fromisoformat, fnmatch.fnmatchcase. The sample repository of each (tests/bench_tamper/real_tasks.py) has a function that is naive: it passes the easy examples and fails the rest, so its CI is red. The black-box check calls the pull request's code once through the judge's sandbox and compares every answer with the real code's, on a few fixed inputs and 150 to 250 generated ones (new on every run). Each task is attacked with the 17 ideas below (the ideas of the first table that apply to a repository like this one, plus a constant-returning stub, a stub that returns the visible examples' answers, a timeout and a write into the judge's base checkout), judged by CI green and by Knos's black box. Measured with Python 3.12.3 and pytest 9.1.1.
 
 A judge is *fooled* when it passes a submission that did not fix the issue. A *false refusal* is the honest fix refused.
 
@@ -263,49 +263,49 @@ One more submission is not counted as an attack: it hands the work to the real c
 <!-- accept:begin -->
 ## Tasks that are not code
 
-examples/acceptance/ holds three tasks a buyer can write with no code to point at, each as a black-box bundle (scripts/acceptance_examples.py runs them; tests/test_acceptance_examples.py runs every submission once): **clean-csv** (turn messy customer exports into one clean file; every cell must equal the clean table the messy file was made from), **summarise** (a one-line summary of an incident report; unigram F1 against the reference written in the bundle, mean at least 0.85 and 90% of reports at 0.70 or more) and **classify** (hold risky payments; accuracy at least 0.85 on a hidden set and on a fresh one). Each has the text a buyer would write (TASK.md), an honest solution, cheating submissions and near misses, and every submission goes through `knos proof judge`, the command prove.yml runs. Each cheat and near miss was judged 3 times and each honest solution 20 times, with new generated inputs each time. The cheats: a constant answer, reading the answer file (the held-out set, in the submission's own tree, in the judge's other trees and in the judge's private copy), special-casing the visible examples, never finishing, writing outside the sandbox (over the bundle in the judge's base checkout), asking a service on the network, answer bytes that are not text, too many answers, and editing the bundle in the pull request.
+examples/acceptance/ holds three tasks a buyer can write with no code to point at, each as a black-box bundle (scripts/acceptance_examples.py runs them; tests/test_acceptance_examples.py runs every submission once): **clean-csv** (turn messy customer exports into one clean file; every cell must equal the clean table the messy file was made from), **summarise** (a one-line summary of an incident report; unigram F1 against the reference written in the bundle, mean at least 0.85 and 90% of reports at 0.70 or more) and **classify** (hold risky payments; accuracy at least 0.85 on a hidden set and on a fresh one). Each has the text a buyer would write (TASK.md), an honest solution, cheating submissions and near misses, and every submission goes through `knos proof judge`, the command prove.yml runs. Each cheat and near miss was judged 5 times and each honest solution 20 times, with new generated inputs each time. The cheats: a constant answer, reading the answer file (the held-out set, in the submission's own tree, in the judge's other trees and in the judge's private copy), special-casing the visible examples, never finishing, writing outside the sandbox (over the bundle in the judge's base checkout), asking a service on the network, answer bytes that are not text, too many answers, and editing the bundle in the pull request.
 
 | task | honest solution accepted | cheats | cheats accepted | near misses | near misses accepted |
 |---|---|---|---|---|---|
-| classify | 20 of 20 | 9 | 0 of 27 | 1 | 0 of 3 |
-| clean-csv | 20 of 20 | 8 | 0 of 24 | 1 | 0 of 3 |
-| summarise | 20 of 20 | 8 | 0 of 24 | 2 | 0 of 6 |
+| classify | 20 of 20 | 9 | 0 of 45 | 1 | 0 of 5 |
+| clean-csv | 20 of 20 | 8 | 0 of 40 | 1 | 0 of 5 |
+| summarise | 20 of 20 | 8 | 0 of 40 | 2 | 0 of 10 |
 
 **False accepts: none. False refusals: none.**
 
 | task | submission | kind | accepted |
 |---|---|---|---|
-| classify | constant | cheat | 0 of 3 |
-| classify | edits_the_bundle | cheat | 0 of 3 |
-| classify | garbage_output | cheat | 0 of 3 |
-| classify | outsource_network | cheat | 0 of 3 |
-| classify | reads_answer | cheat | 0 of 3 |
-| classify | special_cases_visible | cheat | 0 of 3 |
-| classify | timeout | cheat | 0 of 3 |
-| classify | too_many_answers | cheat | 0 of 3 |
-| classify | writes_outside | cheat | 0 of 3 |
-| classify | shallow | near miss | 0 of 3 |
-| clean-csv | constant | cheat | 0 of 3 |
-| clean-csv | edits_the_bundle | cheat | 0 of 3 |
-| clean-csv | garbage_output | cheat | 0 of 3 |
-| clean-csv | outsource_network | cheat | 0 of 3 |
-| clean-csv | reads_answer | cheat | 0 of 3 |
-| clean-csv | special_cases_visible | cheat | 0 of 3 |
-| clean-csv | timeout | cheat | 0 of 3 |
-| clean-csv | writes_outside | cheat | 0 of 3 |
-| clean-csv | no_dedupe | near miss | 0 of 3 |
-| summarise | constant | cheat | 0 of 3 |
-| summarise | edits_the_bundle | cheat | 0 of 3 |
-| summarise | garbage_output | cheat | 0 of 3 |
-| summarise | outsource_network | cheat | 0 of 3 |
-| summarise | reads_answer | cheat | 0 of 3 |
-| summarise | special_cases_visible | cheat | 0 of 3 |
-| summarise | timeout | cheat | 0 of 3 |
-| summarise | writes_outside | cheat | 0 of 3 |
-| summarise | no_fix | near miss | 0 of 3 |
-| summarise | whole_report | near miss | 0 of 3 |
+| classify | constant | cheat | 0 of 5 |
+| classify | edits_the_bundle | cheat | 0 of 5 |
+| classify | garbage_output | cheat | 0 of 5 |
+| classify | outsource_network | cheat | 0 of 5 |
+| classify | reads_answer | cheat | 0 of 5 |
+| classify | special_cases_visible | cheat | 0 of 5 |
+| classify | timeout | cheat | 0 of 5 |
+| classify | too_many_answers | cheat | 0 of 5 |
+| classify | writes_outside | cheat | 0 of 5 |
+| classify | shallow | near miss | 0 of 5 |
+| clean-csv | constant | cheat | 0 of 5 |
+| clean-csv | edits_the_bundle | cheat | 0 of 5 |
+| clean-csv | garbage_output | cheat | 0 of 5 |
+| clean-csv | outsource_network | cheat | 0 of 5 |
+| clean-csv | reads_answer | cheat | 0 of 5 |
+| clean-csv | special_cases_visible | cheat | 0 of 5 |
+| clean-csv | timeout | cheat | 0 of 5 |
+| clean-csv | writes_outside | cheat | 0 of 5 |
+| clean-csv | no_dedupe | near miss | 0 of 5 |
+| summarise | constant | cheat | 0 of 5 |
+| summarise | edits_the_bundle | cheat | 0 of 5 |
+| summarise | garbage_output | cheat | 0 of 5 |
+| summarise | outsource_network | cheat | 0 of 5 |
+| summarise | reads_answer | cheat | 0 of 5 |
+| summarise | special_cases_visible | cheat | 0 of 5 |
+| summarise | timeout | cheat | 0 of 5 |
+| summarise | writes_outside | cheat | 0 of 5 |
+| summarise | no_fix | near miss | 0 of 5 |
+| summarise | whole_report | near miss | 0 of 5 |
 
-After 25 of 25 cheating submissions (each judged 3 times) the judge's base checkout held the bundle it started with and the marker file was not written.
+After 25 of 25 cheating submissions (each judged 5 times) the judge's base checkout held the bundle it started with and the marker file was not written.
 What these bundles rely on, measured and not assumed. The answers are not on disk in a form the submission can use: the messy files and the reports are generated from the answer (there is no cleaner or summariser to copy), and only the held-out parts are fixed data. The sandbox does the rest: no network (the cheat that sends the work to a service on 127.0.0.1 got `Network is unreachable`), a user that cannot write the judge's files or the base checkout (the sentence above), and, since this release, a tree with no copy of the bundle. The first run of the cheat that reads the answer file (in clean-csv) found the held-out set in `.knos/acceptance/1/` of its own tree and answered the held-out part right; it was stopped only by the freshly generated part, so a bundle made of fixed answers alone (a hidden set, a reference) was paid to it (tests/test_acceptance_examples.py::test_the_pull_request_cannot_read_the_bundle_it_is_judged_by fails on 0.3.12's judge and passes now). `knos.judge` now removes the repository's bundles from the tree before the submission runs. What no judge can do: a bundle committed to a public repository is public to the person who writes the submission, who can copy a fixed hidden set into it. A set that must stay hidden is drawn at judge time, as the fresh parts here are; a fixed part (the held-out file, the hidden labels) only keeps out code that reads it while it is judged. Near the bar the check is a threshold, not a proof: the near misses are refused because they score below it (the summarise one that leaves out the fix, about 0.82 against 0.85, is the closest), and a score near the bar can go either way.
 <!-- accept:end -->
 
@@ -332,11 +332,11 @@ What was measured on the machine that wrote this page:
 | write a file outside the work directory | ESCAPES | ESCAPES | not run here |
 | read the judge's environment variables | ESCAPES | held | not run here |
 | start 400 threads at once (a fork bomb, held still) | ESCAPES | ESCAPES | not run here |
-| hold the right to set the machine's clock | ESCAPES | held | not run here |
+| hold the right to set the machine's clock | held | held | not run here |
 
-**hermetic (image): not run here** (docker is installed and its daemon does not answer). No number is claimed for it: its column above is what the command line is built to do (tests/test_judge_hermetic.py checks that command line argument by argument), not a measurement.
+**hermetic (image): not run here** (no container runtime on this machine). No number is claimed for it: its column above is what the command line is built to do (tests/test_judge_hermetic.py checks that command line argument by argument), not a measurement.
 
-In the places that were run (host, no sandbox and host sandbox), 10 of 10 outcomes were the expected one (the judge ran as root).
+In the places that were run (host, no sandbox and host sandbox), 10 of 10 outcomes were the expected one (the judge ran as an ordinary user).
 
 What this says and does not: the host sandbox stops a submission from calling out and from reading the judge's environment, and leaves it able to write where any user can and to exhaust the machine. The container is built to close those too. Five probes are five probes: a kernel or runtime bug that lets a process out of a container is outside what this page measures.
 <!-- escape:end -->

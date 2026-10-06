@@ -124,6 +124,14 @@ and exported; the working folder is deleted and the chain forgets the order; the
 `knos bundle verify --no-chain --no-network` passes on every restored receipt. The test chain holds one order, so
 "every" is one bundle there. It has not been rehearsed with a customer's archive.
 
+Once on a real bundle, on 6 Oct 2026: the bundle of a work order paid on devnet at the staging program ids (transaction
+`63wT5rhY…`, 40,960 bytes, sha256 `fae63726…`, made by `knos bundle make` on 5 Oct) was sealed to three keys made for the
+run with `knos vault keygen`; each of the three opened it to the same bytes; it was exported, the vault folder was
+deleted, and `knos vault restore` gave it back from the archive alone, checked against the archive's checkpoint
+(`knos-vault-checkpoint:v1:72680419…`). `knos bundle verify --no-chain --no-network` passed on the restored copy, with
+`KNOS_PROGRAM_IDS` naming the staging ids it was paid on. Without them it is refused, and the refusal says the bundle
+is from another deployment of the programs. The keys and the archive were the founder's: nobody else held one.
+
 ## Limits
 
 - The standard-library code is not constant-time; nothing written in Python is. Sealing and opening are done by a

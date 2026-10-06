@@ -18,8 +18,8 @@ anyone else.
   ([`docs/STORY.md`](docs/STORY.md)).
 - **Correct work is accepted.** The black-box judge used to refuse a correct fix that added its own regression
   test in a protected place: 39 of 48 honest submissions passed. It now accepts 61 of 61, and still accepts 0 of 63
-  cheats on the sample project, 0 of 102 on six real tasks and 0 of 14 aimed at what a pull request may add. The
-  cheats on tasks that are not code are carried over from a run with the earlier judge. Both rates are measured on
+  cheats on the sample project, 0 of 102 on six real tasks, 0 of 25 on tasks that are not code and 0 of 14 aimed
+  at what a pull request may add, all from one run of the whole benchmark with this judge. Both rates are measured on
   Knos's own tasks, by the people who wrote the judge ([`docs/TAMPER.md`](docs/TAMPER.md)).
 - **Four verdicts, four ids.** A verdict is accepted, rejected, insufficient evidence or disputed. A deliverable, an
   evaluation, an invoice line and a settlement each have an id of their own, built the same way everywhere

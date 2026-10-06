@@ -1964,7 +1964,7 @@
      "names": "test_honest_submissions_are_accepted_and_one_with_tests_of_its_own_says_they_were_not_counted"
     }
    },
-   "note": "The black-box judge accepted 61 of 61 honest submissions, of which the 48 of the set before, 48 of 48; cheats accepted: 0 of 63, 0 of 102 and 0 of 14 new ones, and the 0 of 25 on tasks that are not code is carried over from the previous release, not measured again (docs/TAMPER.md, docs/ASSURANCE.md). Knos's own tasks and submissions; nobody outside has run the set."
+   "note": "The black-box judge accepted 61 of 61 honest submissions, of which the 48 of the set before, 48 of 48; cheats accepted: 0 of 63, 0 of 102, 0 of 25 on tasks that are not code and 0 of 14 new ones, every figure from one run of the whole benchmark in this release (docs/TAMPER.md, docs/ASSURANCE.md). Knos's own tasks and submissions; nobody outside has run the set."
   },
   {
    "id": "provenance_chain",

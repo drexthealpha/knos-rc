@@ -529,8 +529,9 @@ one: an added test file runs and is not counted, and the funder's suite alone de
 
 Measured in [TAMPER.md](TAMPER.md) with the judge in this tree: the black-box judge accepted 61 of 61 honest
 submissions, of which the 48 that were the whole set before, 48 of 48. Cheating submissions it accepted: 0 of 63
-attacks on slugify, 0 of 102 on the six real tasks, and 0 of 14 new cheats aimed at what a pull request may now add.
-The 0 of 25 on the tasks that are not code is carried over from the previous release and was not measured again.
+attacks on slugify, 0 of 102 on the six real tasks, 0 of 25 on the tasks that are not code (each judged five times)
+and 0 of 14 new cheats aimed at what a pull request may now add. Every figure on that page is from one run of
+`python scripts/tamper_bench.py` in this release.
 These are Knos's own tasks and submissions; nobody outside has run either set.
 
 Still refused, by rule: a pull request that changes the funder's suite itself, or a path the judge cannot take from
