@@ -634,6 +634,11 @@ html.k-printing .k-statement td{overflow-wrap:anywhere}
    below both (moved here from the page's head). */
 .fd-result { order: 2; }
 @media (max-width: 899px) { .hero { align-content: start; } .hero .hero-mark { order: 3; } }
+/* The glow belongs to the sentence and the mark. Once an answer is drawn under them (#front-result, the hero's second
+   row), the glow is held to the first row: an absolutely placed box with a grid row takes that row as its area (the row
+   is made explicit, as an implicit one would not count), so a long list of lines never has the glow running through it. */
+.hero:has(> #front-result:not([hidden])) { grid-template-rows: auto; }
+.hero:has(> #front-result:not([hidden]))::before { grid-row: 1 / 2; grid-column: 1 / -1; }
 /* The bar's search button (#search, [data-palette]) opens the command palette (web/motion.js); its keys, Ctrl K, are in
    its title: the first screen has 40 words and no more. */
 

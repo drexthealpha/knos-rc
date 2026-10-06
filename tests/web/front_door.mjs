@@ -127,8 +127,26 @@ async function page() {
     ok(`${width}px: one control (a box, its button, a sample), above the fold, and the round below`, hero.controls.join() === "fd-in,run,sample" && hero.below && hero.boxTop <= hero.fold, hero);
     ok(`${width}px: the first screen does not scroll sideways`, (await measure(p)).over <= 0, await measure(p));
     ok(`${width}px: the first screen asks nobody at all: not GitHub, not devnet`, strangers.length === 0, strangers);
+    // THE GLOW belongs to the sentence and the mark: before an answer it fills the hero; once the sample's lines are drawn
+    // under them it ends above the first of them, at every width (it used to run down through the list at 1280)
+    const glow = () => p.evaluate(() => {
+      const hero = document.querySelector(".hero"), s = getComputedStyle(hero, "::before"), probe = document.createElement("div");
+      for (const k of ["position", "top", "right", "bottom", "left", "gridRowStart", "gridRowEnd", "gridColumnStart", "gridColumnEnd"]) probe.style[k] = s[k];
+      hero.append(probe); const g = probe.getBoundingClientRect(); probe.remove();
+      const res = document.getElementById("front-result"), h = hero.getBoundingClientRect(), w = document.querySelector(".hero-words").getBoundingClientRect();
+      return { top: Math.round(g.top), bottom: Math.round(g.bottom), heroBottom: Math.round(h.bottom), wordsTop: Math.round(w.top), wordsBottom: Math.round(w.bottom), resultTop: res.hidden ? null : Math.round(res.getBoundingClientRect().top), content: s.content };
+    });
+    const g0 = await glow();
+    ok(`${width}px: before an answer, the glow is behind the whole hero`, g0.content !== "none" && g0.resultTop === null && g0.top <= g0.wordsTop && Math.abs(g0.bottom - g0.heroBottom) <= 1, g0);
+    if (width !== 320) {
+      await p.click('[data-fd="sample"]'); await done(p);
+      const g1 = await glow();
+      ok(`${width}px: with the sample's lines drawn, the glow stays behind the sentence and ends above the lines`, g1.resultTop !== null && g1.top <= g1.wordsTop && g1.bottom >= g1.wordsBottom - 1 && g1.bottom <= g1.resultTop + 1 && g1.heroBottom > g1.bottom + 200, g1);
+    }
     if (width === 320) {      // the sample on the site itself, with GitHub out of reach
       await p.click('[data-fd="sample"]'); await done(p);
+      const g1 = await glow();
+      ok("320px: with the sample's lines drawn, the glow ends above the lines", g1.resultTop !== null && g1.top <= g1.wordsTop && g1.bottom <= g1.resultTop + 1, g1);
       ok("320px, on the site: the sample's result does not scroll sideways", (await measure(p)).over <= 0, await measure(p));
       ok("320px, on the site: the result is in the first screen's own block, above the round", await p.$eval("#front-result", (e) => e.parentElement.classList.contains("hero") && !e.hidden));
       await p.click('[data-fd="approve"]'); await p.click('[data-fd="statement"]');
