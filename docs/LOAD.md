@@ -199,19 +199,19 @@ Sources: [GitHub: rate limits for the REST API (60 an hour unauthenticated, 5,00
 
 ### The stages of a payment (recorded on devnet)
 
-From `scripts/latency_stages.py --rpc https://api.devnet.solana.com --json` on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC (the figures as `docs/bench.json` keeps them). Each stage is timed only for the payments whose log line recorded it, so each row has its own n; a stage no line recorded says "not recorded", and no figure here is derived from another row.
+From `python scripts/latency_stages.py --rpc https://api.devnet.solana.com --json`, run on 6 October 2026 from 14:58 to 15:06 UTC against the public relay log (drexthealpha/Knos) and devnet: 41 payments of 2 to 5 October 2026. Each stage is timed only for the payments whose log line recorded it, so each row has its own n; a stage no line recorded says "not recorded", and no figure here is derived from another row.
 
 | stage | from, to | n | p50 | p95 |
 | --- | --- | --- | --- | --- |
-| merge to paid, the whole wait | GitHub's `merged_at` to the block that paid | 40 | 25 s | 58 s |
-| workflow scheduling | the merge to the start of the workflow run | 4 | 3 s | 1184 s |
-| evaluation | the start of the run to the token's comment | 4 | 15 s | 24 s |
-| relay pickup | the token's comment to a relay taking it up | 4 | 2 s | 5 s |
-| submission | pickup to the block of the first transaction | 4 | 2 s | 5 s |
-| confirmation | that block to the block of the paying transaction | 4 | 4 s | 8 s |
+| merge to paid, the whole wait | GitHub's `merged_at` to the block that paid | 41 | 25 s | 58 s |
+| workflow scheduling | the merge to the start of the workflow run | 5 | 2 s | 1184 s |
+| evaluation | the start of the run to the token's comment | 5 | 16 s | 24 s |
+| relay pickup | the token's comment to a relay taking it up | 5 | 2 s | 5 s |
+| submission | pickup to the block of the first transaction | 5 | 2 s | 5 s |
+| confirmation | that block to the block of the paying transaction | 5 | 3 s | 8 s |
 | finality | the last confirmation to the cluster finalizing it | not recorded | not recorded | not recorded |
 
-Read it with its n. The whole wait is 40 payments; the stage rows are 4 of them, because the log lines of the other 36 carry no stage fields: for those payments every stage is not recorded, and their time is in the first row only. With 4 samples the 95th percentile by nearest rank is the slowest of them, so a p95 in a stage row is one payment, not a band. `python scripts/latency_stages.py --md` prints this table from the live log.
+Read it with its n. The whole wait is 41 payments; the stage rows are 5 of them, because the log lines of the other 36 carry no stage fields: for those payments every stage is not recorded, and their time is in the first row only. With 5 samples the 95th percentile by nearest rank is the slowest of them, so a p95 in a stage row is one payment, not a band. `python scripts/latency_stages.py --md` prints this table from the live log.
 
 ### The relay's queue (a local test of the queue, not a benchmark of the service)
 
@@ -235,7 +235,7 @@ What it does not show: a kill between a send and its answer. Then the entry is s
 
 ### The always-on sweep on the queue (the same local test, through the relay's own pass)
 
-The same command runs a second part: `knos.proof.ghrelay.once`, the pass the public worker repeats every 3 s, which now queues what it reads and carries it with the queue's 4 workers. **This too is a local test of the queue, not an end-to-end benchmark**: GitHub and the chain are stand-ins and the clock is the test's own. The 40 payments recorded on devnet above (p50 25 s, p95 58 s) were made by the serial sweep, before it was on the queue: no figure on this page times the queue on a cluster.
+The same command runs a second part: `knos.proof.ghrelay.once`, the pass the public worker repeats every 3 s, which now queues what it reads and carries it with the queue's 4 workers. **This too is a local test of the queue, not an end-to-end benchmark**: GitHub and the chain are stand-ins and the clock is the test's own. The 41 payments recorded on devnet above (p50 25 s, p95 58 s) were made by the serial sweep, before it was on the queue: no figure on this page times the queue on a cluster.
 
 12 tokens of 6 owners were posted; the confirmation of one took 60 s of the test's clock. Then two more were posted, and the pass that carried them was killed after it had sent one and before it noted anything.
 

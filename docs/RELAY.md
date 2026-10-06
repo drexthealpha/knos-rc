@@ -158,9 +158,10 @@ delayed when load is high (first link).
 
 What the event does not do. An event run is a new run: GitHub starts a runner and the job installs, which took 10
 to 21 seconds for the chain's runs. While the chain relays, its 3-second pass reaches a token first (2 s at the
-median for the four payments whose lines say, [LOAD.md](LOAD.md), section 6). The event bounds the two waits the
-pass cannot: a token posted while no run relays, and a repository the worker has not seen. No event run has been
-timed: nothing on this page is a measurement of it.
+median for the five payments whose lines say, [LOAD.md](LOAD.md), section 6). The event bounds the two waits the
+pass cannot: a token posted while no run relays, and a repository the worker has not seen. One event run has
+happened, in the staging repository and carrying no token (below, "What is not done"): its times are of one run
+that started and read, not of a token carried.
 
 **The queue.** The journal (`journal`, in `KNOS_HOME/ghrelay.json`) is the queue, for the sweep and for an event
 run alike. An entry is `queued`, `leased`, `done` or `dead`:
@@ -242,13 +243,19 @@ What is not done:
   confirmation is awaited, but the pass itself returns when its last worker has answered. A comment posted
   meanwhile is read by the next pass: up to the 60 seconds a relay waits for one confirmation, not 3 seconds
   later. Reading while workers carry is not built.
-- **No payment on devnet has been carried by the queue.** The 40 payments recorded on devnet ([LOAD.md](LOAD.md),
+- **No payment on devnet has been carried by the queue.** The 41 payments recorded on devnet ([LOAD.md](LOAD.md),
   section 6: p50 25 s, p95 58 s) were made by the serial sweep. What is known of the queue is a local test
   with a stand-in chain (`python scripts/queue_drill.py`, same section): it says how the queue behaves, and
   nothing about seconds on a cluster.
-- **No event run has happened.** The job is in the repository and its tests; it runs from the first event after
-  the file reaches `main`. Nobody dispatches `knos-token` yet: the public worker gets `workflow_run` for its own
-  repository's `knos` workflow, and nothing for the other repositories it serves (above: it cannot).
+- **One event run, and it carried no token.** On 6 October 2026 one `repository_dispatch` of type `knos-token`,
+  `client_payload` `{"repo": "drexthealpha/knos-rc", "number": 1}`, started the `event` job of this file in the
+  staging repository ([run 37483292967](https://github.com/drexthealpha/knos-rc/actions/runs/37483292967)): GitHub
+  created the run at 14:57:22 UTC, the job started 3 s later, and 7 s after that it had read the issue's comments
+  and answered "relay: 0 tokens carried for this event". No token had been posted there in the 70 minutes it reads,
+  so it times a run that starts, installs and reads, and no token carried by an event. On the public worker no event
+  run has happened: it runs from the first event after the file reaches `main`. Nobody dispatches `knos-token` there
+  yet: the public worker gets `workflow_run` for its own repository's `knos` workflow, and nothing for the other
+  repositories it serves (above: it cannot).
 - **In `worker.yml` an event run's notes end with its runner.** The queue saves them in the sweep's format, and a
   sweep that reads the same file carries nothing twice; the workflow does not hand that file from the event job to
   the sweep. What an event run leaves open is the sweep's to carry from the comment.
@@ -284,27 +291,27 @@ Three things follow, and one does not.
   seconds and cannot be split from those files. `scripts/latency_stages.py` splits a payment only where its log line
   carries the stage fields (`workflow=`, `wait=`, `chain=`), and the 164 s payment's line does not.
 
-`scripts/latency_stages.py` on the live log (5 October 2026, 20:54 to 21:17 UTC; the escrows' history and the
+`scripts/latency_stages.py` on the live log (6 October 2026, 14:58 to 15:06 UTC; the escrows' history and the
 block times read from devnet's public endpoint by the script itself, `--rpc`). Each row is measured only where
 the line carries it, so each has its own n:
 
 | stage | n | median | 95th percentile | slowest |
 | --- | --- | --- | --- | --- |
-| the whole wait, as this script timed it | 40 | 25 s | 58 s | 1,220 s |
-| runner queue: the merge to the start of the run | 4 | 3 s | 1,184 s | 1,184 s |
-| of it, the run waiting for a runner (GitHub's record) | 4 | 0 s | 0 s | 0 s |
-| workflow: the start of the run to the token's comment | 4 | 15 s | 24 s | 24 s |
-| relay wait: the comment to the relay picking it up | 4 | 2 s | 5 s | 5 s |
-| first send: the pickup to the first transaction's block | 4 | 2 s | 5 s | 5 s |
-| confirm: that block to the paying transaction's block | 4 | 4 s | 8 s | 8 s |
-| the relay's side (first send and confirm together) | 4 | 7 s | 11 s | 11 s |
+| the whole wait, as this script timed it | 41 | 25 s | 58 s | 1,220 s |
+| runner queue: the merge to the start of the run | 5 | 2 s | 1,184 s | 1,184 s |
+| of it, the run waiting for a runner (GitHub's record) | 5 | 0 s | 0 s | 0 s |
+| workflow: the start of the run to the token's comment | 5 | 16 s | 24 s | 24 s |
+| relay wait: the comment to the relay picking it up | 5 | 2 s | 5 s | 5 s |
+| first send: the pickup to the first transaction's block | 5 | 2 s | 5 s | 5 s |
+| confirm: that block to the paying transaction's block | 5 | 3 s | 8 s | 8 s |
+| the relay's side (first send and confirm together) | 5 | 5 s | 11 s | 11 s |
 
 Few lines carry the stage fields yet, so the stage rows are a handful of payments, not a distribution: read them as
 those payments. The slowest of them spent its time in the runner queue (before the run began, with no wait for a
 runner recorded by GitHub), not in the relay.
 
-The attempts, over every payment line of the log: 43 of 52
-pull requests asked for were paid; the log has 56 lines with a token, of which
+The attempts, over every payment line of the log: 44 of 53
+pull requests asked for were paid; the log has 57 lines with a token, of which
 13 say fail and 0 took more than one try;
 1 were paid only after a failed line, and 9 were never
 paid. A failure here is a relay's answer (a token too long, no bounty on the issue, a token for the other

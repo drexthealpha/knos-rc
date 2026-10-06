@@ -988,45 +988,45 @@
  },
  "relay": {
   "stages": {
-   "source": "`scripts/latency_stages.py --rpc https://api.devnet.solana.com --json` on the public relay log of drexthealpha/Knos, 5 October 2026, 20:54 to 21:17 UTC (the figures as `docs/bench.json` keeps them)",
+   "source": "`python scripts/latency_stages.py --rpc https://api.devnet.solana.com --json`, run on 6 October 2026 from 14:58 to 15:06 UTC against the public relay log (drexthealpha/Knos) and devnet: 41 payments of 2 to 5 October 2026",
    "whole": {
-    "n": 40,
+    "n": 41,
     "p50": 25,
     "p95": 58
    },
    "six": [
     {
      "stage": "workflow scheduling",
-     "n": 4,
-     "p50": 3,
+     "n": 5,
+     "p50": 2,
      "p95": 1184,
      "what": "the merge to the start of the workflow run"
     },
     {
      "stage": "evaluation",
-     "n": 4,
-     "p50": 15,
+     "n": 5,
+     "p50": 16,
      "p95": 24,
      "what": "the start of the run to the token's comment"
     },
     {
      "stage": "relay pickup",
-     "n": 4,
+     "n": 5,
      "p50": 2,
      "p95": 5,
      "what": "the token's comment to a relay taking it up"
     },
     {
      "stage": "submission",
-     "n": 4,
+     "n": 5,
      "p50": 2,
      "p95": 5,
      "what": "pickup to the block of the first transaction"
     },
     {
      "stage": "confirmation",
-     "n": 4,
-     "p50": 4,
+     "n": 5,
+     "p50": 3,
      "p95": 8,
      "what": "that block to the block of the paying transaction"
     },

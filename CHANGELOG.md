@@ -64,7 +64,8 @@ anyone else.
   every bound in every tier but one: "at most 2.5% of the amount" at the default rate in the first tier, which is
   tested at every amount instead ([`docs/INVARIANTS.md`](docs/INVARIANTS.md), [`docs/kani.json`](docs/kani.json)).
 - **The relay can be woken by an event,** and carries tokens from a queue with several workers; the timer's pass
-  stays as the sweep. No event run has been timed ([`docs/RELAY.md`](docs/RELAY.md)).
+  stays as the sweep. One event run has happened, in the staging repository, and it carried no token: no token
+  carried by an event has been timed ([`docs/RELAY.md`](docs/RELAY.md)).
 - **The Agent PR Index has a leaderboard,** as a page, a file and a feed: a place only for an agent with at least
   30 merged pull requests, an interval beside every rate, and a link to dispute each row
   ([`docs/INDEX.md`](docs/INDEX.md)).
