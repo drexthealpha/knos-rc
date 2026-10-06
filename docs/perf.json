@@ -1,0 +1,66 @@
+{
+ "what": "tests/web/perf.mjs on a build of web/ in headless Chromium. Input to next paint (the new state, or its pending state), in milliseconds, 20 runs, each the best of three presses; bytes as served, unminified and uncompressed.",
+ "machine": "2 CPUs (Intel(R) Xeon(R) Processor @ 2.10GHz), shared",
+ "limit_ms": 300,
+ "interactions": {
+  "open a view": {
+   "runs": 20,
+   "p50_ms": 8.2,
+   "p95_ms": 23.9,
+   "max_ms": 25.2
+  },
+  "open a view: the new page drawn": {
+   "runs": 20,
+   "p50_ms": 88.9,
+   "p95_ms": 106.9,
+   "max_ms": 116.8
+  },
+  "open a page for the first time": {
+   "runs": 20,
+   "p50_ms": 83.4,
+   "p95_ms": 114.9,
+   "max_ms": 121
+  },
+  "run the sample invoice": {
+   "runs": 20,
+   "p50_ms": 16.6,
+   "p95_ms": 26.7,
+   "max_ms": 29.2
+  },
+  "open the palette": {
+   "runs": 20,
+   "p50_ms": 14.1,
+   "p95_ms": 20,
+   "max_ms": 20.7
+  },
+  "switch light and dark": {
+   "runs": 20,
+   "p50_ms": 17.1,
+   "p95_ms": 24.8,
+   "max_ms": 27.2
+  }
+ },
+ "first_screen_bytes": {
+  "js": 172437,
+  "css": 54753,
+  "budget": {
+   "js": 190000,
+   "css": 60000
+  },
+  "files": 12
+ },
+ "layout_shift": {
+  "limit": 0.05,
+  "at_1280": 0.004,
+  "at_390": 0.0048
+ },
+ "widths_without_sideways_scroll": [
+  320,
+  360,
+  390,
+  480,
+  768,
+  1024,
+  1280
+ ]
+}

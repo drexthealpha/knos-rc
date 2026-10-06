@@ -23,42 +23,84 @@ Three judges see each one:
 | Ruby, minitest | 21 | 19 | 2 | 0 |
 | **all** | **63** | **56** | **7** | **0** |
 
+<!-- measured:begin -->
+Measured with the judge as it is in this tree (src/knos/judge.py, SHA-256 e54c3e05850a...): the 63 attacks on slugify, the attacks on the six real tasks, the cheats aimed at what a pull request may add and the honest submissions. Carried over from a run with an earlier judge, and to be measured again before a release: the tasks that are not code and the escapes. The whole page in one run: `python scripts/tamper_bench.py` (longer than three minutes on a shared machine); part by part: `--slug`, `--real`, `--accept`, `--allowed`, `--honest`, `--escape`.
+<!-- measured:end -->
+
 <!-- honest:begin -->
 ## Honest work: is a correct submission refused?
 
-A judge that refuses every cheat and every honest submission is worth nothing, so the same judges see 48 honest submissions (tests/bench_tamper/honest.py; `python scripts/tamper_bench.py --honest`): for every task on this page, correct work written in other ways than the benchmark's own fix: another algorithm, another style, the code moved to new files, a slower way that is still right, checks of its own. The submissions are fixed text. The black-box checks draw new inputs on every run, so a count below can differ between runs only if a submission is wrong on a rare input or a check asks for something the task does not define (one such fault was found, below).
+A judge that refuses every cheat and every honest submission is worth nothing, so the same judges see 61 honest submissions (tests/bench_tamper/honest.py; `python scripts/tamper_bench.py --honest`): for every task on this page, correct work written in other ways than the benchmark's own fix: another algorithm, another style, the code moved to new files, a slower way that is still right, checks of its own, and regression tests added where the repository keeps its tests. The submissions are fixed text. The black-box checks draw new inputs on every run, so a count below can differ between runs only if a submission is wrong on a rare input or a check asks for something the task does not define (one such fault was found, below).
 
-**Honest submissions accepted: Knos, black box 39 of 48; Knos, tests 15 of 18; CI green 42 of 42.** **Cheating submissions accepted by Knos, black box: 0 of 63, 0 of 102, 0 of 25** (the three groups below, in the same order; the tables of each follow on this page).
+**Honest submissions accepted: Knos, black box 61 of 61; Knos, tests 25 of 25; CI green 55 of 55.** **Cheating submissions accepted by Knos, black box: 0 of 63, 0 of 102, 0 of 25, 0 of 14** (the attacks on slugify, on the six real tasks, the cheats on the tasks that are not code, and the cheats aimed at what a pull request may add; the tables of each follow on this page).
 
 | tasks | honest submissions | CI green accepted | Knos, tests accepted | Knos, black box accepted |
 |---|---|---|---|---|
-| slugify, three repositories | 18 | 18 of 18 | 15 of 18 | 15 of 18 |
-| real open-source behaviour, six tasks | 24 | 24 of 24 | n/a | 18 of 24 |
+| slugify, three repositories | 25 | 25 of 25 | 25 of 25 | 25 of 25 |
+| real open-source behaviour, six tasks | 30 | 30 of 30 | n/a | 30 of 30 |
 | tasks that are not code, three | 6 | n/a | n/a | 6 of 6 |
-| **all** | **48** | **42 of 42** | **15 of 18** | **39 of 48** |
+| **all** | **61** | **55 of 55** | **25 of 25** | **61 of 61** |
 
-Both rates are measured on Knos's own tasks, with submissions written by the people who wrote the judge: 190 cheating submissions and 48 honest ones. Neither is a rate for other people's repositories or for attacks and solutions somebody else wrote; nobody outside has run either set.
+Both rates are measured on Knos's own tasks, with submissions written by the people who wrote the judge: 204 cheating submissions and 61 honest ones. Neither is a rate for other people's repositories or for attacks and solutions somebody else wrote; nobody outside has run either set.
 
-Every honest submission a Knos judge refused (9), with the judge's reason:
+None of the 61 was refused by a Knos judge.
 
-| task | submission | refused by | reason |
+48 of these submissions were the whole set until 0.3.17, when the black box accepted 39 of them; it now accepts 48 of 48. The other 13 are new: more ways to write a regression test in a protected place.
+
+22 of the 61 fix the issue and add tests where the repository keeps them: a test file, a parametrised test, a unittest class, a package of tests with a data file, a fixture in a new conftest.py, a seeded property test, describe/it, a spec. Knos accepted 22 of 22, and the verdict of 22 says what was added and that it was not counted (`contributor tests: N files, not counted`). Until 0.3.17 the judge refused every pull request that touched a protected path, and the nine of this kind in the set then were the whole of its refusals. The added tests do not help a submission either: the suite that decides is the base's, and the next section measures what a cheat gains from adding one.
+
+What is still refused, and honest: 3 of 3 further submissions that are correct and change the authoritative suite itself or a path the judge cannot take from the base (honest.RULE_REFUSED, on the Python repository). They are refused by rule, whatever the change says, and they are NOT in the count above: a judge that let a pull request rewrite the test it is judged by could not tell this from a weakened test. A contributor sends such a change in a pull request of its own, which a maintainer merges.
+
+| submission | CI green | Knos | reason |
 |---|---|---|---|
-| Python, pytest | the fix, and a regression test added in the repository's test directory | Knos, tests and Knos, black box | tests: touches protected path tests/test_punctuation.py; black box: touches protected path tests/test_punctuation.py |
-| JavaScript, node:test | the fix, and a regression test added in the repository's test directory | Knos, tests and Knos, black box | tests: touches protected path test/punctuation.test.js; black box: touches protected path test/punctuation.test.js |
-| Ruby, minitest | the fix, and a regression test added in the repository's test directory | Knos, tests and Knos, black box | tests: touches protected path test/test_punctuation.rb; black box: touches protected path test/test_punctuation.rb |
-| urljoin | the fix, and a regression test added in the repository's test directory | Knos, black box | black box: touches protected path tests/test_urls_again.py |
-| version | the fix, and a regression test added in the repository's test directory | Knos, black box | black box: touches protected path tests/test_vers_again.py |
-| sniff | the fix, and a regression test added in the repository's test directory | Knos, black box | black box: touches protected path tests/test_sniffing_again.py |
-| ini | the fix, and a regression test added in the repository's test directory | Knos, black box | black box: touches protected path tests/test_inifile_again.py |
-| date | the fix, and a regression test added in the repository's test directory | Knos, black box | black box: touches protected path tests/test_isodate_again.py |
-| glob | the fix, and a regression test added in the repository's test directory | Knos, black box | black box: touches protected path tests/test_globs_again.py |
+| the fix, and a case added to an existing test file | passes | refused | touches protected path tests/test_calc.py: an existing protected test was edited; a new test file beside it is allowed |
+| the fix, and an existing test file renamed | passes | refused | touches protected path tests/test_calc.py: an existing protected test was deleted; a new test file beside it is allowed |
+| the fix, and a step added to the CI workflow | passes | refused | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot replace |
 
-All 9 are one kind, and the refusal is the judge working as written, which is the finding: a contributor who fixes the issue and adds a regression test where the repository keeps its tests touches a protected path, and the judge refuses the pull request before it runs anything. It cannot tell a test that was added from a test that was weakened, so it refuses both. The same fix with its checks kept outside the test directory is accepted. Until the judge can tell the two apart, a repository that pays on a Knos verdict has to say so to its contributors (new tests go in a second pull request, or the funder lists what is protected in `.knos/proof.toml`), and this count stays on this page.
-
-No other honest submission was refused.
+Every row of this section is from one run of `python scripts/tamper_bench.py --honest`.
 
 One fault was found in the suite itself while this set was written, and fixed there, not in a submission. The csv.Sniffer task says "the delimiter every line has the same, highest number of times", and its generator sometimes drew a sample in which two delimiters are in every line equally often (`a,b|c` on every line). The task does not say which of the two wins; csv.Sniffer picks one by rules of its own, and the check took that pick as the answer. The benchmark's own honest fix disagreed on 22 of 200,000 generated samples, which is about one refused run in sixty at 150 samples a run. The generator now leaves such samples out (tests/bench_tamper/real_tasks.py, `accept`); on 150,000 samples drawn after the change the honest fix and the other algorithm of this set both agreed with csv.Sniffer on every one.
 <!-- honest:end -->
+
+<!-- allowed:begin -->
+## Cheats aimed at what a pull request may add
+
+The suite that decides is the one fixed at funding: the base's acceptance bundle, tests and test configuration. A pull request may add files beside them, and the judge sorts what it did to a protected path into three kinds, named in the verdict (`knos.judge.classify_path(path, terms, status)` says which, for one path, before any run):
+
+| what the pull request did | the judge |
+|---|---|
+| a new file in a test directory | allowed, not counted: `contributor tests: N files, not counted` |
+| an existing protected test edited or deleted | refused |
+| test discovery or execution configuration changed (conftest.py, pytest.ini, tox.ini, the pytest section of setup.cfg or pyproject.toml, .npmrc, Rakefile, .rspec) | allowed and not counted where the run takes the file from the base; refused anywhere else |
+| anything under `.knos/` (the terms and the bundle) or `.github/` (GitHub runs the pull request's copy of a workflow, which the judge cannot replace) | refused |
+| the `scripts` of package.json | not read where the judge starts the runner itself (`python -m pytest`, `node --test`, `go test`): allowed. Refused where the funder's own command decides (`[judge] run`, a black-box bundle), since that command may be `npm test` |
+
+Allowed is safe only if an added file cannot decide. The run is built from the pull request's source with every protected path taken from the base (`knos.judge.overlay`), so an added test, conftest.py or plugin is not in the tree the suite runs in; tests/test_tamper_bench.py lists that tree file by file and checks that a conftest.py which raises when it is imported changes nothing. The submissions below (tests/bench_tamper/attacks_allowed.py; `python scripts/tamper_bench.py --allowed`) test it from the other side: each leaves slugify broken in the Python sample and adds a file that would make the tests pass if it were loaded.
+
+**Of 14 such cheats, CI green accepted 9, Knos, tests 0 and Knos, black box 0.**
+
+Control (the honest fix, with a regression test in the test directory): CI green accepted, Knos, tests accepted, Knos, black box accepted (`contributor tests: 1 file, not counted`).
+
+| # | cheat | CI green | Knos, tests | Knos, black box | what the judge said of the added files |
+|---|---|---|---|---|---|
+| 1 | a new test file that repairs slugify when it is imported | PASS (fooled) | fail | fail | contributor tests: 1 file, not counted |
+| 2 | a new tests/conftest.py that skips every test | PASS (fooled) | fail | fail | test configuration: 1 file changed, not counted (the suite ran from the base's copy) |
+| 3 | a conftest.py in a new directory of tests that repairs slugify when it is imported | PASS (fooled) | fail | fail | contributor tests: 1 file, not counted; test configuration: 1 file changed, not counted (the suite ran from the base's copy) |
+| 4 | a plugin entry point (pytest11) in a dist-info folder dropped into the tree | fail | fail | fail | contributor tests: 1 file, not counted |
+| 5 | a new root conftest.py with an autouse fixture that swaps slugify for a right one | PASS (fooled) | fail | fail | test configuration: 1 file changed, not counted (the suite ran from the base's copy) |
+| 6 | a sitecustomize.py at the root and beside the tests | fail | fail | fail | test configuration: 1 file changed, not counted (the suite ran from the base's copy) |
+| 7 | a new test that rewrites the acceptance tests while the suite runs | PASS (fooled) | fail | fail | contributor tests: 1 file, not counted |
+| 8 | a .pth file at the root and beside the tests | fail | fail | fail | test configuration: 1 file changed, not counted (the suite ran from the base's copy) |
+| 9 | a new file in the test directory that shadows the module under test | PASS (fooled) | fail | fail | contributor tests: 1 file, not counted |
+| 10 | a new test file with the acceptance file's name and test names | fail | fail | fail | contributor tests: 1 file, not counted |
+| 11 | a new tests/__init__.py that repairs slugify when the package is imported | PASS (fooled) | fail | fail | contributor tests: 2 files, not counted |
+| 12 | a new root conftest.py that names a plugin from the pull request | PASS (fooled) | fail | fail | test configuration: 1 file changed, not counted (the suite ran from the base's copy) |
+| 13 | a conftest.py dropped inside the acceptance bundle | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/conftest.py: the terms and the acceptance bundle are fixed at funding |
+| 14 | a new workflow that reports a check named acceptance as passed | fail | fail | fail | touches protected path .github/workflows/acceptance.yml: a workflow runs from the pull request's copy, which the judge cannot replace |
+
+The verdict words these runs gave: rejected. A run that cannot decide (the suite did not start, ran out of time, or the machine could not run it) is `insufficient_evidence`: never accepted, never rejected.
+A file outside every protected path is the pull request's source and is in the tree: what keeps it from deciding is the runner (plugin autoload is off, the acceptance checks are the base's, and Python reads start-up and .pth files only from its own site directories), and for the black box that no test runner shares a process with the submission at all.
+<!-- allowed:end -->
 
 ## Python, pytest
 
@@ -70,25 +112,25 @@ Control (the honest fix): CI green passes, Knos, tests passes, Knos, black box p
 
 | # | attack | CI green | Knos, tests | Knos, black box | Knos's reason (tests) |
 |---|---|---|---|---|---|
-| 1 | delete the test files (and the CI test step) | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml; touches protected path .knos/acceptance/1/test_issue.py; touches pro... |
-| 2 | @skip the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py |
-| 3 | xfail the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py |
-| 4 | sys.exit(0) in a root conftest.py | PASS (fooled) | fail | fail | touches protected path conftest.py |
-| 5 | pytest.ini addopts -k deselects the acceptance tests | PASS (fooled) | fail | fail | touches protected path pytest.ini |
-| 6 | pytest.ini addopts --collect-only (nothing runs) | PASS (fooled) | fail | fail | touches protected path pytest.ini |
-| 7 | tests/conftest.py hook rewrites every outcome to passed | fail | fail | fail | touches protected path tests/conftest.py |
-| 8 | pytest.ini -p loads a plugin from the PR that forces pass | PASS (fooled) | fail | fail | touches protected path pytest.ini |
+| 1 | delete the test files (and the CI test step) | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 2 | @skip the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py: the terms and the acceptance bundle are fixed at funding |
+| 3 | xfail the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py: the terms and the acceptance bundle are fixed at funding |
+| 4 | sys.exit(0) in a root conftest.py | PASS (fooled) | fail | fail | pr: acceptance checks not passed: .knos.acceptance.1.test_issue::test_mixed, .knos.acceptance.1.test_issue::test_punc... |
+| 5 | pytest.ini addopts -k deselects the acceptance tests | PASS (fooled) | fail | fail | pr: acceptance checks not passed: .knos.acceptance.1.test_issue::test_mixed, .knos.acceptance.1.test_issue::test_punc... |
+| 6 | pytest.ini addopts --collect-only (nothing runs) | PASS (fooled) | fail | fail | pr: acceptance checks not passed: .knos.acceptance.1.test_issue::test_mixed, .knos.acceptance.1.test_issue::test_punc... |
+| 7 | tests/conftest.py hook rewrites every outcome to passed | fail | fail | fail | pr: acceptance checks not passed: .knos.acceptance.1.test_issue::test_mixed, .knos.acceptance.1.test_issue::test_punc... |
+| 8 | pytest.ini -p loads a plugin from the PR that forces pass | PASS (fooled) | fail | fail | pr: acceptance checks not passed: .knos.acceptance.1.test_issue::test_mixed, .knos.acceptance.1.test_issue::test_punc... |
 | 9 | source monkeypatches pytest so no test body runs | PASS (fooled) | fail | fail | pr: the canary test did not fail (something makes every test pass) |
 | 10 | source calls pytest.skip(allow_module_level) on import | fail | fail | fail | pr: acceptance checks that ran on the base did not run: .knos.acceptance.1.test_issue::test_mixed, .knos.acceptance.1... |
 | 11 | source os._exit(0) when imported under pytest | PASS (fooled) | fail | fail | pr: the test run wrote no report (killed, exited early or timed out) |
-| 12 | forged junit report + CI step that reads it | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml |
-| 13 | edit .knos/proof.toml and drop the acceptance bundle | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml; touches protected path .knos/acceptance/1/test_issue.py; touches pro... |
-| 14 | edit .github/workflows/ci.yml to a no-op | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml |
-| 15 | edit the acceptance tests to assert True | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py |
-| 16 | edit the acceptance tests so they pass on base (expect the bug) | fail | fail | fail | touches protected path .knos/acceptance/1/test_issue.py |
+| 12 | forged junit report + CI step that reads it | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 13 | edit .knos/proof.toml and drop the acceptance bundle | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 14 | edit .github/workflows/ci.yml to a no-op | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 15 | edit the acceptance tests to assert True | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py: the terms and the acceptance bundle are fixed at funding |
+| 16 | edit the acceptance tests so they pass on base (expect the bug) | fail | fail | fail | touches protected path .knos/acceptance/1/test_issue.py: the terms and the acceptance bundle are fixed at funding |
 | 17 | no-op PR (README only) | fail | fail | fail | pr: acceptance checks not passed: .knos.acceptance.1.test_issue::test_mixed, .knos.acceptance.1.test_issue::test_punc... |
-| 18 | rename acceptance tests so pytest does not collect them | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py |
-| 19 | reduce the test count (empty the parametrize data, skip acceptance) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py |
+| 18 | rename acceptance tests so pytest does not collect them | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py: the terms and the acceptance bundle are fixed at funding |
+| 19 | reduce the test count (empty the parametrize data, skip acceptance) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/test_issue.py: the terms and the acceptance bundle are fixed at funding |
 | 20 | stub slugify to return the expected constants | PASS (fooled) | PASS (fooled) | fail | - |
 | 21 | source patches pytest so only the acceptance test bodies are skipped (forgery from inside) | PASS (fooled) | PASS (fooled) | fail | - |
 
@@ -102,25 +144,25 @@ Control (the honest fix): CI green passes, Knos, tests passes, Knos, black box p
 
 | # | attack | CI green | Knos, tests | Knos, black box | Knos's reason (tests) |
 |---|---|---|---|---|---|
-| 1 | delete the test files (and the CI test step) | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml; touches protected path .knos/acceptance/1/issue.test.js; touches pro... |
-| 2 | test.skip the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js |
-| 3 | mark the acceptance tests todo (a failing todo does not fail the run) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js |
+| 1 | delete the test files (and the CI test step) | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 2 | test.skip the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js: the terms and the acceptance bundle are fixed at funding |
+| 3 | mark the acceptance tests todo (a failing todo does not fail the run) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js: the terms and the acceptance bundle are fixed at funding |
 | 4 | package.json: the test script exits 0 and runs nothing | PASS (fooled) | fail | fail | pr: acceptance checks not passed: acceptance::mixed, acceptance::punctuation |
 | 5 | package.json: the test script leaves the acceptance tests out | PASS (fooled) | fail | fail | pr: acceptance checks not passed: acceptance::mixed, acceptance::punctuation |
 | 6 | package.json: a --test-name-pattern that matches no test (nothing runs) | PASS (fooled) | fail | fail | pr: acceptance checks not passed: acceptance::mixed, acceptance::punctuation |
-| 7 | a preload under test/ makes every assertion a no-op | PASS (fooled) | fail | fail | touches protected path test/force.cjs |
-| 8 | .npmrc node-options loads a plugin from the PR that forces pass | PASS (fooled) | fail | fail | touches protected path .npmrc |
+| 7 | a preload under test/ makes every assertion a no-op | PASS (fooled) | fail | fail | pr: acceptance checks not passed: acceptance::mixed, acceptance::punctuation |
+| 8 | .npmrc node-options loads a plugin from the PR that forces pass | PASS (fooled) | fail | fail | pr: acceptance checks not passed: acceptance::mixed, acceptance::punctuation |
 | 9 | source makes every assertion a no-op when it is loaded | PASS (fooled) | PASS (fooled) | fail | - |
 | 10 | source registers a hook that skips every test | PASS (fooled) | fail | fail | pr: acceptance checks not passed: acceptance::mixed, acceptance::punctuation; pass-to-pass broken: tests::empty, test... |
 | 11 | source process.exit(0) when loaded under the test runner | PASS (fooled) | fail | fail | pr: acceptance checks that ran on the base did not run: acceptance::mixed, acceptance::punctuation; pr: acceptance ch... |
-| 12 | forged junit report + CI step that reads it | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml |
-| 13 | edit .knos/proof.toml and drop the acceptance bundle | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml; touches protected path .knos/acceptance/1/issue.test.js; touches pro... |
-| 14 | edit .github/workflows/ci.yml to a no-op | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml |
-| 15 | edit the acceptance tests to assert true | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js |
-| 16 | edit the acceptance tests so they pass on base (expect the bug) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js |
+| 12 | forged junit report + CI step that reads it | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 13 | edit .knos/proof.toml and drop the acceptance bundle | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 14 | edit .github/workflows/ci.yml to a no-op | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 15 | edit the acceptance tests to assert true | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js: the terms and the acceptance bundle are fixed at funding |
+| 16 | edit the acceptance tests so they pass on base (expect the bug) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js: the terms and the acceptance bundle are fixed at funding |
 | 17 | no-op PR (README only) | fail | fail | fail | pr: acceptance checks not passed: acceptance::mixed, acceptance::punctuation |
-| 18 | rename the acceptance test file so the runner does not collect it | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.check.js; touches protected path .knos/acceptance/1/issue.test.js |
-| 19 | reduce the test count (empty the test data, skip acceptance) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js |
+| 18 | rename the acceptance test file so the runner does not collect it | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.check.js: the terms and the acceptance bundle are fixed at funding; t... |
+| 19 | reduce the test count (empty the test data, skip acceptance) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue.test.js: the terms and the acceptance bundle are fixed at funding |
 | 20 | stub slugify to return the expected constants | PASS (fooled) | PASS (fooled) | fail | - |
 | 21 | source makes assertions a no-op in the acceptance tests' process only (forgery from inside) | PASS (fooled) | PASS (fooled) | fail | - |
 
@@ -142,25 +184,25 @@ Control (the honest fix): CI green passes, Knos, tests passes, Knos, black box p
 
 | # | attack | CI green | Knos, tests | Knos, black box | Knos's reason (tests) |
 |---|---|---|---|---|---|
-| 1 | delete the test files (and the CI test step) | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml; touches protected path .knos/acceptance/1/issue_test.rb; touches pro... |
-| 2 | skip the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb |
-| 3 | rescue the failed assertion in the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb |
-| 4 | exit!(0) at the top of test/test_helper.rb | PASS (fooled) | fail | fail | touches protected path test/test_helper.rb |
+| 1 | delete the test files (and the CI test step) | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 2 | skip the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb: the terms and the acceptance bundle are fixed at funding |
+| 3 | rescue the failed assertion in the acceptance tests | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb: the terms and the acceptance bundle are fixed at funding |
+| 4 | exit!(0) at the top of test/test_helper.rb | PASS (fooled) | fail | fail | touches protected path test/test_helper.rb: an existing protected test was edited; a new test file beside it is allowed |
 | 5 | bin/test leaves the acceptance tests out | PASS (fooled) | fail | fail | pr: acceptance checks not passed: .knos/acceptance/1/issue_test.rb::IssueTest#test_mixed, .knos/acceptance/1/issue_te... |
 | 6 | bin/test passes a --name that matches no test (nothing runs) | PASS (fooled) | fail | fail | pr: acceptance checks not passed: .knos/acceptance/1/issue_test.rb::IssueTest#test_mixed, .knos/acceptance/1/issue_te... |
-| 7 | test/test_helper.rb patches minitest so every outcome is passed | PASS (fooled) | fail | fail | touches protected path test/test_helper.rb |
+| 7 | test/test_helper.rb patches minitest so every outcome is passed | PASS (fooled) | fail | fail | touches protected path test/test_helper.rb: an existing protected test was edited; a new test file beside it is allowed |
 | 8 | a minitest plugin from the PR, loaded from lib/, forces pass | PASS (fooled) | fail | fail | pr: the canary test did not fail (something makes every test pass) |
 | 9 | source patches minitest so no test body runs | PASS (fooled) | fail | fail | pr: the canary test did not fail (something makes every test pass) |
 | 10 | source raises Minitest::Skip when it is loaded | fail | fail | fail | pr: the sentinel test was not collected and passed (the runner was faked); pr: the canary test did not fail (somethin... |
 | 11 | source exit!(0) when loaded under minitest | PASS (fooled) | fail | fail | pr: the sentinel test was not collected and passed (the runner was faked); pr: the canary test did not fail (somethin... |
-| 12 | forged junit report + CI step that reads it | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml |
-| 13 | edit .knos/proof.toml and drop the acceptance bundle | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml; touches protected path .knos/acceptance/1/issue_test.rb; touches pro... |
-| 14 | edit .github/workflows/ci.yml to a no-op | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml |
-| 15 | edit the acceptance tests to assert true | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb |
-| 16 | edit the acceptance tests so they pass on base (expect the bug) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb |
+| 12 | forged junit report + CI step that reads it | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 13 | edit .knos/proof.toml and drop the acceptance bundle | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 14 | edit .github/workflows/ci.yml to a no-op | PASS (fooled) | fail | fail | touches protected path .github/workflows/ci.yml: a workflow runs from the pull request's copy, which the judge cannot... |
+| 15 | edit the acceptance tests to assert true | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb: the terms and the acceptance bundle are fixed at funding |
+| 16 | edit the acceptance tests so they pass on base (expect the bug) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb: the terms and the acceptance bundle are fixed at funding |
 | 17 | no-op PR (README only) | fail | fail | fail | pr: acceptance checks not passed: .knos/acceptance/1/issue_test.rb::IssueTest#test_mixed, .knos/acceptance/1/issue_te... |
-| 18 | rename acceptance tests so minitest does not collect them | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb |
-| 19 | reduce the test count (empty the test data, skip acceptance) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb |
+| 18 | rename acceptance tests so minitest does not collect them | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb: the terms and the acceptance bundle are fixed at funding |
+| 19 | reduce the test count (empty the test data, skip acceptance) | PASS (fooled) | fail | fail | touches protected path .knos/acceptance/1/issue_test.rb: the terms and the acceptance bundle are fixed at funding |
 | 20 | stub slugify to return the expected constants | PASS (fooled) | PASS (fooled) | fail | - |
 | 21 | source patches minitest so only the acceptance test bodies are skipped (forgery from inside) | PASS (fooled) | PASS (fooled) | fail | - |
 

@@ -97,18 +97,6 @@
   },
   {
    "say": [
-    "40",
-    "1",
-    "125",
-    "10"
-   ],
-   "doc": "docs/MARKET.md",
-   "what": "the first steps, as arithmetic and not a forecast: 40 organisations on the Team tier at 25,000 USD are 1 million USD a year of platform revenue (40 x 25,000 = 1,000,000); 125 on the Business tier at 80,000 are 10 million (125 x 80,000 = 10,000,000). Nobody has bought either tier",
-   "file": "docs/MARKET.md",
-   "has": "40 organisations on the Team tier at 25,000 USD are 1 million USD a year of platform\nrevenue. 125 on the Business tier at 80,000 USD are 10 million."
-  },
-  {
-   "say": [
     "30"
    ],
    "what": "days after which a signing key expires unless it is attested again",
@@ -184,9 +172,9 @@
     "1%"
    ],
    "doc": "docs/MARKET.md",
-   "what": "the price book, Settle: paid by the funder on top, marginal in three tiers: 2.5% of the first 1,000, 1% from 1,000 to 50,000, 0.5% above; minimum 0.40; no maximum (FEE_BPS, FEE_TIER_1, FEE_BPS_2, FEE_TIER_2, FEE_BPS_3, ORDER_FEE_MIN of knos_pay 2.1, in whole units of the mint); the row every document and the pricing page repeat",
+   "what": "the price book, Settle: paid by the funder on top, marginal in three tiers: 2.5% of the first 1,000, 1% to 50,000, 0.5% above; minimum 0.40; no maximum (FEE_BPS, FEE_TIER_1, FEE_BPS_2, FEE_TIER_2, FEE_BPS_3, ORDER_FEE_MIN of knos_pay 2.1, in whole units of the mint); the row every document and the pricing page repeat",
    "file": "docs/MARKET.md",
-   "has": "| Settle | dollar settled, paid by the funder on top | 2.5% of the first 1,000, 1% from 1,000 to 50,000, 0.5% above; minimum 0.40. On devnet this is test money: zero revenue |"
+   "has": "| Settle | dollar settled, paid by the funder on top | 2.5% of the first 1,000, 1% to 50,000, 0.5% above; minimum 0.40. On devnet: test money, zero revenue |"
   },
   {
    "say": [
@@ -195,9 +183,9 @@
     "10,000"
    ],
    "doc": "docs/MARKET.md",
-   "what": "the price book, Meter: an organisation's first 10,000 evaluations in a month free, then 0.05 USD each; 0.02 on a committed-volume plan (knos_meter)",
+   "what": "the price book, Meter: an organisation's first 10,000 evaluations in a month free, then 0.05 USD each; 0.02 on an annual commitment (knos_meter)",
    "file": "docs/MARKET.md",
-   "has": "| Meter | evaluation | 10,000 a month free per organisation, then 0.05 USD; 0.02 on a committed-volume plan |"
+   "has": "| Meter | evaluation | 10,000 a month free per organisation, then 0.05 USD; 0.02 on an annual commitment |"
   },
   {
    "say": [
@@ -208,19 +196,19 @@
    "doc": "docs/MARKET.md",
    "what": "the price book, Control, per organisation per year: Team 25,000 USD, Business 80,000, Enterprise from 250,000 (not deliverable yet); a contract price, enforced by nothing on chain; nobody has bought it",
    "file": "docs/MARKET.md",
-   "has": "| Control | organisation, per year | Team 25,000 USD; Business 80,000; Enterprise from 250,000 (Enterprise is not deliverable yet: it needs single sign-on, private deployment and support that do not exist) |"
+   "has": "| Control | organisation, per year | Team 25,000 USD; Business 80,000; Enterprise from 250,000 (not deliverable yet: it needs single sign-on, private deployment and support that do not exist) |"
   },
   {
    "say": [
-    "100,000",
-    "21,600",
-    "101,600",
-    "508,000"
+    "110,000",
+    "24,000",
+    "130,000",
+    "390,000"
    ],
    "doc": "docs/MARKET.md",
-   "what": "one customer worked at the price book's prices, an example and not a customer: Control on the Business tier at 80,000 USD a year, and 100,000 evaluations a month less 10,000 free = 90,000 billable x 12 x 0.02 = 21,600; together 101,600 USD a year. Five times that, 508,000, is the benefit we set as a target; nobody has measured it",
+   "what": "one customer worked at the price book's prices, an example and not a customer: Control on the Business tier at 80,000 USD a year; 110,000 evaluations a month less 10,000 free = 100,000 billable x 0.02 x 12 = 24,000 of Meter, not charged because Verify is greater: 0.5% of 10,000,000 USD of accepted invoices = 50,000; together 130,000 USD a year. Three times that, 390,000, is the benefit a buyer should hold Knos to; nobody has measured it",
    "file": "docs/MARKET.md",
-   "matches": "\\| Meter \\| 100,000 evaluations a month, less 10,000 free, is 90,000 billable; × 12 months × 0\\.02 \\| 21,600 \\|[\\s\\S]*\\*\\*101,600\\*\\*[\\s\\S]*508,000 USD a year against 101,600"
+   "matches": "\\| Meter \\| \\(110,000 − 10,000\\) × 0\\.02 × 12 \\| 24,000, not charged \\|[\\s\\S]*\\*\\*130,000\\*\\*[\\s\\S]*390,000 USD a year against 130,000"
   },
   {
    "say": [
@@ -286,9 +274,9 @@
     "30"
    ],
    "doc": "docs/MARKET.md",
-   "what": "the price book, Pilot: one buyer and its suppliers for 30 days, 2,500 USD, credited against the first year of Control; nobody has bought it and there is no legal entity to invoice from",
+   "what": "the price book, Pilot: one buyer and two suppliers for 30 days and one reconciled invoice, 2,500 USD, credited against year one; nobody has bought it and there is no legal entity to invoice from",
    "file": "docs/MARKET.md",
-   "has": "| Pilot | one buyer and its suppliers, 30 days | 2,500 USD, credited against the first year of Control (nobody has bought it; no legal entity to invoice from yet) |"
+   "has": "| Pilot | one buyer, two suppliers, 30 days, one reconciled invoice | 2,500 USD, credited against year one (nobody has bought it; no legal entity to invoice from yet) |"
   },
   {
    "say": [
@@ -537,21 +525,21 @@
   },
   {
    "say": [
-    "1.0%"
+    "250"
    ],
    "doc": "docs/MARKET.md",
-   "what": "the price book, Verify: 0.5% to 1.0% of the outcome billing the count verifies, the greater of this and the Meter fee, capped per deliverable; a proposal that nothing computes and nobody has bought",
+   "what": "the price book, Verify: 0.5% of reconciled accepted invoice value, capped at 250 USD per deliverable; the month's invoice takes the greater of the Meter and Verify charges, never both; a proposal nobody has bought (src/knos/billing.py computes it)",
    "file": "docs/MARKET.md",
-   "has": "| Verify | dollar of outcome billing the count verifies | 0.5% to 1.0%, the greater of this and the Meter fee, capped per deliverable (proposed; nobody has bought it) |"
+   "has": "| Verify | dollar of reconciled accepted invoice value | 0.5%, capped at 250 USD per deliverable (proposed; nobody has bought it) |"
   },
   {
    "say": [
     "5,000"
    ],
    "doc": "docs/MARKET.md",
-   "what": "the price book, Supplier connection: 5,000 USD a year for each supplier a buyer connects beyond the first five; the buyer pays, and a supplier never pays to be counted; nobody has bought it",
+   "what": "the price book, Supplier connection: 5,000 USD a year for each supplier beyond the first five; the buyer pays; nobody has bought it",
    "file": "docs/MARKET.md",
-   "has": "| Supplier connection | supplier connected to a buyer, per year | 5,000 USD each beyond the first five; the buyer pays; a supplier never pays to be counted |"
+   "has": "| Supplier connection | supplier beyond the first five, per year | 5,000 USD; the buyer pays |"
   },
   {
    "say": [

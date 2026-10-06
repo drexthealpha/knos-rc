@@ -6,6 +6,7 @@ import { jsonFile, tableHtml, sourceHtml, isLogin, KIND_WORDS } from "./records.
 import { show } from "./price.js";
 import { chained as auditChained, totals as auditTotals, auditWrite, recordsOf, exportAs, readRefs, FORMATS, UNVERIFIED } from "./finance_data.js";
 import { objectsHtml, chipOf } from "./console.js";
+import { statementCells, statementCsv, statementDigest, statementExport, statementLines, STATEMENT_KIND, STATEMENT_FORMATS, LINE_WORDS, LABEL, HANDED } from "./finance_data.js";
 
 const ROLES = { seller: ["as_seller", "Seller: what the account was paid"], owner: ["as_owner", "Owner: what the account's money paid out"] };
 const KINDS = Object.keys(KIND_WORDS);
@@ -156,7 +157,7 @@ export function renderOrderStatement(el, env = {}) {
   const doc = el.ownerDocument, esc = escHtml, EXPLORER = env.EXPLORER || explorer, file = env.file || jsonFile;
   const gh = env.gh || (async (path) => { const r = await fetch(`https://api.github.com${path}`, { headers: { Accept: "application/vnd.github+json" } }); if (!r.ok) throw new Error(r.status === 404 ? "GitHub has no such account." : `GitHub said ${r.status}`); return r.json(); });
   el.innerHTML = `<form id="ost-form"><label for="ost-owner">The organisation: its GitHub name, or its numeric id</label>
-      <div class="row"><input id="ost-owner" autocomplete="off" placeholder="acme" spellcheck="false">
+      <div class="row"><input id="ost-owner" autocomplete="off" placeholder="owner" spellcheck="false">
       <select id="ost-month" aria-label="Month" disabled></select></div>
       <button type="submit">Show the statement</button></form>
     <div id="ost-result" role="status" aria-live="polite"></div>
@@ -267,5 +268,87 @@ export function renderOrderStatement(el, env = {}) {
   }
   $("ost-form").onsubmit = (ev) => { ev.preventDefault(); open($("ost-owner").value); };
   $("ost-month").onchange = () => { if (loaded) render().catch((e) => say(esc(e.message), "bad")); };
+  return open;
+}
+
+// ---- the statement of one invoice, for whoever approves it ------------------------------------------------------------------------------------
+// A statement file (`knos statement make`, docs/FINANCE.md) opened in this browser and sent nowhere: its own sha256 is
+// checked, every line shows its state, and the two buttons give the CSV the command line writes (byte for byte:
+// tests/web/statement.mjs) and the browser's print dialog, which saves a PDF. Printing shows the statement alone
+// through the print rules scoped to .k-statement in web/app.css.
+
+const SAMPLE = "statement_sample.json";
+const SHOWN = ["line", "reference", "state", "amount", "why", "payment", "evidence"];
+
+/** The statement view, drawn into `el`. ctx: { file(path) -> JSON or null, print() } (both optional). Returns open(statement, status). */
+export function renderStatements(el, ctx = {}) {
+  const doc = el.ownerDocument, esc = escHtml, file = ctx.file || jsonFile;
+  el.innerHTML = `<h2 class="no-print">One invoice, line by line</h2>
+    <div class="k-statement-tools no-print"><label class="k-btn quiet" for="aps-file">Open a statement file</label>
+      <input type="file" id="aps-file" accept=".json,application/json" multiple hidden>
+      <button type="button" class="k-btn quiet" id="aps-sample">Open the sample</button></div>
+    <div id="aps-result" role="status" aria-live="polite"></div>`;
+  const $ = (id) => doc.getElementById(id), out = $("aps-result");
+  const say = (text, kind = "") => { out.innerHTML = `<p class="status ${kind}">${esc(text)}</p>`; };
+  const save = (text, name) => {
+    const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" })), a = doc.createElement("a");
+    a.href = url; a.download = name; doc.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+  const link = (u) => (/^https:\/\/github\.com\/[\w.\-/#?=&%]+$/.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace("https://github.com/", ""))}</a>` : esc(u));
+
+  async function open(st, status = null) {
+    if (!st || st.kind !== STATEMENT_KIND || !Array.isArray(st.lines)) return say("Not a statement file. knos statement make writes one.", "bad");
+    out.innerHTML = `<p class="status">Checking…</p>`;                                    // a pending state at once; the hash follows
+    const whole = (await statementDigest(st)) === st.sha256;
+    let c;
+    try { c = await statementCells(st, status); } catch (e) { status = null; c = await statementCells(st); say(e.message, "bad"); }
+    const now = statementLines(st, status), at = (name) => c.head.indexOf(name);
+    const name = `statement-${String(st.invoice).replace(/[^\w.-]+/g, "-")}`;
+    out.innerHTML = `<article class="k-statement" id="aps-statement" data-sha256="${esc(st.sha256)}" data-whole="${whole ? "1" : "0"}">
+      <p class="k-kicker">Statement</p>
+      <h3>Invoice ${esc(st.invoice)}${st.supplier ? `, ${esc(st.supplier)}` : ""}</h3>
+      <p class="status ${whole ? "ok" : "bad"}" id="aps-whole">${whole ? "Unchanged since it was made." : "Changed after it was made. Do not approve it."}</p>
+      <div class="k-statement-totals">${c.totals.map(([state, lines, amount]) => `<div class="k-card" data-total="${esc(state)}"><p class="k-kicker">${esc(state)}</p>
+        <p class="k-num">${esc(amount || lines)}</p><p class="fine">${esc(lines)} ${lines === "1" ? "line" : "lines"}${st.currency && amount ? `, ${esc(st.currency)}` : ""}</p></div>`).join("")}</div>
+      <div class="k-statement-tools no-print"><button type="button" class="k-btn" id="aps-csv">Download CSV</button>
+        <button type="button" class="k-btn quiet" id="aps-print">Print or save as PDF</button>
+        ${STATEMENT_FORMATS.map((f) => `<button type="button" class="k-btn quiet" data-aps-export="${esc(f)}">${esc({ quickbooks: "QuickBooks file", netsuite: "NetSuite file", generic: "Every line, generic" }[f])}</button>`).join(" ")}
+        <span class="fine" id="aps-label">${esc(LABEL)}</span></div>
+      <div class="k-table" id="aps-answers">${tableHtml(esc, ["question", "answer"], c.answers.map((a) => a.map(esc)))}</div>
+      <div class="k-table" id="aps-lines">${tableHtml(esc, SHOWN, c.rows.map((r, n) => SHOWN.map((col) => (col === "state" ? `<span class="k-state" data-state="${esc(now[n].state)}">${esc(r[at(col)])}</span>`
+        : col === "evidence" ? link(r[at(col)]) : col === "amount" ? `<span class="k-num">${esc(r[at(col)])}</span>` : esc(r[at(col)])))))}</div>
+      <details class="k-more"><summary>Show every id</summary>
+        <div class="k-table" id="aps-ids">${tableHtml(esc, ["line", "deliverable", "evaluations", "invoice line", "settlement", "evidence sha256"],
+          c.rows.map((r) => [r[at("line")], r[at("deliverable")], r[at("evaluations")], r[at("invoice_line")], r[at("settlement")], r[at("evidence_sha256")]].map((v) => `<span class="mono">${esc(v)}</span>`)))}</div>
+        <div class="k-table" id="aps-top">${tableHtml(esc, ["", ""], [...c.top, ["statement sha256", st.sha256], ...c.events.map((e) => [e[0], e.slice(1).join(", ")])].map((a) => a.map(esc)))}</div></details>
+      <p class="fine" id="aps-note">${esc(st.note)}</p></article>`;
+    $("aps-csv").onclick = async () => save(await statementCsv(st, status), `${name}.csv`);
+    $("aps-print").onclick = () => {
+      const root = doc.documentElement, done = () => { root.classList.remove("k-printing"); doc.defaultView.removeEventListener("afterprint", done); };
+      for (const d of out.querySelectorAll("details")) d.open = true;                   // the paper carries the ids too
+      root.classList.add("k-printing");
+      doc.defaultView.addEventListener("afterprint", done);
+      (ctx.print || (() => doc.defaultView.print()))();
+    };
+    for (const b of out.querySelectorAll("[data-aps-export]")) b.onclick = async () => save(await statementExport(b.dataset.apsExport, st, status), `${name}-${b.dataset.apsExport}.csv`);
+    return { whole, lines: now.length, states: Object.fromEntries(Object.keys(LINE_WORDS).map((s) => [s, now.filter((r) => r.state === s).length])) };
+  }
+
+  $("aps-file").onchange = async (ev) => {
+    try {
+      const docs = await Promise.all([...ev.target.files].map(async (f) => JSON.parse(await f.text())));           // the statement, and its status file if chosen with it
+      await open(docs.find((d) => d && d.kind === STATEMENT_KIND), docs.find((d) => d && d.kind === "knos-statement-status") || null);
+    } catch (e) { say(`That file could not be read: ${e.message}`, "bad"); }
+  };
+  const sample = async () => {
+    out.innerHTML = `<p class="status">Reading…</p>`;
+    try { await open(await file(SAMPLE), await file(SAMPLE.replace(".json", ".status.json"))); } catch (e) { say(e.message, "bad"); }
+  };
+  $("aps-sample").onclick = sample;
+  // the invoice checked on the first screen is opened here as it is: the same statement, with its approval if one was made
+  const handed = () => { if (HANDED.st) open(HANDED.st, HANDED.status).catch((e) => say(e.message, "bad")); };
+  doc.addEventListener("knos:statement", handed);
+  if (HANDED.st) handed(); else if (ctx.empty !== false) out.innerHTML = `<p class="fine" id="aps-empty">No statement open. Check an invoice on the <a href="#check">first screen</a>, or open the sample.</p>`;
   return open;
 }

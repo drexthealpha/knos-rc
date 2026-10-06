@@ -15,13 +15,13 @@ It speaks to the second deployment (`knos.v2`), whose programs are upgradeable o
 No registry account is needed. From the release:
 
 ```bash
-npm i https://github.com/drexthealpha/Knos/releases/download/v0.3.16/knos-settle-0.3.16.tgz
+npm i https://github.com/drexthealpha/Knos/releases/download/v0.3.17/knos-settle-0.3.17.tgz
 ```
 
 Or import it in a browser:
 
 ```js
-import * as knos from "https://cdn.jsdelivr.net/gh/drexthealpha/Knos@v0.3.16/sdk/settle/index.js";
+import * as knos from "https://cdn.jsdelivr.net/gh/drexthealpha/Knos@v0.3.17/sdk/settle/index.js";
 ```
 
 ## Fund an order from a wallet in the browser

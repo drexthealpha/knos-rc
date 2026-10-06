@@ -146,7 +146,7 @@ export function renderInstall(el) {
     node(doc, "pre", { id: "install-file", textContent: INSTALL_WORKFLOW }), copyButton(doc, INSTALL_WORKFLOW, "Copy the file")]);
   const terms = node(doc, "div", { id: "install-terms" }, [node(doc, "h3", { textContent: "Then fund an issue: terms from a template" })]);
   for (const t of TERMS) terms.append(node(doc, "div", { className: "card" }, [
-    node(doc, "p", {}, [node(doc, "strong", { textContent: t.name }), `: ${t.sentence}.`]),
+    (() => { const p = node(doc, "p", {}, [node(doc, "strong", { textContent: t.name }), `: ${t.sentence}.`]); p.setAttribute("data-keep", ""); p.setAttribute("data-not-prose", ""); return p; })(),
     node(doc, "pre", { textContent: t.comment }), copyButton(doc, t.comment, "Copy the comment"),
     node(doc, "details", {}, [node(doc, "summary", { className: "fine", textContent: "The terms it funds" }), node(doc, "pre", { textContent: `${t.terms_json}\nsha256 ${t.terms_hash}` }),
       node(doc, "p", { className: "fine", textContent: `Post it on ${t.where}. These bytes were made with sample facts (${Object.values(t.assumes).join("; ")}); the reply to your comment shows your repository's own terms.` })])]));

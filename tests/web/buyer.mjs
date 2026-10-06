@@ -293,6 +293,7 @@ await page.waitForSelector("#buy-pk-made");
 chain.wallet = await text(page, "#buy-pk-address");
 const made = await cdp.send("WebAuthn.getCredentials", { authenticatorId });
 check("a passkey wallet is made: one credential on the authenticator, an address on the page", made.credentials.length === 1 && knos.isAddress(chain.wallet), chain.wallet);
+await page.waitForFunction(() => document.querySelector("#buy-pk-balance").textContent !== "not read yet");      // the balance is read after the wallet is shown
 check("  its test USDC is read from devnet, and the faucet path is a link, not a request", (await text(page, "#buy-pk-balance")) === "100.00 test USDC"
   && (await page.$eval("#buy-pk-faucet a", (a) => a.href)) === "https://faucet.circle.com/", await text(page, "#buy-pk-balance"));
 const kept = await page.evaluate(() => JSON.parse(localStorage.getItem("knos-passkey")));

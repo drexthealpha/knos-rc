@@ -89,3 +89,37 @@ short: a supplier cannot settle a private order alone, because only a run of the
 the work; the evidence stays where the buyer controls access; and an arbiter can be named in the funding comment,
 and only then. Knos has no neutral evaluator with its own access to a private repository and keeps no copy of the
 evidence for the supplier. [SECURITY.md](SECURITY.md) has the full account.
+
+## Procurement: offers, budgets, approvals, one deliverable
+
+(0.3.17) Above step 1 the page has four screens over files in the buyer's repository (`.knos/procurement/`;
+[CONTROLS.md](CONTROLS.md), section 9, is their schema). Until a repository is named they show a made-up
+organisation, acme, and say so. Naming a public repository reads its files through GitHub's API. The page writes
+nothing anywhere.
+
+| Screen | What it shows | What leaves the page |
+| --- | --- | --- |
+| Offers | A standing offer made from the rate card in three fields: the outcome, the supplier, the cap per period. While they are typed, the envelope before and after; over the limit, a refusal with the amount over. | The offer's file, opened as a new-file page on GitHub already filled in, and the `/knos offer` comment that funds one supplier for one period on devnet. |
+| Budgets | Each envelope as a bar that fills: spent, held, committed, and what a draft made on this page would add. | Nothing. |
+| Approvals | Each request: what it waits for and who could sign; who approved, on which day, with the authority the policy gave them; approvals that do not count, with the reason. | The line an approver posts. |
+| Invoice | Seven questions for one deliverable, each answered in one line with its evidence one click away. Answers that need a person are counted first. | Nothing. |
+
+The seven questions of the Invoice screen: what did we authorize; what did the supplier deliver; which requirements
+passed; has this deliverable already been billed; who approved it, and did they have authority; what is disputed,
+credited, or still owed; can I explain this decision next quarter.
+
+Step 1 shows the same envelope beside the amount when one task is funded: before, after, and a refusal with the
+amount over.
+
+`tests/web/procure_site.mjs` creates an offer in headless Chromium and sees the envelope change;
+`tests/web/procure.mjs` holds the page's rules to the command line's, case by case.
+
+What these screens do not do:
+
+- A draft counts on the page it was made on, until its file is committed. Nothing is saved in the browser.
+- The Invoice screen shows the made-up organisation's one deliverable. It is not wired to the month's statement yet:
+  `deliverableOfRecord` in `web/console.js` is the adapter, and no screen calls it.
+- A private repository's files are not read: the page has no sign-in and asks GitHub as nobody.
+- Nothing here stops a funding. The files say whether an offer is approved and fits; the program holds a funding to
+  the Balance's limits only.
+- The screens are in English, and no reader outside the project has been timed on them.

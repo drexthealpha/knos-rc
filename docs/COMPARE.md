@@ -1,7 +1,7 @@
 # Knos compared
 
 What each alternative does, read from its own code, pages and chain on 2 Oct 2026; the boards' fees were read
-again on 3 Oct 2026. The Knos row is the second deployment (`programs-v2`) as Knos 0.3.14 upgrades it. Knos is on
+again on 3 Oct 2026, and MergePay's and Algora's published fees again on 6 Oct 2026. The Knos row is the second deployment (`programs-v2`) as Knos 0.3.14 upgrades it. Knos is on
 Solana devnet and its money is test USDC; several of the others move real money today. Where another product is
 ahead, this page says so.
 
@@ -10,13 +10,32 @@ the platforms and billing companies that already meter agents and move payments.
 page is about, is with the other ways to pay for a merged pull request. No count of capabilities is given here:
 [CAPABILITIES.md](CAPABILITIES.md) has each one and its stage.
 
+## On fee and on speed, Knos is not the best
+
+**Knos is not the cheapest way to settle.** [MergePay](https://mergepay.fun) publishes "No platform fee": the
+funder sets a relayer fee, 0.03 USD by default (its site, read 6 Oct 2026). Knos's Settle line is 2.5% of the
+first 1,000, 1% to 50,000 and 0.5% above, with a minimum of 0.40, so a 5 USDC order pays 8% and a 100 USDC order
+pays 2.50 where MergePay's funder pays 0.03. Against a board that takes a percentage Knos is lower on most
+orders ([Algora](https://algora.io/pricing) publishes a "9% service fee", read 6 Oct 2026), and higher than any
+of them on an order under 16, because of the minimum.
+
+**Knos is not the fastest.** MergePay's site says "4.5 seconds, merge to money", and its one award landed 9
+seconds after the merge. Knos measured a median of 25 seconds from merge to payment, over 40 payments
+([BENCH.md](BENCH.md)), on devnet.
+
+Neither is the comparison that matters. A settlement fee can be copied at zero, and seconds stop mattering once
+an invoice takes days to approve. **The comparison that matters is the count neither side keeps**: who counts the
+accepted outcomes an invoice bills, whether the other side can rebuild that count, and what happens to a line the
+two sides count differently. That is the next table. The count is priced apart from settlement
+([MARKET.md](MARKET.md), section 3): on devnet a settle fee is test money and no revenue.
+
 ## Counting an accepted outcome
 
 | | who counts | can the other side check the count | what fixes the terms | fee for the count |
 |---|---|---|---|---|
 | **A vendor that bills per accepted outcome** (per merged change, per resolution; [MARKET.md](MARKET.md), section 2) | The vendor, in its own system. | Only against the vendor's report. | The vendor's contract and its own definition of the unit. | Inside the vendor's price. |
 | **The buyer's own tally** (a spreadsheet, a query over merged pull requests) | The buyer. | The supplier has to trust it, or keep a second tally and argue. | Whatever the two agreed in writing. | The buyer's time. |
-| **Knos** (`knos-meter`) | A program, from tokens the forge signed for runs of a pinned workflow in the buyer's repository. The supplier's own count of the same month is recorded beside it from the supplier's runs. | Yes. Both counts are on chain; each side keeps a ledger file whose Merkle root the chain holds, and both compute the same statement or see which evaluations differ. | Named checks and allowed paths, hashed before the work. | 10,000 evaluations a month free, then 0.05 USD; 0.02 on a committed-volume plan. |
+| **Knos** (`knos-meter`) | A program, from tokens the forge signed for runs of a pinned workflow in the buyer's repository. The supplier's own count of the same month is recorded beside it from the supplier's runs. | Yes. Both counts are on chain; each side keeps a ledger file whose Merkle root the chain holds, and both compute the same statement or see which evaluations differ. | Named checks and allowed paths, hashed before the work. | 10,000 evaluations a month free, then 0.05 USD, or 0.02 on an annual commitment; or 0.5% of the reconciled accepted invoice value, capped at 250 USD per deliverable, when that is the greater. Proposed prices: nobody has paid them. |
 
 Where the others are ahead here: a vendor's count needs nothing installed and comes with a company that answers
 for it. Knos's count trusts the forge's hosted runner and the pinned workflow's reading of the forge's record, runs
@@ -105,7 +124,7 @@ Knos: 0.
 - It is on devnet. No real money has moved.
 - No security firm has audited anything. Until an outside review, Knos can change the second deployment through its multisig, after a public
   48-hour delay, and every member key of that multisig is the founder's.
-- It charges a fee on top of the amount: 2.5% of the first 1,000, 1% from 1,000 to 50,000, 0.5% above, at least 0.40. MergePay charges no platform fee.
+- It charges a fee on top of the amount: 2.5% of the first 1,000, 1% to 50,000, 0.5% above, at least 0.40. MergePay charges no platform fee.
 - It is not cheaper on a small order. The 0.40 minimum makes a 5 USDC order pay 8%, and every order under 16 pays
   more than 2.5% ([MARKET.md](MARKET.md), section 3, has the effective fee by order size). A board that charges a
   percentage with no minimum costs less there.
@@ -176,7 +195,8 @@ inside an Internet Computer canister, to authorise deployments, not payments
 
 ## Sources
 
-All read on 2 Oct 2026. The fees of Algora, Opire, BountyHub and TaskBounty were read again on 3 Oct 2026.
+All read on 2 Oct 2026. The fees of Algora, Opire, BountyHub and TaskBounty were read again on 3 Oct 2026, and
+MergePay's site and Algora's pricing page again on 6 Oct 2026.
 
 - MergePay: [repository](https://github.com/codeswithroh/mergepay) (`contracts/src/MergePay.sol`,
   `.github/workflows/award.yml`, README; first commit 23 Sep 2026, "Deploy to Arc mainnet" 24 Sep 2026);

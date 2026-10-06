@@ -1,20 +1,84 @@
 # Agent PR Index
 
 A pull request opened by a coding agent often says "tests pass". The Agent PR Index says how often GitHub's own record
-of the checks agrees, for each agent it tells apart. It is published by week, under one name and one date: **"Agent PR
-Index, week of <Monday>"**. The headline number for each agent is its **verified acceptance rate**: of the pull
-requests that claimed passing tests, the share whose checks all passed, with a 95% Wilson interval.
+of the checks agrees, for each agent it tells apart. It is published every week, under one name and one date:
+**"Agent PR Index, week of <Monday>"**.
 
-The numbers are in [`agent_weekly.json`](agent_weekly.json); the script that makes them is
-[`scripts/agent_pr_index.py`](../scripts/agent_pr_index.py), and
-[`.github/workflows/index.yml`](../.github/workflows/index.yml) runs it every Monday, inside a fixed budget, and
-proposes the new week as one pull request a person merges.
+Read it as a page ([the site's Index view](https://drexthealpha.github.io/Knos/#index)), as data
+([`index.json`](index.json), schema `knos.agent-pr-index/1`) or as a feed to subscribe to ([`index.atom`](index.atom)).
+[`.github/workflows/index.yml`](../.github/workflows/index.yml) reads the new week every Monday and proposes it as one
+pull request a person merges.
 
-**The rule.** Knos never charges an agent vendor for its rating, and a vendor cannot pay to change it. No vendor
-can pay to be listed, to be left out, to see a week early or to have a row read again. The method below, the script
+## The leaderboard
+
+<!-- board:begin (written by scripts/agent_pr_index.py board; do not edit by hand) -->
+**Agent PR Index, week of 2026-09-28.** Read 2026-10-05. Every week read up to this one, added up. An agent with fewer than 30 merged pull requests in its row is "too few to rank".
+
+| Place | Agent | Claimed passing tests | Failed check at merge, of merged | Rate | 95% interval | Row |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | claude-bot | 99 | 6 of 87 | 6.9% | 3.2% to 14.2% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+claude-bot%2C+week+of+2026-09-28&agent=claude-bot&week=2026-09-28) |
+| 2 (overlaps) | codex | 50 | 3 of 42 | 7.1% | 2.5% to 19.0% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+codex%2C+week+of+2026-09-28&agent=codex&week=2026-09-28) |
+| 3 (overlaps) | devin | 81 | 10 of 46 | 21.7% | 12.3% to 35.6% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+devin%2C+week+of+2026-09-28&agent=devin&week=2026-09-28) |
+| 4 (overlaps) | copilot | 113 | 18 of 65 | 27.7% | 18.3% to 39.6% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+copilot%2C+week+of+2026-09-28&agent=copilot&week=2026-09-28) |
+| too few to rank | claude-code | 28 | 1 of 22 | 4.5% | 0.8% to 21.8% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+claude-code%2C+week+of+2026-09-28&agent=claude-code&week=2026-09-28) |
+
+An agent vendor never pays for a row and cannot pay to change one.
+
+**Method, in ten lines.**
+
+1. **The agent.** Told by the GitHub App that opened the pull request, or by a line its tool writes in the description (`agents_told_by` in the file). A person who pastes that line is counted as the agent.
+2. **The search.** GitHub's issue search, for pull requests of that agent whose description holds one of six phrases: "tests pass", "all tests pass", "tests passing", "CI passes", "CI is green", "CI passing".
+3. **Claimed passing tests.** The description is read line by line (`CLAIM_RE` in `scripts/agent_pr_ci.py`). A line that says tests or CI pass is a claim; an unticked box, a wish ("should pass") or a negation is not.
+4. **The checks.** The check runs and commit statuses GitHub holds for the head commit, read once.
+5. **A failed check** is a check run that concluded `failure`, `timed_out` or `startup_failure`, or a commit status of `failure` or `error`. The agent's own session run is not a check.
+6. **A failed check is not always a failed test.** It may be a deploy preview, a label gate, a review bot or a scanner; it may be flaky; it may have been failing before the pull request.
+7. **A failed check is not always a false claim.** The description may be true of the tests its author ran. The row says only that GitHub recorded a failed check on the commit that was merged.
+8. **The row.** Of the merged pull requests that claimed passing tests and whose checks had finished: how many had a failed check, that count over the total, and the 95% Wilson interval of the share.
+9. **The place.** Only agents with at least 30 such pull requests have one: place 1 is the smallest share, equal shares share a place. The others are "too few to rank", shown with their counts. "overlaps" means the interval reaches into the one above: this sample does not tell those two places apart.
+10. **The week.** A board is named by a Monday and adds up every week read up to and including it. Each week's own counts, and how it was read, are in [`agent_weekly.json`](agent_weekly.json).
+
+**Limits.**
+
+- The counts are Knos's own measurement. Nobody outside Knos has reviewed them: dispute a row below.
+- The samples are unequal, so the size sits beside every rate. Read the interval, not the share.
+- The weeks were not all read with the same design (`design` of each week in `agent_weekly.json`). Adding them up mixes those designs.
+- The agents are used on different repositories with different checks, so the rows are not samples of the same work.
+- Public repositories only, and only pull requests whose description holds a claim phrase.
+- One reading of the checks, a day or more after the week ended. A check run again later is not seen.
+- "At merge" is the head commit of a pull request that was merged when read, not the moment of the merge.
+
+**Work it again.** One command, no network, from the files of this repository. It counts the table again from [`agent_weekly.json`](agent_weekly.json) and fails when this page, [`index.json`](index.json) or [`index.atom`](index.atom) says anything else:
+
+    python scripts/agent_pr_index.py board --check
+
+Every pull request behind the weeks read on 2026-10-01 is listed in [`agent_pr_ci.json`](agent_pr_ci.json) by repository and number, so each can be opened on GitHub and looked at.
+
+**Disputes.** Anyone can [dispute a row](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml): name the agent, the pull requests counted wrongly, and the evidence. An open dispute marks its row with † and its link.
+
+No row has been disputed yet.
+
+**Changelog.** Every resolved dispute that changed a number.
+
+No number has changed after a dispute yet.
+<!-- board:end -->
+
+**The rule, in full.** Knos never charges an agent vendor for its rating, and a vendor cannot pay to change it. No
+vendor can pay to be listed, to be left out, to see a week early or to have a row read again. The method, the script
 and every count are public, so a rating can be worked again by anyone.
 
-## The latest table
+**What a dispute is.** An issue opened with the "Dispute a row" form: the agent, the pull requests that were counted
+wrongly, and the evidence. It is listed in [`index_disputes.json`](index_disputes.json) with its link and its state
+(`open`, `resolved` or `rejected`), and while it is open its row carries a mark on this page, on the site and in the
+feeds. When a dispute is resolved, what was found is written beside it; if a number changed, the change is listed in
+the changelog above with the number before and after. Opening, resolving or winning a dispute costs nothing.
+
+## The newest week alone
+
+The headline number of one week alone is each agent's **verified acceptance rate**: of the pull requests that claimed
+passing tests, the share whose checks all passed, with a 95% Wilson interval. One week holds few pull requests for
+most agents, which is why the leaderboard above adds the weeks up. The numbers are in
+[`agent_weekly.json`](agent_weekly.json); the script that makes them is
+[`scripts/agent_pr_index.py`](../scripts/agent_pr_index.py).
 
 <!-- weekly:begin (written by scripts/agent_pr_index.py weekly; do not edit by hand) -->
 **Agent PR Index, week of 2026-09-28.** Read 2026-10-05. Design: stratified-seeded-v1. Capped: true for at least one agent (see Sample). Verified acceptance rate: of the pull requests that claimed passing tests and whose checks were read, the share whose checks all passed. An agent with fewer than 30 such pull requests that week is "too few to rank" and has no place.
@@ -42,8 +106,8 @@ Every week in the file added up (2026-07-03 to 2026-10-04; never ranked: the wee
 
 **What is published today.** The table above is the newest week of `agent_weekly.json`: the week of 28 September
 2026, read on 2026-10-05 with the design below (`stratified-seeded-v1`) from the release machine, one bounded run
-continued from its checkpoint. GitHub's secondary rate limit refused a search after a few requests each time, and a
-run never waits on a limit, so the week is `capped`: 95 of the 930 planned draws, 20 of them claiming passing tests,
+continued from its checkpoint. GitHub's secondary rate limit refused a search after a few requests each time, and
+that run did not wait on a limit, so the week is `capped`: 95 of the 930 planned draws, 20 of them claiming passing tests,
 every one of those with its checks read. Too few to rank any agent: read each interval, not each share. That week
 had first been read on 2026-10-05 by a capped scan before this design (each agent's newest claimed pull requests,
 at most 120, `newest-first-capped-v0`), which did not record how many passed every check; the newer reading of the
@@ -73,7 +137,7 @@ Name in the file: `stratified-seeded-v1`. The week is the one that ended the Sun
    where a stratum holds fewer (`planned`). Strata are served in turns, one draw each.
 6. **The checks.** Of the drawn, the ones whose description claims passing tests have their checks and merge state
    read, in the same turns.
-7. **The budget.** A run sends at most 500 requests (`--max-requests`) and reads for at most 20 minutes
+7. **The budget.** A run sends at most 500 requests (`--max-requests`) and reads for at most 50 minutes
    (`--max-minutes`). The checks are read as the draw goes, and the search leaves the last 6 requests and 45 seconds
    for the checks of what it drew last. When the budget ends the run stops and publishes what it has.
 8. **Why a capped week is still a sample.** Because strata are served in turns and each is drawn in its own seeded
@@ -85,11 +149,11 @@ Name in the file: `stratified-seeded-v1`. The week is the one that ended the Sun
 10. **What the rates are.** Shares of the sample. Every day is drawn equally, so a busy day weighs the same as a
     quiet one; `strata` holds what is needed to weigh the days by what they held.
 
-**Inside GitHub's limits** (read again on 2026-10-05):
+**Inside GitHub's limits** (guidance read again on 2026-10-06):
 
 - Search: 30 requests a minute for a signed-in caller, and 1,000 results a query
-  ([REST API: search](https://docs.github.com/en/rest/search/search)). Searches are spaced 2.2 seconds apart: at
-  most 27 a minute. The whole design needs at most 35 x 10 = 350 pages of 100, and no query asks past result 1,000.
+  ([REST API: search](https://docs.github.com/en/rest/search/search)). The whole design needs at most 35 x 10 = 350
+  pages of 100, and no query asks past result 1,000.
 - Checks: one GraphQL query reads the checks of 20 pull requests. `statusCheckRollup` on a commit holds its check
   runs and commit statuses together. A query costs the connections it asks for, divided by 100: 60 connections for
   20 pull requests, 1 point. The workflow's token has 1,000 points an hour
@@ -99,7 +163,27 @@ Name in the file: `stratified-seeded-v1`. The week is the one that ended the Sun
   against 1,000 an hour
   ([REST API: rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)). The
   budget then ends first, and the week is published capped.
-- A run never sleeps on a limit. A refusal ends it, and what it has is published.
+- Secondary limits. GitHub also refuses requests that come too fast or too many at once, whatever the hourly budget
+  holds. Its guidance
+  ([best practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)) is
+  what the scanner does:
+  - **One at a time.** "Make requests serially instead of concurrently": one request is in flight, never two.
+  - **Spread out.** A run's requests are spread over four fifths of its minutes: 500 over 40 minutes, one every 4.8
+    seconds, about 12 a minute.
+  - **Wait as told.** After a refusal with a `retry-after` header the scanner waits that many seconds. With
+    `x-ratelimit-remaining: 0` it waits until `x-ratelimit-reset`. Otherwise it waits one minute, then two, four and
+    eight ("wait for at least one minute", "an exponentially increasing amount of time"), and then gives up on the
+    request.
+  - **Stop when the wait does not fit.** A wait longer than the run has left ends the run. The checkpoint keeps the
+    time GitHub named (`cursor.come_back`), and the next run does not ask before it.
+  - **Conditional requests.** An answer already held that has grown old is asked for again with `if-none-match` and
+    its ETag; a `304 Not Modified` leaves the kept answer in place and does not count against the primary limit.
+  - **Resume.** `week.json` is the cursor file: every search page and every verdict read so far, and `cursor` (strata
+    counted, draw turn, pages, checks read). A second run on the same Monday continues from it.
+
+The first bounded run, on 2026-10-05, did none of the waiting: it stopped at the first refusal, after a few searches.
+That is why the week of 28 September holds 95 of 930 planned draws. The behaviour above has been run against a table
+of GitHub's answers in the tests, not yet against GitHub: the machine this release was built on cannot reach it.
 
 The GraphQL query was written from GitHub's published schema. It has not been run against GitHub from the machine
 this release was built on, which cannot reach the GraphQL endpoint; the tests run it against a table. The REST path
@@ -116,7 +200,8 @@ on GitHub: one agent's search did not finish, most of the week's checks were not
 **Safety.** The job that reads has a read-only token (`permissions: contents: read`). It sends GET requests to
 GitHub's search and read-only GraphQL queries (no mutation), and GET requests for statuses, check runs and pull
 requests on the REST path. It never clones, downloads or runs a file of a sampled repository. A second job, which
-asks GitHub's API nothing, adds the week to `agent_weekly.json` and opens the pull request. Nothing pushes to the
+asks GitHub's API nothing, adds the week to `agent_weekly.json`, writes the leaderboard and its feeds, and opens the
+pull request. Nothing pushes to the
 default branch.
 
 ## Method
@@ -214,14 +299,22 @@ never zero, and `not_derived` gives the reason.
 Sample last week and add it (needs `gh` signed in; this is what the workflow runs). The first command may be run
 again: it continues from `week.json`.
 
-    python scripts/agent_pr_index.py sample --week last --rows week.json --max-requests 500 --max-minutes 20
+    python scripts/agent_pr_index.py sample --week last --rows week.json --max-requests 500 --max-minutes 50
     python scripts/agent_pr_index.py weekly --rows week.json --into docs/agent_weekly.json --doc docs/INDEX.md
+    python scripts/agent_pr_index.py board
 
 Write the committed file again in today's format, offline (it changes nothing when the file is current):
 
     python scripts/agent_pr_index.py weekly --sample docs/agent_pr_ci.json --restate docs/agent_weekly.json --doc docs/INDEX.md
 
-The site draws the same table with `renderIndexBoard` in [`web/index_board.js`](../web/index_board.js).
+`index.json` (schema `knos.agent-pr-index/1`): `latest_week`, `read`, `min_claims_to_rank`, `rule`, `measure`,
+`method`, `limits`, `source` (the hash of the series it was counted from, and the command), `links`, `weeks` (one
+board a week, newest first: `rows` with `agent`, `claimed_passing`, `merged`, `failed_at_merge`, `share`, `ci95`,
+`rank`, `status`, `overlaps_above`, `disputed`, `dispute`), `disputes` and `changelog`. A change that removes or
+renames a field gets a new schema name. `index.atom` has one entry a week with the same rows in words.
+
+The site draws the same leaderboard with `renderIndexBoard` in [`web/index_board.js`](../web/index_board.js): bars with
+interval whiskers, a "Dispute this row" link and a badge for each row.
 
 ## Related documents
 

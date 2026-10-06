@@ -44,7 +44,7 @@ def test_a_release_runs_the_whole_test_workflow_on_the_tagged_commit_before_anyt
     assert gate["if"] == "github.ref_type == 'tag'" and "needs" not in gate
     assert "workflow_call" in tests["on"]
     # the whole workflow: no job of tests.yml is skipped when it is called from a release
-    assert not [name for name, job in tests["jobs"].items() if "if" in job]
+    assert not [name for name, job in tests["jobs"].items() if "if" in job and name != "all-green"]
     assert set(tests["jobs"]) >= {"pytest", "sdk", "claims", "deadcode"}
     oses = {m["os"] for m in tests["jobs"]["pytest"]["strategy"]["matrix"]["include"]}
     assert oses == {"ubuntu-latest", "macos-latest", "windows-latest"}
@@ -345,7 +345,7 @@ def _worker_install() -> str:
 
 
 def test_the_workers_install_waits_only_for_the_index_to_list_the_release_and_for_ten_minutes_at_most(tmp_path):
-    """The first worker run after 0.3.15 was pushed failed on "no version of knos==0.3.16" (PyPI's index was minutes
+    """The first worker run after 0.3.15 was pushed failed on "no version of" the knos release it asked for (PyPI's index was minutes
     behind the upload), and a run that fails starts no next run. The step now waits for that error alone, 600 s in all."""
     import os
     import subprocess
