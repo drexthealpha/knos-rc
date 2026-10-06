@@ -12,15 +12,15 @@ pull request a person merges.
 ## The leaderboard
 
 <!-- board:begin (written by scripts/agent_pr_index.py board; do not edit by hand) -->
-**Agent PR Index, week of 2026-09-28.** Read 2026-10-05. Every week read up to this one, added up. An agent with fewer than 30 merged pull requests in its row is "too few to rank".
+**Agent PR Index, week of 2026-09-28.** Read 2026-10-06. Every week read up to this one, added up. An agent with fewer than 30 merged pull requests in its row is "too few to rank".
 
 | Place | Agent | Claimed passing tests | Failed check at merge, of merged | Rate | 95% interval | Row |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | claude-bot | 99 | 6 of 87 | 6.9% | 3.2% to 14.2% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+claude-bot%2C+week+of+2026-09-28&agent=claude-bot&week=2026-09-28) |
-| 2 (overlaps) | codex | 50 | 3 of 42 | 7.1% | 2.5% to 19.0% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+codex%2C+week+of+2026-09-28&agent=codex&week=2026-09-28) |
-| 3 (overlaps) | devin | 81 | 10 of 46 | 21.7% | 12.3% to 35.6% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+devin%2C+week+of+2026-09-28&agent=devin&week=2026-09-28) |
-| 4 (overlaps) | copilot | 113 | 18 of 65 | 27.7% | 18.3% to 39.6% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+copilot%2C+week+of+2026-09-28&agent=copilot&week=2026-09-28) |
-| too few to rank | claude-code | 28 | 1 of 22 | 4.5% | 0.8% to 21.8% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+claude-code%2C+week+of+2026-09-28&agent=claude-code&week=2026-09-28) |
+| 1 | codex | 52 | 3 of 44 | 6.8% | 2.4% to 18.2% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+codex%2C+week+of+2026-09-28&agent=codex&week=2026-09-28) |
+| 2 (overlaps) | claude-bot | 148 | 9 of 127 | 7.1% | 3.8% to 12.9% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+claude-bot%2C+week+of+2026-09-28&agent=claude-bot&week=2026-09-28) |
+| 3 | copilot | 120 | 19 of 70 | 27.1% | 18.1% to 38.5% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+copilot%2C+week+of+2026-09-28&agent=copilot&week=2026-09-28) |
+| 4 (overlaps) | devin | 117 | 35 of 79 | 44.3% | 33.9% to 55.3% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+devin%2C+week+of+2026-09-28&agent=devin&week=2026-09-28) |
+| too few to rank | claude-code | 34 | 3 of 26 | 11.5% | 4.0% to 29.0% | [dispute](https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+claude-code%2C+week+of+2026-09-28&agent=claude-code&week=2026-09-28) |
 
 An agent vendor never pays for a row and cannot pay to change one.
 
@@ -81,37 +81,39 @@ most agents, which is why the leaderboard above adds the weeks up. The numbers a
 [`scripts/agent_pr_index.py`](../scripts/agent_pr_index.py).
 
 <!-- weekly:begin (written by scripts/agent_pr_index.py weekly; do not edit by hand) -->
-**Agent PR Index, week of 2026-09-28.** Read 2026-10-05. Design: stratified-seeded-v1. Capped: true for at least one agent (see Sample). Verified acceptance rate: of the pull requests that claimed passing tests and whose checks were read, the share whose checks all passed. An agent with fewer than 30 such pull requests that week is "too few to rank" and has no place.
+**Agent PR Index, week of 2026-09-28.** Read 2026-10-06. Design: stratified-seeded-v1. Capped: true for at least one agent (see Sample). Verified acceptance rate: of the pull requests that claimed passing tests and whose checks were read, the share whose checks all passed. An agent with fewer than 30 such pull requests that week is "too few to rank" and has no place.
 
 | Place | Agent | Verified acceptance rate (95% interval) | Sampled | Claimed passing | Failed a check anyway (95% interval) | Merged despite a failed check (95% interval) | Also paid through Knos on a black-box check | Sample |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| too few to rank | copilot | 4 of 4 (100.0%; 51.0% to 100.0%) | 6 | 4 | 0 of 4 (0.0%; 0.0% to 49.0%) | 0 of 2 (0.0%; 0.0% to 65.8%) | 0 | capped: drew 20 of 210 planned, of 677 the search reported |
-| too few to rank | devin | 3 of 8 (37.5%; 13.7% to 69.4%) | 11 | 8 | 5 of 8 (62.5%; 30.6% to 86.3%) | 5 of 7 (71.4%; 35.9% to 91.8%) | 0 | capped: drew 19 of 210 planned, of 5,843 the search reported |
-| too few to rank | claude-bot | 5 of 7 (71.4%; 35.9% to 91.8%) | 19 | 7 | 1 of 6 (16.7%; 3.0% to 56.4%) | 1 of 5 (20.0%; 3.6% to 62.5%) | 0 | capped: drew 19 of 210 planned, of 424 the search reported |
-| too few to rank | claude-code | 1 of 1 (100.0%; 20.6% to 100.0%) | 7 | 1 | 0 of 1 (0.0%; 0.0% to 79.3%) | 0 of 1 (0.0%; 0.0% to 79.3%) | 0 | capped: drew 19 of 210 planned, of 1,609,898 the search reported |
-| too few to rank | codex | 0 of 0 | 5 | 0 | 0 of 0 | not read | 0 | capped: drew 18 of 90 planned, of 137 the search reported |
+| 1 | claude-bot | 47 of 56 (83.9%; 72.2% to 91.3%) | 118 | 56 | 5 of 54 (9.3%; 4.0% to 19.9%) | 4 of 45 (8.9%; 3.5% to 20.7%) | 0 | capped: drew 119 of 210 planned, of 424 the search reported |
+| 2 | devin | 8 of 44 (18.2%; 9.5% to 32.0%) | 72 | 44 | 31 of 42 (73.8%; 58.9% to 84.7%) | 30 of 40 (75.0%; 59.8% to 85.8%) | 0 | capped: drew 119 of 210 planned, of 5,883 the search reported |
+| too few to rank | copilot | 7 of 11 (63.6%; 35.4% to 84.8%) | 25 | 11 | 1 of 8 (12.5%; 2.2% to 47.1%) | 1 of 7 (14.3%; 2.6% to 51.3%) | 0 | capped: drew 119 of 210 planned, of 676 the search reported |
+| too few to rank | claude-code | 3 of 7 (42.9%; 15.8% to 75.0%) | 33 | 7 | 3 of 6 (50.0%; 18.8% to 81.2%) | 2 of 5 (40.0%; 11.8% to 76.9%) | 0 | capped: drew 118 of 210 planned, of 1,608,162 the search reported |
+| too few to rank | codex | 2 of 2 (100.0%; 34.2% to 100.0%) | 64 | 2 | 0 of 2 (0.0%; 0.0% to 65.8%) | 0 of 2 (0.0%; 0.0% to 65.8%) | 0 | capped: drew 84 of 136 planned, of 246 the search reported |
 
 Also paid through Knos, checked against: no list of Knos payments was joined to this sample, so the count is 0 for every agent: every Knos payment so far is test USDC on Solana devnet. It takes a sampled pull request that was also paid through Knos under terms with a black-box check, and that list given to the script (--paid).
 
-Every week in the file added up (2026-07-03 to 2026-10-04; never ranked: the weeks were not all read the same way). Source: each week says how it was read (`design`, `capped`, `strata`). The newest: week of 2026-09-28, read 2026-10-05, stratified-seeded-v1; read on 2026-10-05 and not whole weeks: the weeks of 2026-09-21, 2026-09-28 (`full_week` false).
+Every week in the file added up (2026-07-03 to 2026-10-04; never ranked: the weeks were not all read the same way). Source: each week says how it was read (`design`, `capped`, `strata`). The newest: week of 2026-09-28, read 2026-10-06, stratified-seeded-v1; read on 2026-10-06 and not whole weeks: the weeks of 2026-09-28 (`full_week` false).
 
 | Place | Agent | Verified acceptance rate (95% interval) | Sampled | Claimed passing | Failed a check anyway (95% interval) | Merged despite a failed check (95% interval) | Also paid through Knos on a black-box check | Sample |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| not ranked | copilot | not recorded | not kept | 113 | 27 of 96 (28.1%; 20.1% to 37.8%) | 18 of 65 (27.7%; 18.3% to 39.6%) | 0 | weeks added up |
-| not ranked | devin | 49 of 81 (60.5%; 49.6% to 70.4%) | not kept | 81 | 19 of 70 (27.1%; 18.1% to 38.5%) | 10 of 46 (21.7%; 12.3% to 35.6%) | 0 | weeks added up |
-| not ranked | claude-bot | 86 of 99 (86.9%; 78.8% to 92.2%) | not kept | 99 | 9 of 96 (9.4%; 5.0% to 16.9%) | 6 of 87 (6.9%; 3.2% to 14.2%) | 0 | weeks added up |
-| not ranked | claude-code | 21 of 28 (75.0%; 56.6% to 87.3%) | not kept | 28 | 1 of 22 (4.5%; 0.8% to 21.8%) | 1 of 22 (4.5%; 0.8% to 21.8%) | 0 | weeks added up |
-| not ranked | codex | not recorded | not kept | 50 | 9 of 50 (18.0%; 9.8% to 30.8%) | 3 of 42 (7.1%; 2.5% to 19.0%) | 0 | weeks added up |
+| not ranked | copilot | not recorded | not kept | 120 | 28 of 100 (28.0%; 20.1% to 37.5%) | 19 of 70 (27.1%; 18.1% to 38.5%) | 0 | weeks added up |
+| not ranked | devin | 54 of 117 (46.2%; 37.4% to 55.2%) | not kept | 117 | 45 of 104 (43.3%; 34.2% to 52.9%) | 35 of 79 (44.3%; 33.9% to 55.3%) | 0 | weeks added up |
+| not ranked | claude-bot | 128 of 148 (86.5%; 80.0% to 91.1%) | not kept | 148 | 13 of 144 (9.0%; 5.3% to 14.8%) | 9 of 127 (7.1%; 3.8% to 12.9%) | 0 | weeks added up |
+| not ranked | claude-code | 23 of 34 (67.7%; 50.8% to 80.9%) | not kept | 34 | 4 of 27 (14.8%; 5.9% to 32.5%) | 3 of 26 (11.5%; 4.0% to 29.0%) | 0 | weeks added up |
+| not ranked | codex | not recorded | not kept | 52 | 9 of 52 (17.3%; 9.4% to 29.7%) | 3 of 44 (6.8%; 2.4% to 18.2%) | 0 | weeks added up |
 <!-- weekly:end -->
 
 **What is published today.** The table above is the newest week of `agent_weekly.json`: the week of 28 September
-2026, read on 2026-10-05 with the design below (`stratified-seeded-v1`) from the release machine, one bounded run
-continued from its checkpoint. GitHub's secondary rate limit refused a search after a few requests each time, and
-that run did not wait on a limit, so the week is `capped`: 95 of the 930 planned draws, 20 of them claiming passing tests,
-every one of those with its checks read. Too few to rank any agent: read each interval, not each share. That week
-had first been read on 2026-10-05 by a capped scan before this design (each agent's newest claimed pull requests,
-at most 120, `newest-first-capped-v0`), which did not record how many passed every check; the newer reading of the
-same week replaced it. The week of 21 September keeps that scan's numbers as published (39 claimed pull requests),
+2026, read on 2026-10-06 with the design below (`stratified-seeded-v1`) from the release machine, in four bounded
+runs of 24 to 28 minutes continued from one checkpoint (about 100 minutes in all, the budget of the workflow's two
+Monday runs), each run at most 500 requests and at least 4.8 seconds between two. The week is `capped`: 559 of the
+976 planned draws (17 of 30 turns), 120 of them claiming passing tests, every one of those with its checks read. Two
+agents have 30 claims in the week and a place; the other three are too few to rank: read each interval, not each
+share. That week was read twice before, both on 2026-10-05: first by a capped scan before this design (each agent's
+newest claimed pull requests, at most 120, `newest-first-capped-v0`), which did not record how many passed every
+check, then with this design by a run that stopped at the first refusal (95 of 930 planned draws). Each newer
+reading of the same week replaced the one before. The week of 21 September keeps that scan's numbers as published (39 claimed pull requests),
 with its verified acceptance rate `null` and `not_derived` saying why; a row with no rate has no place.
 The older weeks are the sample read once, on 2026-10-01 (`search-window-sample-v0`, at most 20 hits a search window);
 its rows are in [`agent_pr_ci.json`](agent_pr_ci.json), so their rate is worked out, and none has 30 claims in a week.
@@ -181,13 +183,20 @@ Name in the file: `stratified-seeded-v1`. The week is the one that ended the Sun
   - **Resume.** `week.json` is the cursor file: every search page and every verdict read so far, and `cursor` (strata
     counted, draw turn, pages, checks read). A second run on the same Monday continues from it.
 
-The first bounded run, on 2026-10-05, did none of the waiting: it stopped at the first refusal, after a few searches.
-That is why the week of 28 September holds 95 of 930 planned draws. The behaviour above has been run against a table
-of GitHub's answers in the tests, not yet against GitHub: the machine this release was built on cannot reach it.
+The first bounded run, on 2026-10-05, did none of the waiting: it stopped at the first refusal, after a few searches,
+with 95 of 930 planned draws. On 2026-10-06 the scanner above read the same week against GitHub, from the release
+machine with a signed-in token. GitHub refused a search for its secondary limit 31 times in those 100 minutes. Every
+refusal whose headers were logged (23 of them) carried no `retry-after`, and an `x-ratelimit-remaining` of 25 to 29
+of the search minute's 30, with 1 to 5 used: so the scanner waited one minute each time and went on, and the last
+run ended when the wait no longer fitted, with the time to come back in its checkpoint. A search took about 9 seconds
+to answer (99 timed). These searches therefore go at two to three a minute, not the 12 the pacing allows, and a week
+takes several runs, which the checkpoint carries. `gh api -i` was read as GitHub answers it (the status line, the
+headers, then the body), and a 304 to a request with its ETag left the kept answer in place without moving
+`x-ratelimit-remaining`; `tests/test_agent_pr_index.py` holds both to that shape.
 
-The GraphQL query was written from GitHub's published schema. It has not been run against GitHub from the machine
-this release was built on, which cannot reach the GraphQL endpoint; the tests run it against a table. The REST path
-is the one the earlier scans used.
+The GraphQL query was written from GitHub's published schema and was answered by GitHub in that reading: the checks
+of the 120 drawn pull requests that claimed passing tests were read with it, and over REST for the few a query did
+not settle. The REST path is the one the earlier scans used.
 
 **Why the earlier weekly scan could not finish.** It read every hit of the week, with no cap. Each claimed pull
 request cost three to four REST requests (the combined status, the check runs, the check suites when there were
