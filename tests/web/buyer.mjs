@@ -287,9 +287,12 @@ const cdp = await ctx.newCDPSession(page);
 await cdp.send("WebAuthn.enable");
 const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", { options: { protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
 await pick(page, "#buy-template", "bugfix");
-await page.fill("#buy-issue", "https://github.com/octo/widgets/issues/7");
+await page.fill("#buy-issue", "https://github.com/octo/widgets/issues/7"); await page.dispatchEvent("#buy-issue", "change");
+// the issue's budget and earlier orders are drawn above the button when they are read: wait for them, so the press does
+// not land while the button is still moving (filling the box alone reads them 700 ms later, after a press could land)
+await page.waitForFunction(() => document.querySelector("#buy-before .receipt") && !/^Reading/.test(document.getElementById("buy-before").textContent.trim()));
 await page.click("#buy-pk-create");
-await page.waitForSelector("#buy-pk-made");
+await page.waitForSelector("#buy-pk-made").catch(async (e) => { console.error("status:", await page.textContent("#buy-pk-status"), "| errors:", JSON.stringify(errors)); throw e; });
 chain.wallet = await text(page, "#buy-pk-address");
 const made = await cdp.send("WebAuthn.getCredentials", { authenticatorId });
 check("a passkey wallet is made: one credential on the authenticator, an address on the page", made.credentials.length === 1 && knos.isAddress(chain.wallet), chain.wallet);
