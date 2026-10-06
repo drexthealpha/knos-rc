@@ -524,8 +524,9 @@ await reset();
   const ours = join(here, "..", "..", "web", "buyer.js");
   check("buy: the build carries web/buyer.js byte for byte", existsSync(ours) && buyer === readFileSync(ours, "utf8") && /export function renderBuyer\(/.test(buyer));
   await page.waitForSelector("#buy-sentence:not(:empty)", { state: "attached", timeout: 10000 }).catch(() => {});
-  check("  the page's own hook renders it: its four steps, its templates and its one sentence, shown alone with its link in the menu",
-    (await Promise.all([1, 2, 3, 4].map((n) => page.isVisible(`#buy-step-${n}`)))).every(Boolean) && (await page.$$eval("#buy-template option", (o) => o.map((x) => x.value))).join() === "bugfix,feature-blackbox,milestone,private-attested"
+  check("  the page's own hook renders it: its four parts, its steps (three under Offers), its templates and its one sentence, shown alone with its link in the menu",
+    (await page.$$eval("#buy [role=tab]", (t) => t.map((x) => x.textContent))).join() === "Offers,Budgets,Approvals,Invoice" && !!(await page.$("#buy-part-invoice #buy-step-4"))
+    && (await Promise.all([1, 2, 3].map((n) => page.isVisible(`#buy-step-${n}`)))).every(Boolean) && (await page.$$eval("#buy-template option", (o) => o.map((x) => x.value))).join() === "bugfix,feature-blackbox,milestone,private-attested"
     && (await text(page, "#buy-sentence")).length > 20 && await page.isVisible('nav a[href="#buy"]') && await page.isHidden("#view-check")
     && (await page.getAttribute("nav a[aria-current=page]", "href")) === "#buy" && !(await page.$("#buy > h2:only-child")),
     await page.evaluate(() => document.getElementById("buy").innerHTML.slice(0, 200)));

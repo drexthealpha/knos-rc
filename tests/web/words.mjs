@@ -14,6 +14,8 @@
 //   record     no page says wallet, hash, pin or token account before the reader asks who keeps the record: those
 //              words are for a shut fold, the Records, Verifier and Numbers pages, and the developer's path (Fund, Get
 //              paid, Protect, Install, Build), and the part of a page a module marks data-record (the Console's Pay step)
+//   folds      every fold a page makes of a longer text (web/front.js foldProse) has a handle that says what is inside
+//              it: never "More about this", "More" or nothing, and no one handle repeated over three folds
 // --list prints every page's counts. No browser: a failure in CI, a skip elsewhere (tests/web/overflow.mjs).
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
@@ -81,7 +83,9 @@ for (const name of PAGES) {
     }
     const banned = [];
     for (const t of said) { const m = /\b(wallets?|hash(es|ed)?|pin(s|ned)?|token accounts?)\b/i.exec(t); if (m) banned.push(`${m[0]}: ${t.replace(/\s+/g, " ").slice(0, 100)}`); }
-    return { title: title ? title.textContent.trim().replace(/\s+/g, " ") : "", titleWords: title ? words(title.textContent).length : 0, under, lines, first: first.length, firstSaid: first.join(" "), long, banned };
+    // the handle of every fold the page made of a longer text says what is inside it (web/front.js foldLabel), never one word for all
+    const handles = [...section.querySelectorAll("details.k-fold > summary")].filter(drawn).map((s) => s.textContent.replace(/\s+/g, " ").trim());
+    return { title: title ? title.textContent.trim().replace(/\s+/g, " ") : "", titleWords: title ? words(title.textContent).length : 0, under, lines, first: first.length, firstSaid: first.join(" "), long, banned, handles };
   }, name);
   if (list) console.log(`     ${name}: title ${got.titleWords} "${got.title}", ${got.under} under it (${got.lines} lines), first screen ${got.first}, long ${got.long.length}, record words ${got.banned.length}`);
   if (name !== "check") check(`${name}: the title is 3 to 6 words`, got.titleWords >= 3 && got.titleWords <= 6, got.title);
@@ -89,6 +93,9 @@ for (const name of PAGES) {
   check(`${name}: the first screen says ${FIRST} words at most, the bar apart (${got.first})`, got.first <= FIRST, got.firstSaid);
   check(`${name}: no statement is longer than ${STATEMENT} words`, got.long.length === 0, got.long);
   if (!RECORD_KEEPERS.includes(name)) check(`${name}: nothing about a wallet, a hash, a pin or a token account before the reader asks`, got.banned.length === 0, got.banned);
+  const vague = got.handles.filter((h) => !h || /^(more( about this)?|details|read more)$/i.test(h) || new Set(got.handles).size < got.handles.length && got.handles.filter((x) => x === h).length > 2);
+  check(`${name}: every fold's handle says what is inside it (${got.handles.length} folds)`, vague.length === 0, vague);
+  if (list && got.handles.length) console.log(`       folds: ${got.handles.join(" | ")}`);
 }
 await browser.close(); server.close();
 console.log(fails ? `${fails} checks failed` : "words: every page is within the budget");

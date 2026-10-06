@@ -52,7 +52,7 @@ export function initStatements(ctx) {
     const sum = totals(mine).map((t) => [esc(`${KIND_WORDS[t.kind]}`), esc(t.payments), esc(show(t.amount_units)), esc(show(t.fee_units)), esc(show(t.total_units)), esc(t.currency)]);
     $("stm-result").innerHTML = `<div id="stm-statement" data-role="${esc(role)}" data-month="${esc(month)}">
       <h4>${esc(login)}, ${esc(month)}: ${seller ? "paid to this account" : "paid out by this account"}</h4>
-      <p class="fine">UTC days of the month, from the escrows' log lines on Solana devnet as the file lists them. ${seller ? "Amount is what reached the account; fee is what the escrow kept; total is what left escrow." : "Amount is what reached the people who did the work; fee is what the escrow kept; total is what left escrow."}</p>
+      <p class="fine" data-fold="Where the days and the amounts come from">UTC days of the month, from the escrows' log lines on Solana devnet as the file lists them. ${seller ? "Amount is what reached the account; fee is what the escrow kept; total is what left escrow." : "Amount is what reached the people who did the work; fee is what the escrow kept; total is what left escrow."}</p>
       <div id="stm-table-box">${tableHtml(esc, ["date", "task", "pull request", other, "amount", "fee", "total", "currency", "transaction"], mine.map((r) => [esc(r.date), repo(r), esc(r.pull_request ?? ""), esc(seller ? r.funder ?? "" : r.payee ?? `id ${r.payee_id}`),
         esc(show(r.amount_units)), esc(show(r.fee_units)), esc(show(r.total_units)), esc(r.currency + (r.kind === "self" || r.kind === "own" ? ` (${KIND_WORDS[r.kind]})` : "")), tx(r)]))}</div>
       <h4>Totals</h4>
@@ -178,7 +178,7 @@ export function renderOrderStatement(el, env = {}) {
         <dt>Evaluations</dt><dd data-meter="evaluations"><strong>${esc(m.evaluations.toLocaleString("en-US"))}</strong> <span class="fine">billable: each acceptance policy run once on one artifact for one deliverable</span></dd>
         <dt>Accepted outcomes</dt><dd data-meter="accepted_outcomes"><strong>${esc(m.accepted_outcomes.toLocaleString("en-US"))}</strong> <span class="fine">deliverables that passed: one each, however the work was split</span></dd>
         <dt>Rejected</dt><dd data-meter="rejected"><strong>${esc(m.rejected.toLocaleString("en-US"))}</strong> <span class="fine">evaluations that did not pass; they are billable too</span></dd></dl>
-      <p class="fine" id="ost-meter-note">From ${esc(f.name)}: ${esc(m.batches)} batch${m.batches === 1 ? "" : "es"} whose headers anchored ${esc(m.anchored)} evaluation${m.anchored === 1 ? "" : "s"}, ${esc(m.corrections)} correction${m.corrections === 1 ? "" : "s"}, ${esc(m.accepted)} accepted evaluation${m.accepted === 1 ? "" : "s"}.
+      <p class="fine" id="ost-meter-note" data-fold="What the ledger file held">From ${esc(f.name)}: ${esc(m.batches)} batch${m.batches === 1 ? "" : "es"} whose headers anchored ${esc(m.anchored)} evaluation${m.anchored === 1 ? "" : "s"}, ${esc(m.corrections)} correction${m.corrections === 1 ? "" : "s"}, ${esc(m.accepted)} accepted evaluation${m.accepted === 1 ? "" : "s"}.
         ${m.batches && m.anchored !== m.evaluations ? `The headers and the count differ by ${esc(Math.abs(m.anchored - m.evaluations))}: repeats and withdrawals are counted once or not at all here, or lines are missing from the file. <code>knos meter verify</code> says which.` : ""}
         The statement above and its exports are unchanged by this file.</p>
       ${m.problems.length ? `<ul class="plain" id="ost-meter-problems">${m.problems.slice(0, 5).map((p) => `<li class="status bad">${esc(p)}</li>`).join("")}</ul>` : ""}`
@@ -210,7 +210,7 @@ export function renderOrderStatement(el, env = {}) {
     const command = `knos audit export --owner ${s.owner_id} --from ${s.from} --to ${s.to} --format csv`;
     out.innerHTML = `<div id="ost-statement" data-owner="${esc(s.owner_id)}" data-month="${esc(month)}">
       <h4>${esc(loaded.name)}, ${esc(month)}: every work order</h4>
-      <p class="fine">One line per payment, refund, revert, or order still open at the end of ${esc(s.to)} (UTC), from the escrow's own log lines on Solana devnet. The fee is paid by the funder on top of the amount.${s.partial ? " The cluster did not give the whole history when this file was made: it is partial, and its head is not one to compare." : ""}</p>
+      <p class="fine" data-fold="What each line is, and where it is read from">One line per payment, refund, revert, or order still open at the end of ${esc(s.to)} (UTC), from the escrow's own log lines on Solana devnet. The fee is paid by the funder on top of the amount.${s.partial ? " The cluster did not give the whole history when this file was made: it is partial, and its head is not one to compare." : ""}</p>
       <div id="ost-table">${tableHtml(esc, ["date", "order", "what was bought", ...(said ? ["authorised by"] : []), "amount", "state", "paid", "fee", "sent back", "held", "currency", "transaction"],
         rows.map((r) => [esc(r.date), order(r.order), esc(what(r)), ...(said ? [esc(r[AUTHORISED])] : []), esc(money(r.price_units)), esc(STATE_WORDS[r.kind] || r.kind) + (r.exception ? `<br><span class="fine">${esc(r.exception)}</span>` : ""),
           esc(money(r.paid_units)), esc(money(r.fee_units)), esc(back(r)), esc(money(r.held_units)), esc(r.currency), tx(r.transaction)]))}</div>
@@ -227,7 +227,7 @@ export function renderOrderStatement(el, env = {}) {
       <h4>For your finance system</h4>
       <p id="ost-exports">${Object.entries(FORMATS).sort(([, a], [, b]) => Number(a.unverified) - Number(b.unverified)).map(([fmt, f]) => `<button type="button" class="ghost small" data-export="${esc(fmt)}" title="${esc(f.name)}">${esc(EXPORT_NAMES[fmt] || fmt)}</button>${f.unverified ? ` <span class="fine" data-unverified="${esc(fmt)}">${esc(UNVERIFIED)}</span>` : ""}`).join(" ")}</p>
       <p class="fine">Accepted deliverables only. <a href="https://github.com/drexthealpha/Knos/blob/main/docs/FINANCE.md" target="_blank" rel="noopener">What each file holds, and what nobody has imported yet.</a></p>
-      <p class="fine" id="ost-recompute">How the other party recomputes it: <code>${esc(command)}</code> reads the same period from the chain and prints the same bytes as Export CSV
+      <p class="fine" id="ost-recompute" data-fold="How the other party recomputes it">How the other party recomputes it: <code>${esc(command)}</code> reads the same period from the chain and prints the same bytes as Export CSV
         (<code>--format json</code> for Export JSON). Compare one hash, the head: <span class="mono" id="ost-head">${esc(head)}</span>. <code>knos audit verify &lt;file&gt;</code>
         checks every row's hash, the totals and the head of a file someone sent you. Test USDC on devnet: not an invoice for real money.</p></div>`;
     const name = `knos-audit-${s.owner_id}-${month}`;

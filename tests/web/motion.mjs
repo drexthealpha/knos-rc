@@ -133,6 +133,14 @@ for (const [width, height] of [[1280, 800], [390, 844], [1440, 900]]) {
     const m = await movers(page);
     check(`  ${hash || "(first screen)"}: none of ${m.looked} elements has an animation or a transition longer than 0`, m.looked > 200 && m.bad.length === 0 && (await page.evaluate(() => document.getAnimations().length)) === 0, m.bad);
   }
+  // the console, each of its four parts shown in turn, every fold open: nothing could move, and nothing does
+  await page.goto(base + "#buy"); await page.waitForSelector("#proc-tab-invoice"); await page.waitForSelector("#proc-outcome option", { state: "attached" }); await settle(page, 200);
+  for (const k of ["offers", "budgets", "approvals", "invoice"]) {
+    await page.click(`#proc-tab-${k}`);
+    await page.evaluate(() => { for (const d of document.querySelectorAll("details")) d.open = true; });
+    const m = await movers(page), shown = await page.isVisible(`#buy-part-${k}`);
+    check(`  #buy, ${k}: shown at once, and none of ${m.looked} elements has an animation or a transition longer than 0`, shown && m.looked > 200 && m.bad.length === 0 && (await page.evaluate(() => document.getAnimations().length)) === 0, m.bad);
+  }
   await page.goto(base); await page.waitForSelector("#mark3d .face", { state: "attached" });
   // the first screen's upgrade line opens at once, and the sample's lines are sorted into their groups at once
   if (await page.waitForSelector("#hero-upgrades:not([hidden])", { timeout: 3000 }).then(() => true, () => false)) {

@@ -585,7 +585,7 @@ function again(section) {
 const WORDS = /[A-Za-z0-9][\w'’%.,/-]*/g;
 const wordy = (el) => el.textContent.split(/(?<=[.!?:])\s+|\n{2,}/).some((t) => (t.match(WORDS) || []).length > 12);
 const PROSE = "p.fine, p.lede, p:not([class]), ul:not([class]):not([id]), ol:not([class]):not([id]), ul.fine, blockquote";
-const ANSWERS = 'details, table, nav, button, label, output, noscript, [aria-live], [role=status], [role=tabpanel], [data-keep], .status, .verdict, .k-toast, [id$="-result"], [id$="-preview"], [id$="-state"], [id$="-status"], [id$="-tx"]';
+const ANSWERS = 'details, table, nav, button, label, output, noscript, [aria-live], [role=status], [role=tabpanel]:not(.buy-part), [data-keep], .status, .verdict, .k-toast, [id$="-result"], [id$="-preview"], [id$="-state"], [id$="-status"], [id$="-tx"]';
 export function foldProse(root) {
   for (const el of root.querySelectorAll(PROSE)) {
     if (!el.isConnected || el.closest(ANSWERS) || el.querySelector("input, select, textarea, button, [aria-live], [role=status]")) continue;
@@ -596,9 +596,22 @@ export function foldProse(root) {
     d.className = "k-more k-fold";
     // a heading right above becomes the fold's own handle (it keeps its element and its id): no card of a title and a lone "more"
     const head = before?.matches("h3, h4") ? before : null;
-    d.innerHTML = `<summary>${head ? "" : "More about this"}</summary>`;
+    d.innerHTML = "<summary></summary>";
+    if (!head) d.firstElementChild.textContent = foldLabel(el);
     el.before(d); if (head) d.firstElementChild.append(head); d.append(el);
   }
+}
+// The handle of a fold says what is inside it: the words a module gave the text it wrote (data-fold="…"), else the
+// first words of what is folded, cut at six and ended with an ellipsis. A handle stays clear of the words a page keeps
+// for the reader who asks how the money is held (tests/web/words.mjs): it stops before the first of them.
+const RECORD = /\b(wallets?|hash(es|ed)?|pin(s|ned)?|token accounts?)\b/i;
+export function foldLabel(el) {
+  const own = (el.dataset?.fold || el.querySelector?.("[data-fold]")?.dataset.fold || "").trim();
+  if (own) return own;
+  const first = el.textContent.replace(/\s+/g, " ").trim().split(/(?<=[.!?:;])\s+/)[0].replace(/[.!?:;,]+$/, "");
+  const cut = RECORD.exec(first), words = (cut ? first.slice(0, cut.index) : first).split(" ").filter(Boolean);
+  const shown = words.slice(0, 6).join(" ").replace(/[,;:(–—-]+$/, "");
+  return shown && words.length >= 2 ? `${shown}${words.length > 6 || cut ? "…" : ""}` : "Read the rest";
 }
 const folding = new WeakSet();
 function keepFolded(section) {

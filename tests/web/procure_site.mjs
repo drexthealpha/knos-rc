@@ -109,7 +109,7 @@ check("Budgets: the envelope changed", Number(await attr("#proc-budgets .k-env",
 await page.waitForFunction(() => document.querySelector("#proc-budgets .k-bar [data-part=draft]").getBoundingClientRect().width > 0);
 const after = await widths();
 check("the bar grew by what was drafted, and the rest stayed", after[3] > 0 && after[0] === before[0] && after[2] === before[2], after);
-if (shots) { mkdirSync(shots, { recursive: true }); await page.locator("#proc").screenshot({ path: join(shots, "procure-budgets.png") }); }
+if (shots) { mkdirSync(shots, { recursive: true }); await page.locator("#buy-part-budgets").screenshot({ path: join(shots, "procure-budgets.png") }); }
 
 // ---- over the limit: refused, with the amount it is over by --------------------------------------------------------------------------------
 await page.click("#proc-tab-offers");
@@ -138,9 +138,10 @@ check("the seven questions, in order", qs.join("|") === "What did we authorize?|
 check("each is answered for the one deliverable", as.join("|") === ["One bug-fix at 50.00, up to 400.00 a month.", "@octocat delivered pull request #31. Verdict: accepted.", "3 of 3 passed.", "No. One invoice line names it.",
   "Waits for 1 approver: 1,200.00 needs 2 approvers.", "Nothing is disputed. 0.00 credited, 0.00 owed.", "Yes. Five files in your repository rebuild it."].join("|"), as);
 check("the exception is counted first", (await text("#proc-invoice [data-seven-open]")) === "1 of 7 answers needs a person." && (await attr("#proc-invoice dd[data-a='5']", "data-ok")) === "0");
-if (shots) await page.locator("#proc").screenshot({ path: join(shots, "procure-invoice.png") });
+if (shots) await page.locator("#buy-part-invoice").screenshot({ path: join(shots, "procure-invoice.png") });
 
-// ---- funding one task shows the envelope too -----------------------------------------------------------------------------------------------
+// ---- funding one task shows the envelope too (the task is funded under Offers) --------------------------------------------------------------
+await page.click("#proc-tab-offers");
 await page.fill("#buy-amount", "50");
 await page.waitForSelector("#buy-envelope [data-fit='1']");
 check("funding a task shows the envelope before and after, fee included", (await page.locator("#buy-envelope [data-fact=left]").allInnerTexts()).join("|") === "1,570.00|1,518.75", await page.locator("#buy-envelope [data-fact=left]").allInnerTexts());
@@ -151,15 +152,18 @@ check("and refuses over the limit with the amount over", (await text("#buy-envel
 // ---- words: twelve at most a statement; no key, address or digest ----------------------------------------------------------------------------
 const said = await page.evaluate(() => {
   const out = [];
-  for (const panel of document.querySelectorAll("#proc, #buy-envelope")) for (const el of panel.querySelectorAll("p, li, dd, dt, summary, th, label, h3, h4, option, button")) {
+  // the four screens: the offers in #proc, the envelopes, the approvals and the deliverable each in its part of the console
+  for (const panel of document.querySelectorAll("#proc, #proc-budgets, #proc-approvals, #proc-invoice, #buy-envelope")) for (const el of panel.querySelectorAll("p, li, dd, dt, summary, th, label, h3, h4, option, button")) {
     if (el.closest("pre") || el.querySelector("p, li, dd, dt, pre, table, details")) continue;
     out.push(el.textContent.replace(/\s+/g, " ").trim());
   }
-  return out.concat([...document.querySelectorAll("#proc dd[data-a] > strong")].map((el) => el.textContent.trim()));
+  return out.concat([...document.querySelectorAll("#proc-invoice dd[data-a] > strong")].map((el) => el.textContent.trim()));
 });
 const sentences = said.flatMap((s) => s.split(/(?<=[.?!])\s+(?=[A-Z@])/)).filter(Boolean), long = sentences.filter((s) => s.split(/\s+/).length > 12);
 check(`no statement is longer than twelve words (${sentences.length} read)`, sentences.length > 40 && long.length === 0, long);
-const whole = await page.evaluate(() => [...document.querySelectorAll("#proc, #buy-envelope")].map((el) => el.textContent).join(" "));
+const whole = await page.evaluate(() => [...document.querySelectorAll("#proc, #proc-budgets, #proc-approvals, #proc-invoice, #buy-envelope")].map((el) => el.textContent).join(" "));
+check("the four screens are the console's four parts: the offers under Offers, the envelopes under Budgets, the approvals under Approvals, the deliverable under Invoice",
+  await page.evaluate(() => [["buy-part-offers", "proc"], ["buy-part-budgets", "proc-budgets"], ["buy-part-approvals", "proc-approvals"], ["buy-part-invoice", "proc-invoice"]].every(([part, id]) => document.getElementById(part).contains(document.getElementById(id)))));
 check("nothing says wallet, hash or token account", !/wallet|hash|token account|pubkey|sha256/i.test(whole), (whole.match(/.{30}(wallet|hash|token account|pubkey|sha256).{30}/i) || [])[0]);
 check("the screens asked the forge for nothing", !asked.some((u) => u.includes("/contents/")) && strangers.length === 0, strangers);
 check("no script error", errors.length === 0, errors);
@@ -189,7 +193,7 @@ for (const width of [320, 390]) {
     const wide = await small.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     check(`${width} px, ${tab}: nothing scrolls sideways`, wide <= 0, wide);
   }
-  if (shots && width === 390) await small.page.locator("#proc").screenshot({ path: join(shots, "procure-phone.png") });
+  if (shots && width === 390) await small.page.locator("#buy-part-invoice").screenshot({ path: join(shots, "procure-phone.png") });
   await small.ctx.close();
 }
 await browser.close(); server.close();

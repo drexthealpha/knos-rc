@@ -5,6 +5,9 @@ the person who authorises a payment and has to defend it afterwards, and for the
 static page: it reads GitHub's public API, Solana devnet and this site's own files, and nothing else. It sends nothing
 to Solana. Money is test USDC on devnet.
 
+The page is in four parts, one shown at a time under its tab: **Offers** (fund one piece of work in three steps, and the
+standing offers a repository's files hold), **Budgets** (the envelopes), **Approvals** (who approves each offer, and what
+needs a person) and **Invoice** (what happened to an order, one deliverable's seven answers, the month's statement).
 This guide says where the page answers each of the seven questions that person is asked, how many steps a governed
 order takes, and what the page does not do.
 
@@ -13,12 +16,12 @@ order takes, and what the page does not do.
 | Question | Where on the page | What it is read from |
 | --- | --- | --- |
 | What did we buy, from whom, at what price? | Step 1 (the issue, the amount, the fee as an amount and as a share of the order) and step 2 (the terms in one sentence). After the fact: the statement, one line per payment with its supplier ids. | What you type; the price constants of the program; the site's statement file `audit/<owner id>.json`. |
-| Which evidence establishes acceptance? | Step 4, "Accepted: the receipt, in its five parts": what the issuer authenticated, what the evaluator observed, which policy produced the verdict, who authorised the money and under which limit, what trust remains. Each line links its transaction. | The order's account and the program's log lines on devnet. The run's own log stays on GitHub. |
+| Which evidence establishes acceptance? | Invoice, "What happened", then "Accepted: the receipt, in its five parts": what the issuer authenticated, what the evaluator observed, which policy produced the verdict, who authorised the money and under which limit, what trust remains. Each line links its transaction. | The order's account and the program's log lines on devnet. The run's own log stays on GitHub. |
 | Was this deliverable billed before? | Step 1, "Was this billed before?": every earlier order and payment for the same repository and issue, each with its milestone and its transactions, shown before funding. | The organisation's statement file on this site, and the issue's open orders on devnet. |
-| Did the approver have authority? | Step 1, "Is this allowed?": the organisation's cap per order, what is left today and in all, the allowed repositories and who may spend, with whether this funding would pass and which rule decides. Step 4 names who funded the order. | The organisation's Balance and its side account on devnet; the funding's log line. |
-| What happens on a revert or a dispute? | "What needs a person": the orders held for a payee with no wallet, in a review window, reverted or ruled on by an arbiter, cancelled, past deadline and refundable, reserved and stale, each with the one action that resolves it and who can take it. Step 4 lists the four exception paths. For a private repository, a panel in step 1 says what the supplier cannot do alone. | The statement file, each order's account on devnet, and the repository's record file for refused tokens. |
-| Can finance reproduce the statement next quarter? | "The month's statement, for both sides": Export CSV and Export JSON are byte for byte what `knos audit export` prints for the same owner and month, and the head is the one hash both sides compare. A meter ledger file dropped on the card adds its three numbers. | The statement file; the ledger file you drop, read in the browser and sent nowhere. |
-| Who answers when the service fails? | Step 4, "Who answers if this fails". | Nothing: it is a statement. Today the founder alone answers. There is no support contract, no on-call team and no service-level agreement. A refund after the deadline, the release of a holdback and the settling of a held payment can each be sent by anyone, so the money does not wait on that person. |
+| Did the approver have authority? | Step 1, "Is this allowed?": the organisation's cap per order, what is left today and in all, the allowed repositories and who may spend, with whether this funding would pass and which rule decides. Invoice, "What happened", names who funded the order. | The organisation's Balance and its side account on devnet; the funding's log line. |
+| What happens on a revert or a dispute? | Approvals, "What needs a person": the orders held for a payee with no wallet, in a review window, reverted or ruled on by an arbiter, cancelled, past deadline and refundable, reserved and stale, each with the one action that resolves it and who can take it. Invoice, "What happened", lists the four exception paths. For a private repository, a panel in step 1 says what the supplier cannot do alone. | The statement file, each order's account on devnet, and the repository's record file for refused tokens. |
+| Can finance reproduce the statement next quarter? | Invoice, "The month's statement, for both sides": Export CSV and Export JSON are byte for byte what `knos audit export` prints for the same owner and month, and the head is the one hash both sides compare. A meter ledger file dropped on the card adds its three numbers. | The statement file; the ledger file you drop, read in the browser and sent nowhere. |
+| Who answers when the service fails? | Invoice, "What happened", then "Who answers if this fails". | Nothing: it is a statement. Today the founder alone answers. There is no support contract, no on-call team and no service-level agreement. A refund after the deadline, the release of a holdback and the settling of a held payment can each be sent by anyone, so the money does not wait on that person. |
 
 ## The fee, before funding
 
@@ -92,7 +95,7 @@ evidence for the supplier. [SECURITY.md](SECURITY.md) has the full account.
 
 ## Procurement: offers, budgets, approvals, one deliverable
 
-(0.3.17) Above step 1 the page has four screens over files in the buyer's repository (`.knos/procurement/`;
+(0.3.17) The four parts of the page read files in the buyer's repository (`.knos/procurement/`;
 [CONTROLS.md](CONTROLS.md), section 9, is their schema). Until a repository is named they show a made-up
 organisation, acme, and say so. Naming a public repository reads its files through GitHub's API. The page writes
 nothing anywhere.

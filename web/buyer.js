@@ -123,15 +123,19 @@ export function renderBuyer(el, env = {}) {
   const say = (node, html, kind = "") => { node.innerHTML = `<p class="status ${kind}">${html}</p>`; };
   const copyTo = (button, text, area) => { button.onclick = async () => { try { await navigator.clipboard.writeText(text); button.textContent = "Copied"; } catch { area?.select?.(); button.textContent = "Select it and copy by hand"; } }; };
 
+  // THE CONSOLE IN FOUR PARTS, one shown at a time under its tab: Offers (fund one piece of work in three steps, and the
+  // standing offers a repository's files hold), Budgets (the envelopes), Approvals (who approves, and what needs a person),
+  // Invoice (what happened to an order, one deliverable's seven answers, the month's statement). Every part is drawn at
+  // once; a tab only shows it.
   el.innerHTML = `
     <h2>Buy work per outcome</h2>
     <p class="lede">Fix price and terms first. Pay when a signed run accepts.</p>
     <div class="buy-top"><span class="devnet">Devnet: test USDC, never real money</span>
       <button type="button" class="k-btn quiet" id="buy-go-records">See one order as four records</button></div>
+    <div class="k-tabs buy-tabs" role="tablist" aria-label="The console">${TABS.map(([k, label], n) => `<button type="button" class="k-btn quiet" role="tab" id="proc-tab-${k}" aria-controls="buy-part-${k}" aria-selected="${n === 0}" tabindex="${n === 0 ? 0 : -1}">${label}</button>`).join("")}</div>
 
-    <section class="card" id="proc"></section>
-
-    <section class="card" id="buy-step-1"><span class="pill">Step 1 of 4</span>
+    <div class="buy-part" id="buy-part-offers" role="tabpanel" aria-labelledby="proc-tab-offers">
+    <section class="card" id="buy-step-1"><span class="pill">Step 1 of 3</span>
       <h3>What are you buying?</h3>
       <label for="buy-kind">The work</label>
       <select id="buy-kind"><option value="issue">One issue, done once</option><option value="rate">A rate per accepted pull request, from one vendor</option></select>
@@ -143,7 +147,7 @@ export function renderBuyer(el, env = {}) {
       <div class="row">
         <div><label for="buy-amount" id="buy-amount-label">Amount (test USDC)</label><input id="buy-amount" inputmode="decimal" value="50"></div>
         <div><label for="buy-days">Deadline: days until unpaid money goes back</label><input id="buy-days" inputmode="numeric" value="14"></div></div>
-      <p id="buy-cost"></p>
+      <p id="buy-cost" data-fold="The fee, as an amount and as a share"></p>
       <div id="buy-fee-warning" role="note" hidden></div>
       <details id="buy-fee-table" open><summary class="fine">The fee as a share of the order, at five sizes</summary><div id="buy-fee-rows"></div></details>
       <div id="buy-private" hidden></div>
@@ -157,7 +161,7 @@ export function renderBuyer(el, env = {}) {
       <div id="buy-before" role="status" aria-live="polite"><p class="fine">Write the issue above. Earlier orders and payments show here.</p></div>
     </section>
 
-    <section class="card" id="buy-step-2"><span class="pill">Step 2 of 4</span>
+    <section class="card" id="buy-step-2"><span class="pill">Step 2 of 3</span>
       <h3>When is it accepted?</h3>
       <label for="buy-template">Terms, from a template</label>
       <select id="buy-template"></select>
@@ -171,7 +175,7 @@ export function renderBuyer(el, env = {}) {
       <details><summary class="fine">The three ways an order can be judged</summary><dl class="parts" id="buy-modes"></dl></details>
     </section>
 
-    <section class="card" id="buy-step-3" data-record><span class="pill">Step 3 of 4</span>
+    <section class="card" id="buy-step-3" data-record><span class="pill">Step 3 of 3</span>
       <h3>Pay</h3>
       <h4>With a passkey: no app, no SOL</h4>
       <p>A passkey is the key your device keeps behind its fingerprint, face or screen lock. Its wallet is an address on Solana that holds test USDC. You sign one order with it; a relay sends the transaction and pays its fee.</p>
@@ -182,7 +186,7 @@ export function renderBuyer(el, env = {}) {
         <div id="buy-pk-wallet" hidden>
           <dl class="facts"><dt>Wallet address</dt><dd><span class="mono" id="buy-pk-address"></span></dd>
             <dt>It holds</dt><dd><span id="buy-pk-balance">not read yet</span> <button type="button" id="buy-pk-refresh" class="ghost small">Check the balance</button></dd></dl>
-          <p class="fine" id="buy-pk-faucet">To get test USDC: send it to the address above from any devnet wallet, or ask <a href="https://faucet.circle.com/" target="_blank" rel="noopener">Circle's devnet faucet</a> for USDC on Solana devnet to that address. It is free and worth nothing.</p>
+          <p class="fine" id="buy-pk-faucet" data-fold="How to get test USDC">To get test USDC: send it to the address above from any devnet wallet, or ask <a href="https://faucet.circle.com/" target="_blank" rel="noopener">Circle's devnet faucet</a> for USDC on Solana devnet to that address. It is free and worth nothing.</p>
           <p><button type="button" id="buy-pk-sign">Sign the order with the passkey</button></p>
         </div>
         <div id="buy-pk-result" role="status" aria-live="polite"></div>
@@ -195,7 +199,29 @@ export function renderBuyer(el, env = {}) {
       <p id="buy-card">Not available: it needs a licensed on-ramp partner, and Knos has none. Nothing here takes a card.</p>
     </section>
 
-    <section class="card" id="buy-step-4" data-record><span class="pill">Step 4 of 4</span>
+    <section class="card" id="proc"></section>
+    </div>
+
+    <div class="buy-part" id="buy-part-budgets" role="tabpanel" aria-labelledby="proc-tab-budgets" hidden>
+      <section class="card"><h3>Budget envelopes</h3><div id="proc-budgets" data-keep></div></section>
+    </div>
+
+    <div class="buy-part" id="buy-part-approvals" role="tabpanel" aria-labelledby="proc-tab-approvals" hidden>
+      <section class="card"><h3>Who approves each offer</h3><div id="proc-approvals" data-keep></div></section>
+
+    <section class="card" id="buy-exc-card"><h3>What needs a person</h3>
+      <p>The orders of an organisation, or of one repository, that will not finish by themselves. Each says what happened, the one thing that resolves it, and who can do it.</p>
+      <form id="buy-exc-form"><label for="buy-exc-scope">The organisation, or one repository as owner/repo</label>
+        <input id="buy-exc-scope" autocomplete="off" spellcheck="false" placeholder="owner, or owner/repo">
+        <button type="submit">Show what needs a person</button></form>
+      <div id="buy-exc" role="status" aria-live="polite"></div>
+    </section>
+    </div>
+
+    <div class="buy-part" id="buy-part-invoice" role="tabpanel" aria-labelledby="proc-tab-invoice" hidden>
+      <section class="card"><h3>One deliverable, seven answers</h3><div id="proc-invoice" data-keep></div></section>
+
+    <section class="card" id="buy-step-4" data-record><span class="pill">An order</span>
       <h3>What happened</h3>
       <form id="buy-order-form"><label for="buy-order">The order's address, from Knos's reply on the issue</label>
         <input id="buy-order" autocomplete="off" spellcheck="false" placeholder="a Solana address">
@@ -210,18 +236,25 @@ export function renderBuyer(el, env = {}) {
       </dl></details>
     </section>
 
-    <section class="card" id="buy-exc-card"><h3>What needs a person</h3>
-      <p>The orders of an organisation, or of one repository, that will not finish by themselves. Each says what happened, the one thing that resolves it, and who can do it.</p>
-      <form id="buy-exc-form"><label for="buy-exc-scope">The organisation, or one repository as owner/repo</label>
-        <input id="buy-exc-scope" autocomplete="off" spellcheck="false" placeholder="owner, or owner/repo">
-        <button type="submit">Show what needs a person</button></form>
-      <div id="buy-exc" role="status" aria-live="polite"></div>
-    </section>
-
     <section class="card" id="buy-statement" style="scroll-margin-top:80px"><h3>The month's statement, and each order as four records</h3>
       <p>One month of orders. Each order: authorisation, acceptance, commercial record, settlement status.</p>
       <div id="buy-statement-box"></div>
-    </section>`;
+    </section>
+    </div>`;
+
+  // the four tabs: a press shows its part; the arrow keys, Home and End move between them (the ARIA tabs pattern)
+  const tabs = TABS.map(([k]) => $(`proc-tab-${k}`));
+  const showPart = (k, focus = false) => {
+    for (const [x] of TABS) { const on = x === k, t = $(`proc-tab-${x}`); $(`buy-part-${x}`).hidden = !on; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; }
+    if (focus) $(`proc-tab-${k}`).focus();
+  };
+  for (const [k] of TABS) $(`proc-tab-${k}`).onclick = () => showPart(k);
+  el.querySelector(".buy-tabs").addEventListener("keydown", (ev) => {
+    const at = tabs.indexOf(doc.activeElement), to = { ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: tabs.length - 1 }[ev.key];
+    if (at < 0 || to === undefined) return;
+    ev.preventDefault();
+    showPart(TABS[(to + tabs.length) % tabs.length][0], true);
+  });
 
   let desk = null;                                // the procurement screens (renderProcurement), once the templates have loaded
   // ---- steps 1 and 2: what is bought, and the terms -------------------------------------------------------------------------------------
@@ -470,8 +503,8 @@ export function renderBuyer(el, env = {}) {
         <textarea id="buy-line" class="mono" readonly rows="5" spellcheck="false">${esc(line)}</textarea>
         <p><a id="buy-open" class="button" href="${esc(link)}" target="_blank" rel="noopener">Copy the line and open the issue</a>
           <button type="button" id="buy-copy" class="ghost small">Copy the line</button></p>
-        <p class="fine">GitHub cannot fill a comment box from a link, so the button copies the line and opens the issue: paste it in the comment box at the bottom, and press Comment. The public relay reads the line,
-          pays the transaction and the order's rent, and answers on the issue. You need no SOL. Then read the order in step 4.</p>`;
+        <p class="fine" data-fold="Where to paste the line, and who pays">GitHub cannot fill a comment box from a link, so the button copies the line and opens the issue: paste it in the comment box at the bottom, and press Comment. The public relay reads the line,
+          pays the transaction and the order's rent, and answers on the issue. You need no SOL. Then read the order under Invoice.</p>`;
       copyTo($("buy-copy"), line, $("buy-line"));
       $("buy-open").addEventListener("click", () => { navigator.clipboard?.writeText(line).catch(() => {}); });
       $("buy-order").value = intent.order;
@@ -544,7 +577,7 @@ export function renderBuyer(el, env = {}) {
     } catch (e) { say(out, esc(e.message), "bad"); }
   };
 
-  $("buy-go-records").onclick = () => { $("buy-statement").scrollIntoView?.({ block: "start" }); $("ost-owner")?.focus({ preventScroll: true }); };
+  $("buy-go-records").onclick = () => { showPart("invoice"); $("buy-statement").scrollIntoView?.({ block: "start" }); $("ost-owner")?.focus({ preventScroll: true }); };
   // ---- the statement, the templates, and a wallet this browser kept ----------------------------------------------------------------------
   renderOrderStatement($("buy-statement-box"), { EXPLORER, gh, file: env.file });
   const ready = (env.templates ? Promise.resolve(env.templates) : fetch("buyer_templates.json").then((r) => { if (!r.ok) throw new Error(`buyer_templates.json did not load (${r.status})`); return r.json(); }))
@@ -562,7 +595,8 @@ export function renderBuyer(el, env = {}) {
 }
 
 // ---- procurement: offers, budgets, approvals and one deliverable, from files in the buyer's repository -----------------------------------
-// The four screens of web/console.js section 8, over web/procure.js. What they show is read from `.knos/procurement/`
+// The four screens of web/console.js section 8, over web/procure.js, each in its part of the console (the tabs are
+// renderBuyer's: Offers, Budgets, Approvals, Invoice). What they show is read from `.knos/procurement/`
 // of a public repository through GitHub's API, or, until one is named, the made-up organisation of
 // buyer_templates.json. The page writes nothing anywhere: an offer leaves it as a file to commit (a new-file page on
 // GitHub, already filled in) and a comment to post. A draft made here counts on this page only, until it is committed.
@@ -606,14 +640,13 @@ export function renderProcurement(el, { book, gh, now = () => Math.floor(Date.no
   const day = () => (st.made ? st.today : today());
 
   el.innerHTML = `<style>${con.PROC_STYLE}</style>
-    <h3>Procurement</h3>
+    <h3>Standing offers</h3>
     <p class="lede">Offers, budgets and approvals are files in your repository.</p>
     <form id="proc-repo-form"><label for="proc-repo">Your repository</label>
       <input id="proc-repo" autocomplete="off" spellcheck="false" placeholder="owner/repo">
       <button type="submit" class="k-btn quiet">Read its files</button></form>
     <div id="proc-source" role="status" aria-live="polite"></div>
-    <div class="k-tabs" role="tablist">${TABS.map(([k, label], n) => `<button type="button" class="k-btn quiet" role="tab" id="proc-tab-${k}" aria-controls="proc-${k}" aria-selected="${n === 0}">${label}</button>`).join("")}</div>
-    <div id="proc-offers" role="tabpanel" aria-labelledby="proc-tab-offers">
+    <div id="proc-offers" data-keep>
       <form id="proc-offer-form">
         <div class="row"><div><label for="proc-outcome">Outcome</label><select id="proc-outcome"></select></div>
           <div><label for="proc-supplier">Supplier</label><input id="proc-supplier" autocomplete="off" spellcheck="false" placeholder="octocat, or anyone"></div></div>
@@ -629,10 +662,10 @@ export function renderProcurement(el, { book, gh, now = () => Math.floor(Date.no
         <p><button type="submit" class="k-btn" id="proc-create" disabled>Create the offer file</button></p></form>
       <div id="proc-offer-result" role="status" aria-live="polite"></div>
       <h4>Open offers</h4><div id="proc-offer-list"></div>
-    </div>
-    <div id="proc-budgets" role="tabpanel" aria-labelledby="proc-tab-budgets" hidden></div>
-    <div id="proc-approvals" role="tabpanel" aria-labelledby="proc-tab-approvals" hidden></div>
-    <div id="proc-invoice" role="tabpanel" aria-labelledby="proc-tab-invoice" hidden></div>`;
+    </div>`;
+  // the envelopes, the approvals and the deliverable go where the page put a place for them (web/buyer.js: the Budgets,
+  // Approvals and Invoice parts of the console); a page with none gets them here, under the offers
+  for (const id of ["proc-budgets", "proc-approvals", "proc-invoice"]) if (!$(id)) el.append(Object.assign(doc.createElement("div"), { id }));
 
   const cardOf = (offer) => st.cards.find((c) => c.name === offer.rate_card) || null, envOf = (name) => st.envelopes.find((e) => e.name === name) || null;
   const drafted = (name) => st.drafts.filter((d) => d.offer.envelope === name).reduce((n, d) => n + d.sized.leaves, 0);
@@ -696,7 +729,6 @@ export function renderProcurement(el, { book, gh, now = () => Math.floor(Date.no
     drawFit(); drawLists();
   }
 
-  for (const [k] of TABS) $(`proc-tab-${k}`).onclick = () => { for (const [x] of TABS) { $(`proc-${x}`).hidden = x !== k; $(`proc-tab-${x}`).setAttribute("aria-selected", String(x === k)); } };
   for (const id of ["proc-outcome", "proc-supplier", "proc-cap", "proc-period", "proc-envelope", "proc-requester", "proc-retries", "proc-reopened"]) $(id).oninput = () => drawFit();
   $("proc-offer-form").onsubmit = (ev) => {
     ev.preventDefault();
@@ -728,7 +760,7 @@ export function renderProcurement(el, { book, gh, now = () => Math.floor(Date.no
       if (!fundBox) return null;
       if (!env || leaves === null) { fundBox.innerHTML = `<p class="fine">${env ? "Write an amount. The envelope shows before and after." : "No budget envelope yet."}</p>`; return null; }
       const fitted = p.fit(envNow(env), leaves);
-      fundBox.innerHTML = con.fitHtml(envNow(env), { ...fitted, sentence: fitted.sentence.replace(/`/g, "") }, leaves) + (st.made ? `<p class="fine">A made-up envelope. Name your repository under Procurement.</p>` : "");
+      fundBox.innerHTML = con.fitHtml(envNow(env), { ...fitted, sentence: fitted.sentence.replace(/`/g, "") }, leaves) + (st.made ? `<p class="fine">A made-up envelope. Name your repository under Standing offers.</p>` : "");
       grow(fundBox);
       return fitted;
     },

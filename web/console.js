@@ -137,7 +137,7 @@ export function earlierHtml(found, live, name, explorer) {
   ...extra.map((o) => `<li data-kind="live">On devnet now: <strong>${esc(o.state === "open" ? "funded, not paid yet" : o.state)}</strong>, ${esc(show(o.amount))} test USDC, ${esc(show(o.paid))} paid so far. Deliverable: order ${order(o.address)}, milestone 0. ${tx(o.fundedTx, "Funded in")}</li>`)];
   return `<div class="receipt" data-billed="${found.paid ? 1 : 0}" data-orders="${n}"><strong class="status ${found.paid || n ? "bad" : "ok"}">${verdict}</strong></div>
     ${rows.length ? `<ul class="plain" id="buy-before-rows">${rows.join("")}</ul>` : ""}
-    <p class="fine">The program pays one order's milestone once, whatever is sent to it. What it cannot know is that two orders buy the same thing: that is what this list is for.${found.privates ? ` ${found.privates} private order${found.privates > 1 ? "s" : ""} of the organisation name no repository in public and cannot be matched here.` : ""}</p>`;
+    <p class="fine" data-fold="Why two orders can buy one thing">The program pays one order's milestone once, whatever is sent to it. What it cannot know is that two orders buy the same thing: that is what this list is for.${found.privates ? ` ${found.privates} private order${found.privates > 1 ? "s" : ""} of the organisation name no repository in public and cannot be matched here.` : ""}</p>`;
 }
 
 // ---- 4. private and limited cases -----------------------------------------------------------------------------------------------------------
