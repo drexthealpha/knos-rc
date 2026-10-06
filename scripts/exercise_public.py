@@ -885,7 +885,7 @@ def round_strict(book: Book, st: dict) -> None:
     build = book.ev["programs"].get("knos_oidc", {}).get("is")
     if not isinstance(w, Simulated):
         if build != "next":
-            raise Skip("knos_oidc with strict JSON is not live at the public id (it is proposed after proposals 3 to 6 execute): a NaN claim is accepted until then")
+            raise Skip("knos_oidc with strict JSON is not live at the public id (it will be proposed after proposals 3 to 6 execute): a NaN claim is accepted until then")
         raise Skip("no forge signs a NaN claim: this needs a key Knos holds, admitted as an issuer at the public id, and the release run has none")
     if "refused" in st:
         return

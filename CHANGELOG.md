@@ -84,10 +84,10 @@ anyone else.
 - No outside funder, no buyer interview, no letter of intent, no outside key holder, no outside reproduction, and
   no outside program that reads the verifier.
 - The upgraded builds (`knos_oidc` 2.1, `knos_pay` 2.1, `knos_meter` 1.1, `knos_passkey` 1.1) run on the public
-  program ids only once the pending upgrades execute; the release run exercises them there after that. The live
-  state is in [`web/upgrades.json`](web/upgrades.json).
-- ES256 and strict JSON are tested, not deployed: their build is proposed through the multisig after the pending
-  upgrades execute.
+  program ids only once the pending upgrades execute. No round of this release ran on the public program ids; they
+  are exercised there only after those upgrades have executed. The live state is in [`web/upgrades.json`](web/upgrades.json).
+- ES256 and strict JSON are tested, not deployed: their build will be proposed through the multisig after the
+  pending upgrades execute.
 - Two findings of this release's adversarial tests are open: a quorum counts repositories, not people, and a
   judge's marker outlives its order by a second. Both are fixed in the next `knos_pay` build, which is not in this
   release ([`docs/SECURITY.md`](docs/SECURITY.md)).

@@ -253,8 +253,8 @@ How a program is proposed, replaced and scheduled is in [GOVERNANCE.md](GOVERNAN
 
 ## Nothing after the push goes into a commit
 
-The new knos_oidc build is proposed after the push and after the pending upgrade executes, and that proposal can
-execute 48 hours after its approval. What it shows does not exist when the commit is made. No committed file states it, and no step of this page writes one into
+The new knos_oidc build will be proposed after the push and after the pending upgrade executes, and that proposal
+can execute 48 hours after its approval. What it shows does not exist when the commit is made. No committed file states it, and no step of this page writes one into
 a file afterwards:
 
 - The documents name no time for a pending upgrade. They point at `knos status`, which reads the chain, and at the
