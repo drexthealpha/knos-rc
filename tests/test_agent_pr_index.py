@@ -1218,6 +1218,39 @@ def test_an_answer_grown_old_is_asked_for_with_its_etag_and_a_304_keeps_it(tmp_p
     assert agent_pr_ci.gh_get("repos/o/r/commits/abc/status", max_age=3600) == first and len(sent) == 2     # the 304 made the kept answer fresh again
 
 
+# What `gh api -i` (gh 2.102.0) printed for GET repos/drexthealpha/knos-rc on 2026-10-06, byte for byte in its shape:
+# the status line ends in "\n" alone and every header line, and the empty line after them, in "\r\n". Asked again with
+# its ETag, GitHub answered 304 with no body, gh exited 1 and said "gh: HTTP 304", and X-Ratelimit-Remaining did not move.
+_REAL_200 = ('HTTP/2.0 200 OK\nAccess-Control-Allow-Origin: *\r\nCache-Control: private, max-age=60, s-maxage=60\r\n'
+             'Etag: W/"7029a6b6b1be23d4"\r\nX-Ratelimit-Limit: 5000\r\nX-Ratelimit-Remaining: 4982\r\n'
+             'X-Ratelimit-Reset: 1791301956\r\nX-Ratelimit-Resource: core\r\nX-Ratelimit-Used: 18\r\n\r\n{"full_name": "o/r"}')
+_REAL_304 = ('HTTP/2.0 304 Not Modified\nAccess-Control-Allow-Origin: *\r\nEtag: "7029a6b6b1be23d4"\r\n'
+             'X-Ratelimit-Limit: 5000\r\nX-Ratelimit-Remaining: 4982\r\nX-Ratelimit-Resource: core\r\n\r\n')
+
+
+def test_what_gh_api_i_really_prints_is_read_and_its_304_keeps_the_answer(tmp_path, monkeypatch):
+    assert agent_pr_ci._answer(_REAL_200) == (200, {"access-control-allow-origin": "*", "cache-control": "private, max-age=60, s-maxage=60",
+                                                    "etag": 'W/"7029a6b6b1be23d4"', "x-ratelimit-limit": "5000", "x-ratelimit-remaining": "4982",
+                                                    "x-ratelimit-reset": "1791301956", "x-ratelimit-resource": "core", "x-ratelimit-used": "18"},
+                                              '{"full_name": "o/r"}')
+    assert agent_pr_ci._answer(_REAL_304)[0] == 304 and agent_pr_ci._answer(_REAL_304)[2] == ""
+    sent = []
+
+    def gh(cmd):
+        sent.append(cmd)
+        if any(h.startswith("If-None-Match: ") for h in cmd):
+            return 1, _REAL_304, "gh: HTTP 304\n"          # gh's exit status for a 304 is 1: the status line decides, not the exit
+        return 0, _REAL_200, ""
+    monkeypatch.setattr(agent_pr_ci, "CACHE", str(tmp_path / "cache"))
+    monkeypatch.setattr(agent_pr_ci, "_gh", gh)
+    monkeypatch.setattr(agent_pr_ci, "ARGS", SimpleNamespace(max_seconds=10_000))
+    monkeypatch.setattr(agent_pr_ci, "START", time.time())
+    first = agent_pr_ci.gh_get("repos/o/r")
+    again = agent_pr_ci.gh_get("repos/o/r", max_age=-1)
+    assert first == again == {"ok": True, "json": {"full_name": "o/r"}} and 'If-None-Match: W/"7029a6b6b1be23d4"' in sent[1]
+    assert agent_pr_ci.gh_get("repos/o/r", max_age=3600) == first and len(sent) == 2                       # the 304 made it fresh: nothing more asked
+
+
 def test_requests_go_one_at_a_time_and_a_pace_apart(monkeypatch):
     import threading
     inside, most, slept, clock = [0], [0], [], [1000.0]
