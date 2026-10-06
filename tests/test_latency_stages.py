@@ -171,7 +171,8 @@ def test_the_six_stages_are_one_table_and_a_stage_nobody_recorded_says_so_never_
     assert "| finality | the last confirmation to the cluster finalizing it | not recorded | not recorded | not recorded |" in page
     for row, key in zip(kept["six"], ("runner_queue", "workflow", "relay_wait", "first_send", "confirm")):
         assert (row["n"], row["p50"], row["p95"]) == tuple(bench[f"stage_{key}_{stat}"]["value"] for stat in ("payments", "median", "ninety_fifth")), row
-    assert (kept["whole"]["n"], kept["whole"]["p50"], kept["whole"]["p95"]) == (40, 25, 58)
+    whole = (kept["whole"]["n"], kept["whole"]["p50"], kept["whole"]["p95"])
+    assert whole == tuple(bench[f"stage_whole_{stat}"]["value"] for stat in ("payments", "median", "ninety_fifth")) == (41, 25, 58)
 
 
 def test_the_command_prints_the_six_stages_alone_as_markdown(tmp_path):
