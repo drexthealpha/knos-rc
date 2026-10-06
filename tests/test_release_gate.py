@@ -405,3 +405,15 @@ def test_the_release_page_says_how_the_worker_chain_is_restarted_and_that_a_reru
     assert "Re-running the failed run restarts nothing" in page
     worker = (WORKFLOWS / "worker.yml").read_text(encoding="utf-8")
     assert 'if [ "${GITHUB_RUN_ATTEMPT:-1}" != "1" ]; then' in worker and "A re-run" in worker        # what the page says is what the file does
+
+
+def test_every_module_is_reached_from_an_entry_point_as_the_deadcode_job_checks():
+    """The deadcode job of tests.yml (scripts/deadcode.py) fails a module no entry point imports. It ran only there, so a
+    module whose one caller is `python -m` (knos.private, run by examples/private) failed staging and no local run:
+    the same check runs in the suite."""
+    import subprocess
+    import sys
+
+    out = subprocess.run([sys.executable, str(ROOT / "scripts" / "deadcode.py")], capture_output=True, encoding="utf-8")
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert "unreached: 0" in out.stdout
