@@ -219,7 +219,11 @@ def test_another_program_reads_the_pdf_when_one_is_installed(tool, tmp_path):
         pytest.skip(f"{tool} is not installed")
     path = tmp_path / "statement.pdf"
     path.write_bytes(statement.as_pdf(sept(), status()))
-    got = subprocess.run([program, "--check", str(path)] if tool == "qpdf" else [program, "-layout", str(path), "-"], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    # the file is named from its own folder: the pdftotext of Git for Windows (xpdf 4.06) stops with an access violation
+    # when the input's path and the home folder are both long, as they are in a pytest-xdist worker's temporary folder
+    # (a path of 100 characters with a home of 87; either one short and it reads the same file)
+    got = subprocess.run([program, "--check", path.name] if tool == "qpdf" else [program, "-layout", path.name, "-"], capture_output=True, text=True, encoding="utf-8",
+                         timeout=60, cwd=tmp_path)
     assert got.returncode == 0, got.stderr
     if tool == "pdftotext":
         assert "Statement for invoice INV-2026-09" in got.stdout and "insufficient evidence" in got.stdout and sept()["lines"][0]["invoice_line"] in got.stdout
