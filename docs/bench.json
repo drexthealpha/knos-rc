@@ -640,11 +640,11 @@
   },
   "second": "neither program id of the second deployment held an account on devnet when the cluster was read on 3 Oct 2026.",
   "stats": {
-   "updated": "2026-10-05 20:29 UTC",
+   "updated": "2026-10-06 09:17 UTC",
    "by_deployment": {
     "second": {
-     "funded": 53,
-     "completed": 44
+     "funded": 54,
+     "completed": 45
     }
    },
    "outside": {
@@ -654,12 +654,12 @@
     "repeat_funders": 0
    },
    "outsiders": {
-    "repositories": null,
-    "payees": null
+    "repositories": 0,
+    "payees": 1
    },
    "latency": {
     "merge_to_paid": {
-     "count": 40,
+     "count": 41,
      "median": 25,
      "p95": 58,
      "window": {
@@ -668,12 +668,12 @@
      },
      "deployment": {
       "first": 2,
-      "second": 38
+      "second": 39
      },
      "definition": "seconds from the merge (GitHub's merged_at of the pull request) to the block time of the Solana transaction that paid, one sample per successful pay line of the public relay log, over its newest 500 such lines, both deployments, all time. A line is left out when the chain's history that was read does not show its transaction or GitHub does not give the merge time; `not_timed` counts those. p50 is the median, p95 and p90 are by nearest rank"
     },
     "comment_to_funded": {
-     "median": 48
+     "median": 46
     }
    }
   }

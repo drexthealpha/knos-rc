@@ -452,12 +452,12 @@
   },
   {
    "say": [
-    "44"
+    "45"
    ],
-   "what": "tasks paid on the second deployment, on devnet (the site's stats.json of 2026-10-05 20:29 UTC)",
+   "what": "tasks paid on the second deployment, on devnet (the site's stats.json of 2026-10-06 09:17 UTC)",
    "json": "docs/bench.json",
    "path": "devnet.stats.by_deployment.second.completed",
-   "equals": 44
+   "equals": 45
   },
   {
    "say": [
@@ -490,19 +490,19 @@
    "say": [
     "25"
    ],
-   "what": "seconds from the merge to the payment, the median over the public relay's log (the site's stats.json of 2026-10-05 20:29 UTC)",
+   "what": "seconds from the merge to the payment, the median over the public relay's log (the site's stats.json of 2026-10-06 09:17 UTC)",
    "json": "docs/bench.json",
    "path": "devnet.stats.latency.merge_to_paid.median",
    "equals": 25
   },
   {
    "say": [
-    "40"
+    "41"
    ],
-   "what": "the payments that median is over (the site's stats.json of 2026-10-05 20:29 UTC)",
+   "what": "the payments that median is over (the site's stats.json of 2026-10-06 09:17 UTC)",
    "json": "docs/bench.json",
    "path": "devnet.stats.latency.merge_to_paid.count",
-   "equals": 40
+   "equals": 41
   },
   {
    "say": [
