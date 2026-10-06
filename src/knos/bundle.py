@@ -176,8 +176,13 @@ def _assurance(files: dict[str, bytes], terms: dict) -> list[str]:
 
 def _paid_as_recorded(r: dict, call) -> str:
     """Compare the wallets and amounts of the receipt with what the escrow logged in the paying transaction on the
-    cluster behind `call`. Raises ValueError when they differ or the transaction is gone."""
+    cluster behind `call`. Raises ValueError when they differ, the transaction is gone, or the receipt names an escrow
+    this knos does not read (a bundle made on another deployment: it is refused as that, not as a changed receipt)."""
     from . import records
+    if r["program"] not in records.PROGRAMS:
+        raise ValueError(f"the receipt names the escrow program {r['program']}, and this knos reads the escrow at {' and '.join(records.PROGRAMS)}: the "
+                         "bundle was made on another deployment of the programs (or its receipt was edited to name one), so its wallets cannot be "
+                         "compared with that program's lines here. For a staging deployment, verify with its ids: KNOS_PROGRAM_IDS=<its ids file>")
     sig = r["transaction"]["signature"]
     tx = call("getTransaction", [sig, {"encoding": "json", "commitment": "confirmed", "maxSupportedTransactionVersion": 1}])
     if not tx:

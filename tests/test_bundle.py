@@ -324,6 +324,18 @@ def test_a_receipt_that_names_another_wallet_passes_offline_with_the_limit_said_
         bundle.verify(built[2], gone.call)
 
 
+def test_a_bundle_made_on_another_deployment_is_refused_as_that_and_not_as_a_changed_receipt(net, built, monkeypatch):
+    # 0.3.17, track F: a real bundle made on the staging ids, verified without KNOS_PROGRAM_IDS, was refused with "the receipt was
+    # changed" although no byte of it was. The escrow it names is not the one this knos reads: that is what is said now.
+    from knos import records
+    r, _files, blob = built
+    assert bundle.verify(blob, net.call)[0]["program"] == PAY
+    monkeypatch.setattr(records, "PROGRAMS", {_addr(98): 2})        # this knos reads another deployment's escrow
+    with pytest.raises(ValueError, match="the receipt names the escrow program .* made on another deployment") as why:
+        bundle.verify(blob, net.call)
+    assert "was changed" not in str(why.value) and r["program"] in str(why.value) and "KNOS_PROGRAM_IDS" in str(why.value)
+
+
 # ---- the judge's verdict in the bundle: one layout for `knos bundle verify` and `knos judge rerun` -----------------------------
 IMAGE = "ghcr.io/acme/judge@sha256:" + "ab" * 32
 ACCEPT = "5d" * 32
