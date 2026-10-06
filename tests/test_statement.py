@@ -11,10 +11,12 @@ import base64
 import csv
 import io
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -213,17 +215,20 @@ def test_the_pdf_parses_has_every_page_and_is_the_same_bytes_every_time():
 
 
 @pytest.mark.parametrize("tool", ["qpdf", "pdftotext"])
-def test_another_program_reads_the_pdf_when_one_is_installed(tool, tmp_path):
+def test_another_program_reads_the_pdf_when_one_is_installed(tool):
     program = shutil.which(tool)
     if not program:
         pytest.skip(f"{tool} is not installed")
-    path = tmp_path / "statement.pdf"
-    path.write_bytes(statement.as_pdf(sept(), status()))
-    # the file is named from its own folder: the pdftotext of Git for Windows (xpdf 4.06) stops with an access violation
-    # when the input's path and the home folder are both long, as they are in a pytest-xdist worker's temporary folder
-    # (a path of 100 characters with a home of 87; either one short and it reads the same file)
-    got = subprocess.run([program, "--check", path.name] if tool == "qpdf" else [program, "-layout", path.name, "-"], capture_output=True, text=True, encoding="utf-8",
-                         timeout=60, cwd=tmp_path)
+    # A short folder of its own, which is also the reader's home: the pdftotext of Git for Windows (xpdf 4.06) stops with
+    # an access violation when the input's path and the home folder are both long, as pytest-xdist's temporary folders
+    # make them (measured on windows-latest: a path of 100 characters with a home of 87 crashes it, 99 with 86 does not,
+    # and either one short reads the same file). The bytes read are the same; only where they lie is shorter.
+    with tempfile.TemporaryDirectory(prefix="st") as folder:
+        path = Path(folder) / "statement.pdf"
+        path.write_bytes(statement.as_pdf(sept(), status()))
+        env = {**os.environ, "HOME": folder, "USERPROFILE": folder}
+        got = subprocess.run([program, "--check", path.name] if tool == "qpdf" else [program, "-layout", path.name, "-"], capture_output=True, text=True,
+                             encoding="utf-8", timeout=60, cwd=folder, env=env)
     assert got.returncode == 0, got.stderr
     if tool == "pdftotext":
         assert "Statement for invoice INV-2026-09" in got.stdout and "insufficient evidence" in got.stdout and sept()["lines"][0]["invoice_line"] in got.stdout
