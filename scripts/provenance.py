@@ -381,14 +381,14 @@ def main(argv: list[str] | None = None, say: Callable[[str], None] = print) -> i
             say(line)
         bad += any("PROBLEM" in line for line in lines)
         if a.record:
-            RECORD.write_text(json.dumps(seen, indent=1) + "\n", encoding="utf-8")
+            RECORD.write_text(json.dumps(seen, indent=1) + "\n", encoding="utf-8", newline="")
             data = load()
     elif a.record:
         say("--record needs --rpc: only a read of the cluster is kept")
         return 2
     block = render(data)
     if a.write:
-        DOC.write_text(placed(DOC.read_text(encoding="utf-8"), block), encoding="utf-8")
+        DOC.write_text(placed(DOC.read_text(encoding="utf-8"), block), encoding="utf-8", newline="")
     elif a.check:
         if not DOC.is_file() or placed(DOC.read_text(encoding="utf-8"), block) != DOC.read_text(encoding="utf-8"):
             say("docs/PROVENANCE.md is not what the records give: run python scripts/provenance.py --write")

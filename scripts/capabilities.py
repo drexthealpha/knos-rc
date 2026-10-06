@@ -380,7 +380,7 @@ def render(root: Path = ROOT, check: bool = False) -> list[str]:
         if new != old:
             changed.append(doc.relative_to(root).as_posix())
             if not check:
-                doc.write_text(new, encoding="utf-8")
+                doc.write_text(new, encoding="utf-8", newline="")
     return changed
 
 
@@ -409,7 +409,7 @@ def main(argv=None) -> int:
         have = {k["kid"] for k in doc["keys"]}
         new = [k for k in rp._fetch_json(rp.JWKS)["keys"] if k.get("kid") not in have]        # added, never removed: an old signature stays checkable
         doc["keys"] += new
-        path.write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8")
+        path.write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8", newline="")
         print(f"capabilities: {KEYS} holds {len(doc['keys'])} keys ({len(new)} added)")
         return 0
     print(__doc__)

@@ -241,6 +241,7 @@ def test_record_writes_the_manifest_the_documents_and_the_demo_only_for_programs
     # recording the same evidence again changes nothing
     files = ("docs/capabilities.json", "docs/CAPABILITIES.md", "web/demo_data.json", "docs/PROVENANCE.md", "docs/provenance.json", "README.md")
     before = {f: (root / f).read_bytes() for f in files}
+    assert not [f for f, data in before.items() if b"\r" in data]     # written as the repository keeps them (.gitattributes eol=lf), on Windows too
     ex.record(ev, root, lambda line: None)
     assert {f: (root / f).read_bytes() for f in files} == before
 

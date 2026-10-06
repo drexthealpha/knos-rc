@@ -1189,7 +1189,7 @@ def propose_oidc(url: str, keys: Path, so_dir: Path, say: Callable[[str], None] 
     _write(root / "docs" / "provenance.json", seen)
     say(f"the plan: propose knos_oidc ({built['knos_oidc']}, built from {rec.sha} in run {rec.run_id}); the other three run the builds of {so_dir} already")
     env = {**os.environ, "KNOS_KEYS": str(keys), "KNOS_RPC": url, "KNOS_SO_DIR": str(so_dir), "KNOS_CHANGES": "knos_oidc"}
-    argv = ["bash", str(root / "scripts" / "deploy_v2.sh"), "--propose"]
+    argv = ["bash", (root / "scripts" / "deploy_v2.sh").as_posix(), "--propose"]      # bash takes / on every OS
     code = call(argv, env) if call else subprocess.run(argv, env=env, check=False).returncode  # noqa: S603
     if code:
         say(f"scripts/deploy_v2.sh --propose stopped with exit {code}: read its last lines; it can be run again")
