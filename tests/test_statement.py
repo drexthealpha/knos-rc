@@ -219,14 +219,17 @@ def test_another_program_reads_the_pdf_when_one_is_installed(tool):
     program = shutil.which(tool)
     if not program:
         pytest.skip(f"{tool} is not installed")
-    # A short folder of its own, which is also the reader's home: the pdftotext of Git for Windows (xpdf 4.06) stops with
-    # an access violation when the input's path and the home folder are both long, as pytest-xdist's temporary folders
-    # make them (measured on windows-latest: a path of 100 characters with a home of 87 crashes it, 99 with 86 does not,
-    # and either one short reads the same file). The bytes read are the same; only where they lie is shorter.
+    # The reader runs in a short folder of its own, which is also its home, with a small environment: the pdftotext of Git
+    # for Windows on GitHub's runners (xpdf 4.06) stops with an access violation (0xC0000005) when its input's path, its
+    # home folder and its environment are long together, as a pytest-xdist worker's temporary folders and CI's PATH of
+    # 2,817 characters make them; any of them short and it reads the same file (measured on windows-latest, runs
+    # 37500539479, 37500847855 and 37503981086 of drexthealpha/knos-rc). The bytes read are the same; what the reader is asked is too.
     with tempfile.TemporaryDirectory(prefix="st") as folder:
         path = Path(folder) / "statement.pdf"
         path.write_bytes(statement.as_pdf(sept(), status()))
-        env = {**os.environ, "HOME": folder, "USERPROFILE": folder}
+        system = [os.path.join(os.environ.get("SYSTEMROOT", "C:\\Windows"), "System32")] if os.name == "nt" else []
+        env = {"PATH": os.pathsep.join([os.path.dirname(program), *system]), "HOME": folder, "USERPROFILE": folder,
+               **{k: os.environ[k] for k in ("SYSTEMROOT", "LANG", "LC_ALL") if k in os.environ}}
         got = subprocess.run([program, "--check", path.name] if tool == "qpdf" else [program, "-layout", path.name, "-"], capture_output=True, text=True,
                              encoding="utf-8", timeout=60, cwd=folder, env=env)
     assert got.returncode == 0, got.stderr
