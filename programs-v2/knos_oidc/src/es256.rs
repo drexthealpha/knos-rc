@@ -408,9 +408,9 @@ mod tests {
     fn a_p256_key_account_is_no_other_kind_of_account_and_its_audience_no_other_audience() {
         // shorter than any RSA key (40 + 8 * 64) and than any token account (T_JWT + 1)
         assert_eq!(EC_ACCOUNT, 137);
-        assert!(EC_ACCOUNT < K_HDR + 8 * 64 && EC_ACCOUNT < T_JWT);
+        const { assert!(EC_ACCOUNT < K_HDR + 8 * 64 && EC_ACCOUNT < T_JWT) }
         // an issuer account can be 137 bytes long: its first byte is ISS_STATE and its third 0
-        assert!(ISS_STATE != 1 && EC_MARK != 0 && EC_MARK != 64 && EC_MARK != 128 && EC_MARK > 16);
+        const { assert!(ISS_STATE != 1 && EC_MARK != 0 && EC_MARK != 64 && EC_MARK != 128 && EC_MARK > 16) }
         let (ih, kh) = ([0xabu8; 32], [0x01u8; 32]);
         assert_eq!(ec_audience(&ih, &kh), format!("knos-oidc:eckey:{}:{}", "ab".repeat(32), "01".repeat(32)).into_bytes());
         let url = b"https://issuer.example";
