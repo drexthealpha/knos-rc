@@ -75,8 +75,8 @@ anyone else.
 - **Hold a key, run it without the founder.** One page for a first outside key holder: make a key, keep it, ask;
   adding it is then one command ([`docs/KEYHOLDER.md`](docs/KEYHOLDER.md)). And a checklist and a drill for a
   second operator ([`docs/OPERATOR.md`](docs/OPERATOR.md)). Nobody has done either.
-- **Types.** mypy checks `src/knos` in full except seven modules named in `pyproject.toml`, five of them changed
-  in this release and to come out after it.
+- **Types.** mypy checks `src/knos` in full except one module named in `pyproject.toml`, `knos.settle.v2.relay`,
+  which is to come out after this release.
 - **No program crate moved.** The four programs and the two interface crates stay at the version their builds were
   made at, so three programs are byte for byte the builds already proposed, and no crate is published.
 
