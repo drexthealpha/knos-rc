@@ -15,7 +15,9 @@ name: outcome on kubernetes
 #
 # kind and kubectl are the runner image's own (ubuntu-24.04 lists Kind and Kubectl:
 # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md), so no third-party action is
-# added. kubeadm makes the service-account signing key RSA-2048 unless told otherwise, and the API server signs RS256
+# added. The node image is kind v0.33.0's Kubernetes v1.37.0, pinned by digest (https://github.com/kubernetes-sigs/kind/releases/tag/v0.33.0);
+# from Kubernetes v1.36 kind writes kubeadm's v1beta4 config, whose extraArgs are a list of name and value.
+# kubeadm makes the service-account signing key RSA-2048 unless told otherwise, and the API server signs RS256
 # with an RSA key; the step that reads the key set fails in plain words if this cluster's key is anything else.
 on:
   workflow_dispatch:
@@ -57,12 +59,14 @@ jobs:
           apiVersion: kind.x-k8s.io/v1alpha4
           nodes:
             - role: control-plane
+              image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
               kubeadmConfigPatches:
                 - |
                   kind: ClusterConfiguration
                   apiServer:
                     extraArgs:
-                      service-account-issuer: https://kind.knos-outcome.invalid
+                      - name: service-account-issuer
+                        value: https://kind.knos-outcome.invalid
           EOF
           kind create cluster --name knos-outcome --config "$RUNNER_TEMP/kind.yaml" --wait 180s
           kubectl cluster-info --context kind-knos-outcome
@@ -99,6 +103,8 @@ jobs:
           kubectl get --raw /.well-known/openid-configuration > out/openid-configuration.json
           kubectl get --raw /openid/v1/jwks > out/jwks.json
           python -c 'import json; print(json.load(open("out/openid-configuration.json"))["issuer"])' > out/issuer
+          # the patch took: the API server names the issuer the cluster was started with, or the run stops here
+          [ "$(cat out/issuer)" = https://kind.knos-outcome.invalid ] || { echo "::error::the API server's issuer is $(cat out/issuer), not the patch's"; exit 1; }
           { kind version; kubectl version -o json | python -c 'import json,sys; print("kubernetes", json.load(sys.stdin)["serverVersion"]["gitVersion"])';
             docker image inspect knos-outcome:run --format 'image {{.Id}}'; echo "base $(cat "$RUNNER_TEMP/base")"; } > out/cluster.txt
           cat out/issuer out/cluster.txt

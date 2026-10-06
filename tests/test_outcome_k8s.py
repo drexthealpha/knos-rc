@@ -185,8 +185,15 @@ def test_the_workflow_runs_the_script_and_pins_what_it_uses():
     assert uses and all(sha in pins and len(sha) == 40 for _name, sha in uses)          # every action at a pinned commit; none is new
     assert wf["permissions"] == {} and all(j["permissions"] == {"contents": "read"} for j in wf["jobs"].values())
     for needle in ("kind create cluster", "kubectl get --raw /openid/v1/jwks", "scripts/outcome_k8s.py collect", "scripts/outcome_k8s.py verify",
-                   f"service-account-issuer: {k8s.ISSUER}", "scripts/outcome_k8s_job.yaml"):
+                   "- name: service-account-issuer", f"value: {k8s.ISSUER}", f"= {k8s.ISSUER} ] ||", "scripts/outcome_k8s_job.yaml"):
         assert needle in text, needle
+    # kind's config: the node image pinned by digest, and the issuer flag in kubeadm v1beta4's form (a list of name and value)
+    import textwrap
+    kind_cfg = yaml.safe_load(textwrap.dedent(text.split("<<'EOF'\n", 1)[1].split("\n          EOF", 1)[0]))
+    node = kind_cfg["nodes"][0]
+    assert re.fullmatch(r"kindest/node:v1\.\d+\.\d+@sha256:[0-9a-f]{64}", node["image"])
+    patch = yaml.safe_load(node["kubeadmConfigPatches"][0])
+    assert patch["kind"] == "ClusterConfiguration" and patch["apiServer"]["extraArgs"] == [{"name": "service-account-issuer", "value": k8s.ISSUER}]
     docs = list(yaml.safe_load_all((ROOT / "scripts" / "outcome_k8s_job.yaml").read_text(encoding="utf-8")))
     by = {d["kind"]: d for d in docs}
     assert by["Namespace"]["metadata"]["name"] == by["ServiceAccount"]["metadata"]["namespace"] == k8s.NAMESPACE and by["ServiceAccount"]["metadata"]["name"] == k8s.SERVICE_ACCOUNT

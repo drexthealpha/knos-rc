@@ -142,6 +142,7 @@ TokenRequest, and anything on devnet. No token a real cluster signed has been ve
 | `--service-account-issuer` is the `iss` of issued tokens; `--service-account-max-token-expiration` caps a requested lifetime | [kube-apiserver reference](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/) |
 | kubeadm makes keys RSA-2048 unless `encryptionAlgorithm` says otherwise | [kubeadm configuration (v1beta4)](https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/) |
 | A kind cluster takes API server flags through `kubeadmConfigPatches` (`ClusterConfiguration`, `apiServer.extraArgs`) | [kind, Configuration](https://kind.sigs.k8s.io/docs/user/configuration/) |
+| kind v0.33.0 writes kubeadm's v1beta4 config from Kubernetes v1.36, where `extraArgs` is a list of `name` and `value`; its node image for v1.37.0 is `kindest/node:v1.37.0@sha256:a1ed56cf…`, which the workflow pins | [kind v0.33.0](https://github.com/kubernetes-sigs/kind/releases/tag/v0.33.0) |
 | The `ubuntu-24.04` runner image has Kind 0.33.0, Kubectl 1.37.0 and Docker 28.0.4 (image 20260907.300.1), so the workflow adds no action | [actions/runner-images](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md) |
 
 What the sources do not settle and the run will: that this version of kind accepts the patch as written, and that
