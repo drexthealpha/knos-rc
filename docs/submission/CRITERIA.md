@@ -58,7 +58,7 @@ check named, a valid one is paid on the forge's signature, a replayed token is r
 refunds without anyone's permission. Which of these runs on the public program ids on a given day is not stated
 here: [CAPABILITIES.md](../CAPABILITIES.md) gives each capability's stage and `web/upgrades.json` the live builds,
 and the demo captions each step with the program ids it ran on. From merge to paid took 25 seconds at the
-median, over 41 payments on devnet; the demo's replays are captioned and are not evidence of speed. Against the competition
+median, over 42 payments on devnet; the demo's replays are captioned and are not evidence of speed. Against the competition
 ([COMPARE.md](../COMPARE.md)): cloud platforms and billing companies already meter agents and move payments, with
 customers and real money, so that is not a difference; the difference is acceptance independent of every vendor,
 and nobody has yet paid for that. MergePay is on a mainnet with real USDC and no platform fee, and is ahead

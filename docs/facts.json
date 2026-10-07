@@ -438,15 +438,6 @@
   },
   {
    "say": [
-    "45"
-   ],
-   "what": "tasks paid on the second deployment, on devnet (the site's stats.json of 2026-10-06 09:17 UTC)",
-   "json": "docs/bench.json",
-   "path": "devnet.stats.by_deployment.second.completed",
-   "equals": 45
-  },
-  {
-   "say": [
     "0"
    ],
    "what": "tasks, on both deployments, that someone other than Knos funded with their own tokens and that were paid to someone other than the funder (the site's stats.json of 2026-10-04 07:51 UTC)",
@@ -480,15 +471,6 @@
    "json": "docs/bench.json",
    "path": "devnet.stats.latency.merge_to_paid.median",
    "equals": 25
-  },
-  {
-   "say": [
-    "41"
-   ],
-   "what": "the payments that median is over (the site's stats.json of 2026-10-06 09:17 UTC)",
-   "json": "docs/bench.json",
-   "path": "devnet.stats.latency.merge_to_paid.count",
-   "equals": 41
   },
   {
    "say": [
@@ -1005,6 +987,24 @@
    "what": "the fee on chain follows the build that is live: knos_pay 2.2 charges 0.30% with a minimum of 0.05; knos_pay 2.1, the public program until the upgrade to 2.2 executes, charges the 0.3.14 fee with a minimum of 0.40 (src/knos/fees.py NEW and OLD)",
    "file": "src/knos/fees.py",
    "has": "OLD = Rule(\"0.3.14\", \"2.1\", 250, 400_000, 50, 250, 50_000, ((1_000_000_000, 100), (50_000_000_000, 50)))"
+  },
+  {
+   "say": [
+    "46"
+   ],
+   "what": "tasks paid on the second deployment, on devnet (the site's stats.json of 2026-10-07 00:56 UTC)",
+   "json": "docs/bench.json",
+   "path": "devnet.stats.by_deployment.second.completed",
+   "equals": 46
+  },
+  {
+   "say": [
+    "42"
+   ],
+   "what": "the payments that median is over (the site's stats.json of 2026-10-07 00:56 UTC)",
+   "json": "docs/bench.json",
+   "path": "devnet.stats.latency.merge_to_paid.count",
+   "equals": 42
   }
  ]
 }

@@ -10,7 +10,7 @@ first.
 What the release run does for 0.3.18, in order, each thing once. Nothing in it waits on a clock:
 
 1. **`status`: what do the public program ids run?** Proposals 3 to 6 (knos_oidc 2.1, knos_pay 2.1, knos_meter 1.1,
-   knos_passkey 1.1) were due to execute before this release. `python scripts/exercise_public.py status` exits 0 when
+   knos_passkey 1.1) executed before this release's commit. `python scripts/exercise_public.py status` exits 0 when
    all four run those builds.
 2. **If 0: the rounds, then `record`.** Every round of `scripts/exercise_public.py` on the PUBLIC ids, in test USDC.
    `record` writes the manifest, the documents and the demo from that PUBLIC evidence, and moves a program's version
@@ -82,8 +82,8 @@ until proposals 3 to 6 execute.
 
 ## After the upgrade executes: from staging to public, in one tool
 
-Proposals 3 to 6 can execute from 6 October 2026, about 22:13 UTC (`earliest_execution_utc` of each entry in
-`web/upgrades.json`). From then on `scripts/exercise_public.py` does the whole move: it checks what the public ids
+Proposals 3 to 6 have executed (the status of each entry in `web/upgrades.json` is `executed`). From then on
+`scripts/exercise_public.py` does the whole move: it checks what the public ids
 run, runs each round there in test USDC with the least the programs take (5.00 for an order, 1.00 for a job), keeps
 what it sent and what it checked, and writes it into the manifest, the documents and the site's demo. Every step can
 be run again: a step that is done is not sent a second time. `<keys>` is the key folder: `relayer.json` pays the

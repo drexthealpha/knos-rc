@@ -17,8 +17,8 @@ it is upgradeable only through a multisig with a public 48-hour delay, until an 
 reading them back) runs in `tests/test_meter_e2e.py` against the program in LiteSVM. It has run on devnet once, on
 the release's staging deployment of knos_meter 1.1, with tokens GitHub signed for a staging copy of the workflows:
 5,000 evaluations in two batches, the seller's claim of 5,003, and a reconcile that named the 3 the buyer left out
-([CAPABILITIES.md](CAPABILITIES.md), "The 0.3.14 rehearsal on devnet"). The pinned knos_meter runs 1.0 until its upgrade
-executes.
+([CAPABILITIES.md](CAPABILITIES.md), "The 0.3.14 rehearsal on devnet"). The pinned knos_meter runs 1.1 since its upgrade
+(proposal 5) executed.
 
 ## Two modes
 
