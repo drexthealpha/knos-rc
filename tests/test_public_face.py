@@ -139,9 +139,22 @@ def test_remote_passes_when_every_place_serves_the_sentence():
         "https://pypi.org/pypi/knos-hermes/json": {"info": {"version": "0.1.1", "summary": "Renamed: install knos. " + SENTENCE}},
         "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.drexthealpha/knos": {"servers": [
             {"server": {"name": "io.github.drexthealpha/knos", "version": "0.3.20", "description": SENTENCE}}]},
-        "https://glama.ai/api/mcp/v1/servers/drexthealpha/Knos": {"description": SENTENCE + " More."},
+        "https://glama.ai/mcp/servers/drexthealpha/Knos": {"_html": f'<meta content="{SENTENCE} More." name="description"/>'},
     }
     said: list[str] = []
     assert pf.main(["--remote"], say=said.append, fetch=_fetch(good)) == 0 and said[-1] == f"all 7 places say: {SENTENCE}"
     assert all(line.startswith("same  ") for line in said[:-1])
     assert all(re.fullmatch(r"[a-z0-9][a-z0-9-]{0,49}", t) for t in pf.TOPICS) and len(pf.TOPICS) <= 20      # GitHub's rules for a topic
+
+
+def test_glama_is_read_from_its_page_logged_out_because_its_api_asks_for_a_key():
+    # the saved head of the listing's page as glama.ai served it: the description is the meta tag, entities decoded
+    pf = _tool()
+    page = (ROOT / "tests" / "data" / "glama_page.html").read_text(encoding="utf-8")
+    old = pf.meta_description(page)
+    assert old is not None and old.startswith("One local memory every coding agent on your machine shares") and "don't" in old
+    assert pf.meta_description('<meta name="description" content="A &amp; B">') == "A & B"
+    assert pf.meta_description('<meta property="og:description" content="x">') is None
+    said: list[str] = []
+    assert pf.main(["--remote"], say=said.append, fetch=_fetch({"https://glama.ai/mcp/servers/drexthealpha/Knos": {"_html": page}})) == 1
+    assert f"STALE  glama.ai: {old}" in said and "glama.ai: nothing" not in "\n".join(said)

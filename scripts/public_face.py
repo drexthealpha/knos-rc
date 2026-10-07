@@ -22,6 +22,7 @@ changes nothing: it has no credentials and asks for none.
 from __future__ import annotations
 
 import argparse
+import html as _html
 import json
 import re
 import sys
@@ -164,9 +165,23 @@ def _tail(old: str) -> str:
 
 
 def _get(url: str) -> Any:
-    req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "knos-public-face"})
+    """JSON as parsed; a page served as HTML as {"_html": its text} (glama.ai's API asks for a key: its page does not)."""
+    req = urllib.request.Request(url, headers={"Accept": "application/json, text/html;q=0.9", "User-Agent": "knos-public-face"})
     with urllib.request.urlopen(req, timeout=20) as r:  # noqa: S310 - fixed https hosts below
-        return json.loads(r.read().decode("utf-8"))
+        body = r.read().decode("utf-8", "replace")
+        if "html" in (r.headers.get("Content-Type") or ""):
+            return {"_html": body}
+        return json.loads(body)
+
+
+def meta_description(page: str) -> str | None:
+    """The <meta name="description"> of a page, its attributes in either order, entities decoded; None when it has none."""
+    for tag in re.findall(r"<meta\b[^>]*>", page, flags=re.I):
+        if re.search(r"""\bname\s*=\s*["']description["']""", tag, flags=re.I):
+            m = re.search(r"""\bcontent\s*=\s*(?:"([^"]*)"|'([^']*)')""", tag, flags=re.I)
+            if m:
+                return _html.unescape(m.group(1) if m.group(1) is not None else m.group(2))
+    return None
 
 
 def remote(said: str, fetch: Callable[[str], Any] = _get) -> list[dict]:
@@ -214,11 +229,13 @@ def remote(said: str, fetch: Callable[[str], Any] = _get) -> list[dict]:
         latest = (entry.get("_meta") or {}).get("io.modelcontextprotocol.registry/official", {}).get("isLatest")
         if latest is not False:                                           # an older version is not what a reader is served
             row(f"MCP registry: {s.get('name')} {s.get('version')}", s.get("description"), fix)
-    got = ask(f"https://glama.ai/api/mcp/v1/servers/{REPO}")
-    row("glama.ai", None if "_error" in got else got.get("description"),
+    # glama.ai's API answers 401 without a key (seen 7 October 2026), so the listing's own page is read, logged out
+    got = ask(f"https://glama.ai/mcp/servers/{REPO}")
+    desc = None if "_error" in got else meta_description(str(got.get("_html", "")))
+    row("glama.ai", desc,
         "glama.ai indexes the repository's README by itself: the maintainer named in glama.json signs in at "
         f"https://glama.ai/mcp/servers/{REPO} and edits the description, or asks for a re-index",
-        ok="_error" not in got and said in str(got.get("description")))
+        ok=desc is not None and said in desc)
     return rows
 
 
