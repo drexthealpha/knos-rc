@@ -2,7 +2,7 @@
  "schema": "knos.supplier-record/1",
  "supplier": "claude-code",
  "name": "claude-code",
- "as_of": "2026-10-06",
+ "as_of": "2026-10-07",
  "rule": "The supplier never pays for this record and cannot pay to change it.",
  "not_a_score": "Counts with their samples. Nothing here is a score.",
  "orders": {
@@ -65,28 +65,28 @@
  "public": {
   "label": "from public pull requests, not from Knos orders",
   "source": "docs/index.json",
-  "source_sha256": "41eaa9999a5f3703d1e6e97be66023fc09e1e865d607f39b6c819592d30840e9",
+  "source_sha256": "27858e2dbd60c30bde314143f438532e8301c6e239b2007b4c9fbd57fa7db4a8",
   "category": "merged pull requests whose description claimed passing tests",
   "week": "2026-09-28",
-  "read": "2026-10-06",
+  "read": "2026-10-07",
   "weeks": 9,
   "period": {
    "from": "2026-06-29",
    "to": "2026-09-28",
    "unit": "week starting"
   },
-  "claimed_passing": 34,
-  "sample": 26,
+  "claimed_passing": 41,
+  "sample": 31,
   "failed_at_merge": 3,
-  "share": 0.1154,
+  "share": 0.0968,
   "ci95": [
-   0.04,
-   0.2898
+   0.0335,
+   0.249
   ],
-  "rank": null,
-  "status": "too few to rank",
+  "rank": 3,
+  "status": "ranked",
   "min_sample_to_rank": 30,
-  "overlaps_above": false,
+  "overlaps_above": true,
   "disputed": [],
   "dispute": "https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+claude-code%2C+week+of+2026-09-28&agent=claude-code&week=2026-09-28",
   "method": "https://github.com/drexthealpha/Knos/blob/main/docs/INDEX.md"
@@ -104,5 +104,5 @@
   "dispute": "https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+record%3A+claude-code&agent=claude-code&week=2026-09-28",
   "specification": "https://github.com/drexthealpha/Knos/blob/main/docs/RECORD.md"
  },
- "sha256": "62e765d82805d3a3f94a2c83aa82415bf6374eba3e795cc8db77ff483bd20e34"
+ "sha256": "04e80bdd11f7fb2e21e460947c0796903b8c7de5e2c7c131f9e914fd44d4e041"
 }

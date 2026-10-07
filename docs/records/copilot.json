@@ -2,7 +2,7 @@
  "schema": "knos.supplier-record/1",
  "supplier": "copilot",
  "name": "copilot",
- "as_of": "2026-10-06",
+ "as_of": "2026-10-07",
  "rule": "The supplier never pays for this record and cannot pay to change it.",
  "not_a_score": "Counts with their samples. Nothing here is a score.",
  "orders": {
@@ -65,28 +65,28 @@
  "public": {
   "label": "from public pull requests, not from Knos orders",
   "source": "docs/index.json",
-  "source_sha256": "41eaa9999a5f3703d1e6e97be66023fc09e1e865d607f39b6c819592d30840e9",
+  "source_sha256": "27858e2dbd60c30bde314143f438532e8301c6e239b2007b4c9fbd57fa7db4a8",
   "category": "merged pull requests whose description claimed passing tests",
   "week": "2026-09-28",
-  "read": "2026-10-06",
+  "read": "2026-10-07",
   "weeks": 10,
   "period": {
    "from": "2026-06-29",
    "to": "2026-09-28",
    "unit": "week starting"
   },
-  "claimed_passing": 120,
-  "sample": 70,
-  "failed_at_merge": 19,
-  "share": 0.2714,
+  "claimed_passing": 132,
+  "sample": 80,
+  "failed_at_merge": 22,
+  "share": 0.275,
   "ci95": [
-   0.1812,
-   0.3854
+   0.1892,
+   0.3814
   ],
-  "rank": 3,
+  "rank": 4,
   "status": "ranked",
   "min_sample_to_rank": 30,
-  "overlaps_above": false,
+  "overlaps_above": true,
   "disputed": [],
   "dispute": "https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+row%3A+copilot%2C+week+of+2026-09-28&agent=copilot&week=2026-09-28",
   "method": "https://github.com/drexthealpha/Knos/blob/main/docs/INDEX.md"
@@ -104,5 +104,5 @@
   "dispute": "https://github.com/drexthealpha/Knos/issues/new?template=dispute-index-row.yml&title=Dispute+a+record%3A+copilot&agent=copilot&week=2026-09-28",
   "specification": "https://github.com/drexthealpha/Knos/blob/main/docs/RECORD.md"
  },
- "sha256": "a36f5bc7797881e8aa714e94e2bb4ae43642e2fb4344e4a494b7c7d0d352278b"
+ "sha256": "ba730e706a7cd0089779d88d2213b632e9dadcfc0326ade19266c2a9158437c9"
 }
