@@ -1348,8 +1348,8 @@ def _appeal(run: Run, cmd, said: dict, on: dict) -> str:
         return "Knos: the judge's memory (the knos-memory issue) could not be read, so no appeal was opened. Post the comment again."
     mine = [b for _name, b in store.rows("settlement") if isinstance(b, dict) and b.get("repo") == history.repo_key(run.repo) and b.get("pull") == number]
     verdict = "accepted" if any(b.get("paid") for b in mine) else "rejected" if any(b.get("refused") for b in mine) else ""
-    if not verdict:
-        return appeal.refused_reply(appeal.Refused("appeal.nothing"))
+    if not verdict:         # nothing settled yet, which is not an accepted verdict (appeal.nothing)
+        return appeal.refused_reply(appeal.Refused("appeal.unjudged"))
     facts, bought = _context(run, pull)
     contract = str((bought or {}).get("contract") or "")
     if verdict == "rejected" and contract:       # an order under Knos Terms 3: its terms say how long a rejection can be appealed
