@@ -59,8 +59,10 @@ const unique = (n) => knos.b58(Uint8Array.from({ length: 32 }, (_, i) => (n * 31
 const ids = JSON.parse(readFileSync(join(root, "program_ids.json"), "utf8"));
 const k = knos.v2.client(ids);
 const FIRST = { oidc: "vpWym9azbPU5f2PH2a6n8c4RfmsyUeW2dMuWr1DSHcE", pay: "9UzPFbh2A4e4sEPgngKG523FfYLnQ3qPfFVfFTTAdfDi" };   // the first deployment, as history
-// the only link of the page to a GitHub page outside drexthealpha's: "Use this template", with nothing of the reader's in it
+// the only links of the page to a GitHub page outside drexthealpha's: "Use this template", with nothing of the reader's in
+// it: the claim template, and the playground's "host a judge" (knos-attest; tests/test_host_a_judge.py pins its words)
 const TEMPLATE_LINK = "https://github.com/new?template_owner=drexthealpha&template_name=knos-claim&name=knos-claim&visibility=public&owner=@me";
+const JUDGE_TEMPLATE_LINK = "https://github.com/new?template_owner=drexthealpha&template_name=knos-attest&name=knos-judge&visibility=public&owner=@me";
 const WALLET = unique(1), OTHER_WALLET = unique(2), USDC = knos.USDC_DEVNET, MINT22 = unique(3), BLOCKHASH = unique(4), BLOCKHASH2 = unique(5), NOW = 1790000000;
 const users = { mona: { id: 4242, type: "User" }, octocat: { id: 583231, type: "User" }, "octo-org": { id: 7000001, type: "Organization" }, carol: { id: 99, type: "User" },
   quiet: { id: 5, type: "User" }, xss: { id: 666, type: "User", login: "<img src=x onerror=alert(1)>" } };
@@ -428,6 +430,15 @@ await reset();
     check("  Escape closes it and gives the button the focus back", (await under()).length === 0 && await page.evaluate(() => document.activeElement.id === "more-button"));
     await page.click("#more-button"); await page.mouse.click(40, 320);
     check("  a press anywhere else closes it", (await under()).length === 0);
+    // the bar fitted again while an added link of the bar is under More (where a narrow window puts it): the Leaderboard's
+    // place was read as "before that link", which was then not in the bar, and insertBefore threw on every page of every
+    // width (tests run 37694811068). Fitted again, the bar is the bar, and nothing is thrown.
+    if (MENU.added.some((a) => a.bar)) {
+      const before = errors.length;
+      await page.evaluate((name) => { document.getElementById("more-list").append(document.querySelector(`#nav a[data-mount="${name}"]`)); dispatchEvent(new Event("resize")); }, MENU.added.find((a) => a.bar).name);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r())));
+      check("  the bar fitted again with an added link under More: the same bar, and nothing thrown", (await bar()).join() === MENU.bar.join() && errors.length === before, { bar: await bar(), thrown: errors.slice(before) });
+    }
     await page.click("#more-button"); await page.click('#more-list a[href="#records"]');
     await page.waitForSelector("#view-records", { state: "visible" });
     check("  a link of it goes to its page, closes the list, and More is marked as holding the page shown", (await under()).length === 0 && await page.$eval("#more", (e) => e.classList.contains("current")) && (await page.getAttribute("nav a[aria-current=page]", "href")) === "#records");
@@ -470,8 +481,13 @@ await reset();
   await settled(); await page.click("#more-button"); await page.click("#go-check");
   check("  Check a pull request, under More, puts the cursor in the box", await page.evaluate(() => document.activeElement.id === "pr-url"));
   // the pages other modules fill: not offered while empty, shown alone at their hash once they hold something
-  check("the pages other modules fill are there, and an empty one is not in the menu", (await page.$$eval("nav a[data-mount]", (a) => a.map((x) => x.getAttribute("href")))).join() === "#buy,#index,#story,#supplier,#record,#keyholder,#verifier,#playground,#terms,#invoice-statement,#shadow,#install,#status,#pilot,#capabilities,#reproduce"
-    && await page.$$eval("nav a[data-mount]", (a) => a.every((x) => !x.hidden)));
+  // in the order of the menu: the bar's, then More's; a page added by name (MENU) stands in the bar before Pricing or
+  // last under More, and the Leaderboard goes first under More when an added page takes its words
+  const added = (bar) => MENU.added.filter((a) => a.bar === bar).map((a) => `#${a.name}`), board = MENU.first.includes("Leaderboard");
+  const mounts = ["#buy", ...(board ? [] : ["#index"]), ...added(true), ...(board ? ["#index"] : []), "#story", "#supplier", "#record", "#keyholder", "#verifier", "#playground", "#terms", "#invoice-statement", "#shadow", "#install", "#status", "#pilot", "#capabilities", "#reproduce", ...added(false)];
+  const found = await page.$$eval("nav a[data-mount]", (a) => a.map((x) => x.getAttribute("href")));
+  check("the pages other modules fill are there, and an empty one is not in the menu", found.join() === mounts.join()
+    && await page.$$eval("nav a[data-mount]", (a) => a.every((x) => !x.hidden)), { found, mounts });
   // every row of the leaderboard links to that supplier's public record (web/supplier_record.js, mounted at #record=<slug>;
   // the build copies docs/records/*.json to records/), and "Supplier records" under More opens the list of them
   await visit(page, "#index"); await page.waitForSelector("#index .index-board tbody tr a.ib-record");
@@ -1273,7 +1289,7 @@ const BAL = await k.balance(7000001, WALLET, USDC), BALTOK = await k.baltok(BAL)
   // the Console's sample approvals name where each was made: a comment in this project's own playground repository, never an account that is somebody else's
   check("links: the Console's sample is in the project's own playground repository", hrefs.some((h) => /^https:\/\/github\.com\/drexthealpha\/knos-playground\/issues\/\d+#issuecomment-\d+$/.test(h)) && !(await page.content()).includes("github.com/acme/"));
   const bad = hrefs.filter((h) => !(h.startsWith("#") ? ["check", "fd-in", "check-a-pull-request", "protect", "fund", "claim", "pricing", "records", "network", "build", "rank", "buy", "install", "capabilities", "status", "index", "pilot", "reproduce", "demo", "shadow", "verifier", "playground", "terms", "supplier", "invoice-statement", "story", "keyholder", "sample", "record", ...MENU.added.map((a) => a.name)].includes(h.slice(1).split("=")[0])
-    : h === TEMPLATE_LINK || h === "https://drexthealpha.github.io/Knos/" || /^https:\/\/explorer\.solana\.com\/(tx\/[1-9A-HJ-NP-Za-km-z]{64,90}|address\/[1-9A-HJ-NP-Za-km-z]{32,44})\?cluster=devnet$/.test(h) || /^https:\/\/github\.com\/drexthealpha\/|^https:\/\/faucet\.circle\.com\/$|^(index|stats|operations|agent_weekly|records|statement_sample)\.json$|^terms\/(?:3\/)?[\w-]+\/\d+\.json$/.test(h) || issuerDocs.includes(h)));
+    : h === TEMPLATE_LINK || h === JUDGE_TEMPLATE_LINK || h === "https://drexthealpha.github.io/Knos/" || /^https:\/\/explorer\.solana\.com\/(tx\/[1-9A-HJ-NP-Za-km-z]{64,90}|address\/[1-9A-HJ-NP-Za-km-z]{32,44})\?cluster=devnet$/.test(h) || /^https:\/\/github\.com\/drexthealpha\/|^https:\/\/faucet\.circle\.com\/$|^(index|stats|operations|agent_weekly|records|statement_sample)\.json$|^terms\/(?:3\/)?[\w-]+\/\d+\.json$/.test(h) || issuerDocs.includes(h)));
   check("links: every link goes to a view, to the site's own address, to the project's own GitHub, to a transaction or an address on devnet's explorer, to Circle's devnet faucet, to a file of the site or to an issuer's own documentation (the verifier's table)", bad.length === 0, bad);
   check("  a link that opens a new tab does not hand over the page", await page.$$eval('a[target="_blank"]', (a) => a.every((x) => /noopener/.test(x.rel))));
   await page.close();

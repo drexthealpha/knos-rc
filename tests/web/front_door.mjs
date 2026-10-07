@@ -54,6 +54,27 @@ const fb = new URL(FEEDBACK);
 same("the feedback link: a new issue on drexthealpha/Knos, labelled, three questions, nothing else", [fb.origin + fb.pathname, fb.searchParams.get("labels"), fb.searchParams.get("body").split("\n").filter(Boolean)],
   ["https://github.com/drexthealpha/Knos/issues/new", "shadow-feedback", ["1. What was wrong in the result?", "2. Would you use this on a real invoice?", "3. What would you pay for it?"]]);
 
+// How long the page takes to draw its first words after a click, by the page's own clock: from the moment the click
+// reaches the window (a capturing listener, before any of the page's) to the first time `result` holds text, seen by a
+// MutationObserver, so the words count when they are put in the page and not when this script gets round to reading them.
+// { text, ms }; ms is null when no words came within two seconds.
+async function pendingAfterClick(p, button, result) {
+  await p.evaluate((sel) => {
+    const probe = window.__pending = { text: null, ms: null, t0: null };
+    const look = () => {
+      const t = document.querySelector(sel)?.textContent?.trim();
+      if (probe.t0 === null || probe.ms !== null || !t) return;
+      probe.text = t; probe.ms = performance.now() - probe.t0; seen.disconnect();
+    };
+    const seen = new MutationObserver(look);
+    seen.observe(document.documentElement, { subtree: true, childList: true, characterData: true });
+    window.addEventListener("click", () => { probe.t0 = performance.now(); }, { capture: true, once: true });
+  }, result);
+  await p.click(button);
+  try { await p.waitForFunction(() => window.__pending.ms !== null, null, { timeout: 2000 }); } catch { /* ms stays null: the check fails and says so */ }
+  return p.evaluate(() => ({ text: window.__pending.text, ms: window.__pending.ms === null ? null : Math.round(window.__pending.ms) }));
+}
+
 // ---- the page ------------------------------------------------------------------------------------------------------------
 async function page() {
   const { createServer } = await import("node:http");
@@ -213,10 +234,11 @@ async function page() {
   // 2. the sample, with no network at all (GitHub refused), with and without motion
   for (const motion of [false, true]) {
     const tag = motion ? "sample, moving" : "sample", { ctx, p, strangers, errors } = await visit("door.html", motion ? 390 : 320, { offline: true, motion });
-    const t0 = Date.now();
-    await p.click('[data-fd="sample"]');
-    const pending = await p.textContent('#front-result [data-fd="said"]'), took = Date.now() - t0;
-    ok(`${tag}: a pending state is drawn at once`, /^(Checking 7 lines\.|Checked 7 lines\. 5 exceptions\.)$/.test(pending) && took < 300, [pending, took]);
+    // The time is the page's own, from the click reaching the page to the first words drawn in the result. Measured from
+    // here it held Playwright's round trips and its checks before the click too, which a loaded runner stretched past the
+    // bound (410 ms in tests run 37694811068) while the page drew the words in the same task as the click.
+    const pending = await pendingAfterClick(p, '[data-fd="sample"]', '#front-result [data-fd="said"]'), took = pending.ms;
+    ok(`${tag}: a pending state is drawn at once`, /^(Checking 7 lines\.|Checked 7 lines\. 5 exceptions\.)$/.test(pending.text) && took !== null && took < 300, [pending.text, took]);
     await done(p);
     const g = await groups(p);
     same(`${tag}: four groups with the expected counts`, Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v[0]])), COUNTS);

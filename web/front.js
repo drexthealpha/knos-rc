@@ -570,8 +570,9 @@ function fitBar() {
   if (!mine.length) return;
   const give = YIELD.map((q) => nav.querySelector(q)).filter(Boolean);
   barHome ||= give.map((l) => l.nextElementSibling);          // where each stood, read once, before anything moved
-  for (let i = give.length - 1; i >= 0; i -= 1) nav.insertBefore(give[i], barHome[i]);
+  // added links first: a neighbour read above may be one, and one under "More" is not in the bar
   for (const l of mine) nav.insertBefore(l, at);
+  for (let i = give.length - 1; i >= 0; i -= 1) nav.insertBefore(give[i], !barHome[i] || barHome[i].parentNode === nav ? barHome[i] : at);
   if (more.offsetParent === null) return;                    // the phone's menu: every link in its own place
   const shown = () => [...nav.querySelectorAll(":scope > a")].filter((l) => !l.hidden), words = () => shown().reduce((n, l) => n + l.textContent.trim().split(/\s+/).length, 0);
   const wraps = () => more.offsetTop > (shown()[0]?.offsetTop ?? 0) + 8;

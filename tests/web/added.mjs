@@ -47,13 +47,20 @@ for (const a of LIST) {
 const real = (a) => !(`/${a.file}` in over), realData = (a) => !a.json || !(`/${a.json}` in over);
 
 const browser = await chromiumOrSkip();
-let slow = 0;
+// While `held` is a promise, a page's module (a file of ADDED, the build's own or a stand-in) is answered only once it
+// settles: the test opens the gate when it has looked at the page, so "before its module has arrived" does not depend on
+// how fast a runner is. (A fixed 400 ms held only the stand-ins, and a loaded runner could take longer to look.)
+let held = null;
 const server = createServer((req, res) => {
   const url = decodeURIComponent(new URL(req.url, "http://x").pathname), path = join(root, url.replace(/\/$/, "/index.html"));
   const send = (type, body) => { res.writeHead(200, { "content-type": TYPES[type] || "application/octet-stream" }); res.end(body); };
-  if (url in over) return setTimeout(() => send(over[url][1], over[url][0]), LIST.some((a) => url === `/${a.file}`) ? slow : 0);
-  if (!path.startsWith(root) || !existsSync(path)) { res.writeHead(404); return res.end(); }
-  return send(extname(path), readFileSync(path));
+  const answer = () => {
+    if (url in over) return send(over[url][1], over[url][0]);
+    if (!path.startsWith(root) || !existsSync(path)) { res.writeHead(404); return res.end(); }
+    return send(extname(path), readFileSync(path));
+  };
+  if (held && LIST.some((a) => url === `/${a.file}`)) return void held.then(answer);
+  return answer();
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const base = `http://127.0.0.1:${server.address().port}/`;
@@ -90,14 +97,14 @@ check("menu: a page not of the bar is the last under More, and no link of the me
   check("menu: and back at 1280 the bar is as it was", back.bar.join() === at1280.bar.join() && back.under.join() === at1280.under.join() && back.one, back.bar);
 }
 
-// the press shows the section at once, with grey bars until the module (held back 400 ms here) has drawn
+// the press shows the section at once, with grey bars until the module (held back here until the page is looked at) has drawn
 const one = LIST[0];
-slow = 400;
+let release; held = new Promise((r) => { release = r; });
 await page.click(`#nav a[data-mount="${one.name}"]`);
 const pending = await page.evaluate((n) => { const el = document.getElementById(n); return { shown: el.checkVisibility(), bars: !!el.querySelector(".k-skeleton"), busy: el.getAttribute("aria-busy"), hash: location.hash, first: document.body.dataset.page === n }; }, one.name);
 check("mount: the press shows the page's section at once, with grey bars, before its module has arrived", pending.shown && pending.bars && pending.busy === "true" && pending.hash === `#${one.name}` && pending.first, pending);
+held = null; release();
 await ready(one.name);
-slow = 0;
 const drawn = await page.evaluate((n) => { const el = document.getElementById(n); return { title: el.querySelector("h2")?.textContent, bars: !!el.querySelector(".k-skeleton"), busy: el.hasAttribute("aria-busy"), current: document.querySelector(`#nav a[data-mount="${n}"]`).getAttribute("aria-current") }; }, one.name);
 check("mount: then the module's own drawing, the bars gone and the link marked as the page shown", !!drawn.title && !drawn.bars && !drawn.busy && drawn.current === "page", drawn);
 if (!real(one)) {
