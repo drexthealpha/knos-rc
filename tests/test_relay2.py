@@ -26,7 +26,7 @@ from solders.pubkey import Pubkey  # noqa: E402
 from _oidc2 import ROTATE_REF, TEST_ROTATE_SHA, Chain2  # noqa: E402
 from _pay2 import GUARDIAN, TEST_CLAIM_SHA, WF_REPO, WF_SHA, github_claims  # noqa: E402
 from _pay2 import Chain as _Chain  # noqa: E402
-from _pay21 import BUILDS, Live, pay21_build  # noqa: E402, F401 - the fixture `pay21`
+from _pay21 import BUILDS, Live, order_fee, pay21_build  # noqa: E402, F401 - the fixture `pay21`
 from _settle import FIX, SeedKey, b64, modulus, sign_jwt, signing_key  # noqa: E402
 
 from knos import chain  # noqa: E402
@@ -2007,7 +2007,7 @@ def test_an_order_is_reserved_then_cancelled_and_its_taker_gets_the_kill_fee(oen
     cranker, bal0 = c.fund(), c.balance(pay.baltok_pda(c.bal))
     c.warp(pay.NOTICE + 1)
     assert relay.refund_orders_due(net, cranker, c.now()) and c.order(order) is None
-    assert c.balance(pay.ata(wallet, c.usdc)) == 4 * USDC and c.balance(pay.baltok_pda(c.bal)) - bal0 >= 36 * USDC + 1_000_000
+    assert c.balance(pay.ata(wallet, c.usdc)) == 4 * USDC and c.balance(pay.baltok_pda(c.bal)) - bal0 >= 36 * USDC + order_fee(LIVE.v, 40 * USDC)
 
 
 def test_a_holdback_waits_out_its_warranty_and_goes_to_the_payee_or_back_on_a_revert(oenv):
