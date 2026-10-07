@@ -39,8 +39,17 @@ export function tableHtml(data, stage = "all") {
     || '<tr><td colspan="3">Nothing is at this stage yet.</td></tr>'}</table></div>`;
 }
 
+// Under 900 px a capability is one block (what it is, its stage, its evidence): three columns there squeeze the evidence
+// to a word a line (tests/web/overflow.mjs holds every table row of the site to ROW_MAX px). Here, not in app.css, whose
+// budget is spent.
+const STYLE = `@media (max-width:900px){table.capabilities th{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+table.capabilities tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}table.capabilities tr:first-child{padding:0;border:0}
+table.capabilities td{display:block;padding:2px 0;border:0}}`;
+
 // Mount the table and its filter in `el`. `data` is docs/capabilities.json, parsed.
 export function renderCapabilities(el, data) {
+  const doc = el.ownerDocument;
+  if (doc && !doc.getElementById("capabilities-style")) { const s = doc.createElement("style"); s.id = "capabilities-style"; s.textContent = STYLE; doc.head.appendChild(s); }
   const n = counts(data), total = (data?.capabilities || []).length;
   const options = [["all", `Every stage (${total})`], ...[...STAGES, "none"].map((s) => [s, `${STAGE_WORDS[s]} (${n[s]})`])];
   el.innerHTML = `<p><label>Show <select class="capabilities-stage">${options.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("")}</select></label></p>
