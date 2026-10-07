@@ -103,8 +103,9 @@ moved by a byte, and `scripts/deploy_v2.sh --propose` refuses in this tree.
   and no outside program that reads the verifier.
 - Proposals 7 (`knos_oidc`: strict JSON and ES256) and 8 (`knos_pay` 2.2) are approved and have not executed.
   Until they do, the public programs charge the earlier fee (2.5% of the first 1,000, 1% to 50,000, 0.5% above, at
-  least 0.40) and count the judges of a quorum by repository. The live state, and the time they can run from, are
-  in [`web/upgrades.json`](web/upgrades.json) once the feed is written again from the chain.
+  least 0.40) and count the judges of a quorum by repository. Proposal 7 was proposed and approved on 2026-10-07
+  08:14 UTC and proposal 8 on 2026-10-07 08:15 UTC, and the multisig's time lock lets each run 48 hours after its
+  approval. Whether they have is what `knos status` and [`web/upgrades.json`](web/upgrades.json) say.
 - The faucet, the task board and the worker's claim sweep have not run on GitHub or on devnet: the faucet key does
   not exist yet. Netting, an advance and a paid record lookup have run once each on devnet, between wallets of Knos's
   own release run and on tokens of its own workflows: none with an outside party.
