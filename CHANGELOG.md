@@ -113,8 +113,11 @@ moved by a byte, and `scripts/deploy_v2.sh --propose` refuses in this tree.
   least 0.40) and count the judges of a quorum by repository. Proposal 7 was proposed and approved on 2026-10-07
   08:14 UTC and proposal 8 on 2026-10-07 08:15 UTC, and the multisig's time lock lets each run 48 hours after its
   approval. Whether they have is what `knos status` and [`web/upgrades.json`](web/upgrades.json) say.
-- The faucet, the task board and the worker's claim sweep have not run on GitHub or on devnet: the faucet key does
-  not exist yet. Netting, an advance and a paid record lookup have run once each on devnet, between wallets of Knos's
+- The faucet has paid no one. Its key and its token account exist on devnet, but the account holds no test USDC:
+  Circle's devnet faucet asks a person to prove they are not a bot before it gives any. The task board has funded 8
+  tasks in the playground (issues #6 to #13, 5 test USDC each, from the faucet Balance). The worker's claim sweep has
+  run on GitHub in the staging repository only (run 37624637427: 3 open items read, none with a claim of payment).
+  Netting, an advance and a paid record lookup have run once each on devnet, between wallets of Knos's
   own release run and on tokens of its own workflows: none with an outside party.
 - The proof of a judge's execution is an experiment with no on-chain verifier, and `attested` stays unreachable.
 - No workflow keeps the issuers' key lists on its runner, so on GitHub the provisional line is still the relay's
