@@ -157,6 +157,12 @@ def test_when_the_chain_does_not_answer_only_a_log_is_answered():
     assert hub.comments[17][0]["body"].splitlines()[3] == "- Issue #17 is a log written by a workflow. It is not a task and carries no payment."
 
 
+def test_the_labels_description_is_a_whole_sentence_github_keeps():
+    about = claim_guard.LABEL_ABOUT
+    assert about == "No funded Knos order is attached, so no payment is due." and len(about) <= 100
+    assert about[0].isupper() and about.endswith(".") and not about.endswith(" is.")
+
+
 def test_nothing_is_said_to_the_repositorys_own_people_to_bots_or_to_ordinary_words():
     for who, association in (({"login": "owner", "type": "User"}, "OWNER"), ({"login": "x", "type": "User"}, "COLLABORATOR"),
                              ({"login": "dependabot[bot]", "type": "Bot"}, "NONE")):

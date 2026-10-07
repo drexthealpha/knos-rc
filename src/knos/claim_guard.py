@@ -30,7 +30,7 @@ from pathlib import Path
 
 MARK = "<!-- knos-no-order 1 -->"       # the first line of the answer: an item that has one gets no second
 LABEL = "no-order"
-LABEL_ABOUT = "No funded Knos order is attached, so no payment is"
+LABEL_ABOUT = "No funded Knos order is attached, so no payment is due."    # GitHub keeps 100 characters of it
 BOT = "github-actions[bot]"
 PLAYGROUND = "https://github.com/drexthealpha/knos-playground"
 LOG_LINE = "a log written by a workflow. It is not a task and carries no payment."
