@@ -51,14 +51,14 @@ every one, and [MANIFEST.md](../MANIFEST.md) ties each to the build that is live
 | one | `front_door` | tested locally |
 | one | `shadow_mode` | tested locally |
 | two | `fund_by_comment` | deployed on devnet |
-| two | `work_orders` | tested locally |
-| three | `tests_mode` | tested locally |
+| two | `work_orders` | exercised on devnet |
+| three | `tests_mode` | exercised on devnet |
 | three | `refusal_table` | tested locally |
 | four | `honest_work_rate` | tested locally |
 | four | `pay_on_merge` | deployed on devnet |
-| four | `order_pay` | tested locally |
+| four | `order_pay` | exercised on devnet |
 | four | `four_verdicts_four_ids` | tested locally |
-| five | `single_use_tokens` | tested locally |
+| five | `single_use_tokens` | exercised on devnet |
 | five | `ledger_dedup` | tested locally |
 | five | `order_quorum` | tested locally |
 | six | `statements` | tested locally |

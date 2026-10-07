@@ -1504,10 +1504,11 @@ def new_evidence(w: World, programs: dict) -> dict:
             "exercises": {}, "rounds": {}}
 
 
-def run(w: World, ev: dict, only: str | None = None, say: Callable[[str], None] = print) -> dict:
-    """Runs every round that still has something to do. Returns the evidence, changed in place."""
+def run(w: World, ev: dict, only: str | None = None, say: Callable[[str], None] = print, root: Path = ROOT) -> dict:
+    """Runs every round that still has something to do. Returns the evidence, changed in place. `root`: the tree whose
+    docs/capabilities.json says what is below `exercised` (the tests give the manifest of before the public round)."""
     book = Book(ev, w, say)
-    plan = exercisable()
+    plan = exercisable(root)
     for name, (fn, needs, caps) in ROUNDS.items():
         if only and only not in caps and only != name:
             continue

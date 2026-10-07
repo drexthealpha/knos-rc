@@ -20,10 +20,10 @@ not run: the public id runs the build in the third column until it does.
 
 | program | public program id | LIVE at that id | hash at that id | its proposal | the proposal's verified build hash | built from |
 |---|---|---|---|---|---|---|
-| knos_oidc | `FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W` | knos_oidc 2.0 | `71f8fe068c94ce69262e7fa250f65fc149334d60f6742ad66ac6b91624c0d1df` (not the proposal's build) | 3: pending | `3758348d1051feab739b4dc776ffb597fe9ecef7d50e93abd3c460fa5e9f7d4d` | [`6eb81dd`](https://github.com/drexthealpha/Knos/commit/6eb81dd152bd6cf752ee6c151b692f4a08815ae5), run `37237561915` |
-| knos_pay | `5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k` | knos_pay 2.0 | `75d7eb959f75575f6816942ad18a97c93a01690782e2b82ce01d7823c94e0a69` (not the proposal's build) | 4: pending | `2ed301a2bc99fc6e58abc0dcb767cb35e640898a75f154b2d90c09171143d507` | [`6eb81dd`](https://github.com/drexthealpha/Knos/commit/6eb81dd152bd6cf752ee6c151b692f4a08815ae5), run `37237561915` |
-| knos_meter | `FUMKkcE95x2kZUj1zZTCbgcYBmJ3WXPHL8pyA8J6anX` | knos_meter 1.0 | `0253391fe7558df98e3f11d66f5902d2e4d7d0ae6606a3156ccadb61e93eacde` (not the proposal's build) | 5: pending | `10f2b6cbb4983527a82225b29491941b77961da32245b449c9c1b151a5e995e4` | [`6eb81dd`](https://github.com/drexthealpha/Knos/commit/6eb81dd152bd6cf752ee6c151b692f4a08815ae5), run `37237561915` |
-| knos_passkey | `FQPX9i5kQxLYKZyyPgM2fVK9am3w1LSk1Cuoer1sSY85` | knos_passkey 1.0 | `888d3b68d3f80d4e512f58cf566c0e0123f4e92eaccd59c507be8486b59c84d5` (not the proposal's build) | 6: pending | `a9ce7a06fb99196ce6a9516b7c52951e48e4ce8cfde256646c6e50cfcac7cf81` | [`6eb81dd`](https://github.com/drexthealpha/Knos/commit/6eb81dd152bd6cf752ee6c151b692f4a08815ae5), run `37237561915` |
+| knos_oidc | `FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W` | knos_oidc 2.1 | `3758348d1051feab739b4dc776ffb597fe9ecef7d50e93abd3c460fa5e9f7d4d` (the proposal's build) | 3: executed | `3758348d1051feab739b4dc776ffb597fe9ecef7d50e93abd3c460fa5e9f7d4d` | [`6eb81dd`](https://github.com/drexthealpha/Knos/commit/6eb81dd152bd6cf752ee6c151b692f4a08815ae5), run `37237561915` |
+| knos_pay | `5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k` | knos_pay 2.1 | `2ed301a2bc99fc6e58abc0dcb767cb35e640898a75f154b2d90c09171143d507` (the proposal's build) | 4: executed | `2ed301a2bc99fc6e58abc0dcb767cb35e640898a75f154b2d90c09171143d507` | [`6eb81dd`](https://github.com/drexthealpha/Knos/commit/6eb81dd152bd6cf752ee6c151b692f4a08815ae5), run `37237561915` |
+| knos_meter | `FUMKkcE95x2kZUj1zZTCbgcYBmJ3WXPHL8pyA8J6anX` | knos_meter 1.1 | `10f2b6cbb4983527a82225b29491941b77961da32245b449c9c1b151a5e995e4` (the proposal's build) | 5: executed | `10f2b6cbb4983527a82225b29491941b77961da32245b449c9c1b151a5e995e4` | [`6eb81dd`](https://github.com/drexthealpha/Knos/commit/6eb81dd152bd6cf752ee6c151b692f4a08815ae5), run `37237561915` |
+| knos_passkey | `FQPX9i5kQxLYKZyyPgM2fVK9am3w1LSk1Cuoer1sSY85` | knos_passkey 1.1 | `a9ce7a06fb99196ce6a9516b7c52951e48e4ce8cfde256646c6e50cfcac7cf81` (the proposal's build) | 6: executed | `a9ce7a06fb99196ce6a9516b7c52951e48e4ce8cfde256646c6e50cfcac7cf81` | [`6eb81dd`](https://github.com/drexthealpha/Knos/commit/6eb81dd152bd6cf752ee6c151b692f4a08815ae5), run `37237561915` |
 | upgrade_gate | `2DfVEuBMWvvh3kXZaQwk2SoszJsoV1PTiK1VGCkB55HW` | upgrade_gate 1.0 | not read | none | none | none |
 
 A program whose source changed after its proposal's commit has no verified build hash on this page until the
@@ -35,12 +35,7 @@ shows whether it changed. Each link of each chain is in [PROVENANCE.md](PROVENAN
 Upgrade multisig `9HcsMEo2o6zZu9t1kbFWpnyKn7hiHaZYYFwNHZSpmWqK`, 2 of 3. From `web/upgrades.json`; when each can
 execute is its `earliest_execution_utc` there.
 
-| proposal | program | would deploy build | approvals |
-|---|---|---|---|
-| 3 (`3n6Vu67CRaUYK9sBYVwnKu9FexF5ZP9yKREnaizKaeLr`) | knos_oidc | `3758348d1051feab739b4dc776ffb597fe9ecef7d50e93abd3c460fa5e9f7d4d` | 2 of 2 |
-| 4 (`4nDjbSWXPGsqHRzyPgcoYSdaXPqhM7hURN3Enr8Js7nA`) | knos_pay | `2ed301a2bc99fc6e58abc0dcb767cb35e640898a75f154b2d90c09171143d507` | 2 of 2 |
-| 5 (`244HX9wyPMjypMLPkiSr2qJgv9vg4sVH1Jrz7oq24p3z`) | knos_meter | `10f2b6cbb4983527a82225b29491941b77961da32245b449c9c1b151a5e995e4` | 2 of 2 |
-| 6 (`DQ35JZ6CSq1iwzG78x6xn4wyTBYsFPnS3kDkrt4BWkVb`) | knos_passkey | `a9ce7a06fb99196ce6a9516b7c52951e48e4ce8cfde256646c6e50cfcac7cf81` | 2 of 2 |
+None: web/upgrades.json lists no pending proposal.
 
 ## Capabilities: the stage of each, with its evidence
 
@@ -56,20 +51,20 @@ public program ids. The note of each capability and every lower stage's evidence
 | `stop_hook` | tested locally | [`tests/test_proof.py`](../tests/test_proof.py) |
 | `mcp_tools` | tested locally | [`tests/test_mcp.py`](../tests/test_mcp.py) |
 | `agent_tools` | tested locally | [`tests/test_agentkey.py`](../tests/test_agentkey.py) |
-| `verify_github` | deployed on devnet | `knos_oidc 2.0` at its public id |
+| `verify_github` | exercised on devnet | [4G2Zew7L...](https://explorer.solana.com/tx/4G2Zew7LgfNJ7v6KjaKceCFRRLBmK5LD7qYK3oUi58b9X3iMhR7dXD7oqr2FuNcvewy65R6N8k7iVD6JbrG5eJJV?cluster=devnet) |
 | `verify_gitlab` | deployed on devnet | `knos_oidc 2.0` at its public id |
 | `verify_any_issuer` | tested locally | [`tests/test_oidc2_chain.py`](../tests/test_oidc2_chain.py) |
 | `key_guardian` | deployed on devnet | `knos_oidc 2.0` at its public id |
 | `fund_by_comment` | deployed on devnet | `knos_pay 2.0` at its public id |
-| `fund_from_wallet` | deployed on devnet | `knos_pay 2.0` at its public id |
+| `fund_from_wallet` | exercised on devnet | [4Q1cvM78...](https://explorer.solana.com/tx/4Q1cvM785mimadqAPQTwQyYWHBMZbFWzZ5W1w1zVQZsx3TUEKwesdyQoSimQCiUVJvUhUP6TFW9on5xLKzEn41sK?cluster=devnet) |
 | `pay_on_merge` | deployed on devnet | `knos_pay 2.0` at its public id |
 | `hold_and_bind` | deployed on devnet | `knos_pay 2.0` at its public id |
-| `refund` | deployed on devnet | `knos_pay 2.0` at its public id |
+| `refund` | exercised on devnet | [57E3wRPG...](https://explorer.solana.com/tx/57E3wRPGfY34MFq89Uxi75AS9PMoCT7eFwnXgnfsFpVg9mbtoHB4FVJ5bYNMGLPANuvrYygwc32Su2W8jE5XtVeY?cluster=devnet) |
 | `pause` | deployed on devnet | `knos_pay 2.0` at its public id |
-| `work_orders` | tested locally | [`tests/test_order_chain.py`](../tests/test_order_chain.py) |
-| `order_pay` | tested locally | [`tests/test_order_chain.py`](../tests/test_order_chain.py) |
-| `tests_mode` | tested locally | [`tests/test_judge_langs.py`](../tests/test_judge_langs.py) |
-| `order_auto_accept` | tested locally | [`tests/test_order_auto.py`](../tests/test_order_auto.py) |
+| `work_orders` | exercised on devnet | [177CEpZ8...](https://explorer.solana.com/tx/177CEpZ8N4r5CGNjSEWBEouTTqMDwAao9LFzwSNYiFjJZUfJdtLDeusHbmmawWxzKLp1SozNAyNCEeGxSvvBm5s?cluster=devnet) |
+| `order_pay` | exercised on devnet | [59AfaYHT...](https://explorer.solana.com/tx/59AfaYHTvWHhbAhiiNHCbCfEcGCxG1kCydJwfRNjZqry9bCnMF3ox6bd4P7favA9hjgzB5nk283g2Mdq3LruyNWV?cluster=devnet) |
+| `tests_mode` | exercised on devnet | [55Gxtqyo...](https://explorer.solana.com/tx/55GxtqyoErGS6fJgJNNSe87qxJF3sUwgoZZkAQfTQ1eXQYhnqQaB861AQS6u1FXwuBBwY2dmQdWwgH9Zps1YfTVm?cluster=devnet) |
+| `order_auto_accept` | exercised on devnet | [55Gxtqyo...](https://explorer.solana.com/tx/55GxtqyoErGS6fJgJNNSe87qxJF3sUwgoZZkAQfTQ1eXQYhnqQaB861AQS6u1FXwuBBwY2dmQdWwgH9Zps1YfTVm?cluster=devnet) |
 | `order_challenge` | tested locally | [`tests/test_order_auto.py`](../tests/test_order_auto.py) |
 | `order_quorum` | tested locally | [`tests/test_order_quorum.py`](../tests/test_order_quorum.py) |
 | `hermetic_judge` | tested locally | [`tests/test_judge_hermetic.py`](../tests/test_judge_hermetic.py) |
@@ -79,7 +74,7 @@ public program ids. The note of each capability and every lower stage's evidence
 | `neutral_attest` | tested locally | [`tests/test_order_judges.py`](../tests/test_order_judges.py) |
 | `arbiter_rule` | tested locally | [`tests/test_order_judges.py`](../tests/test_order_judges.py) |
 | `reserve_cancel` | tested locally | [`tests/test_order_terms.py`](../tests/test_order_terms.py) |
-| `top_up` | tested locally | [`tests/test_order_chain.py`](../tests/test_order_chain.py) |
+| `top_up` | exercised on devnet | [432L2F98...](https://explorer.solana.com/tx/432L2F987ADLGHRPLuHMoULKQr8pYRMNyb9k2PAMZ5H7CJsix4JgqKbMHLx7yyY5kDmJnAt1Lb6fz5nMwEFhCCQJ?cluster=devnet) |
 | `assign` | tested locally | [`tests/test_order_terms.py`](../tests/test_order_terms.py) |
 | `advance_by_assignment` | tested locally | [`tests/test_advance.py`](../tests/test_advance.py) |
 | `standing_order` | tested locally | [`tests/test_order_terms.py`](../tests/test_order_terms.py) |
@@ -87,15 +82,15 @@ public program ids. The note of each capability and every lower stage's evidence
 | `org_wallet` | tested locally | [`tests/test_order_judges.py`](../tests/test_order_judges.py) |
 | `plans` | tested locally | [`tests/test_order_chain.py`](../tests/test_order_chain.py) |
 | `fee_tiers` | tested locally | [`tests/test_fees.py`](../tests/test_fees.py) |
-| `single_use_tokens` | tested locally | [`tests/test_double_pay.py`](../tests/test_double_pay.py) |
+| `single_use_tokens` | exercised on devnet | [177CEpZ8...](https://explorer.solana.com/tx/177CEpZ8N4r5CGNjSEWBEouTTqMDwAao9LFzwSNYiFjJZUfJdtLDeusHbmmawWxzKLp1SozNAyNCEeGxSvvBm5s?cluster=devnet) |
 | `private_attestor` | tested locally | [`tests/test_flow_private.py`](../tests/test_flow_private.py) |
 | `meter_single` | deployed on devnet | `knos_meter 1.0` at its public id |
-| `meter_batch` | tested locally | [`tests/test_meter_batch.py`](../tests/test_meter_batch.py) |
-| `meter_seller_claim` | tested locally | [`tests/test_meter_batch.py`](../tests/test_meter_batch.py) |
+| `meter_batch` | exercised on devnet | [4FxxZjQD...](https://explorer.solana.com/tx/4FxxZjQD8aqqTNRuiT3nS5e3Hh1f1UitCcRmfhBbMiiTj6w9wgRP5HDFUHicpXyCt5vmrue53oyGQM9unQgPWSzR?cluster=devnet) |
+| `meter_seller_claim` | exercised on devnet | [3zJVYD2y...](https://explorer.solana.com/tx/3zJVYD2yxjz4vgi4NsED3cvjRnToboXdM9YPz2xyawkCUKcbUSNNY4rVhYuNMyNNY6LyTPwzFhrNzFdNn1i8N4Hc?cluster=devnet) |
 | `passkey_payee_wallet` | deployed on devnet | `knos_passkey 1.0` at its public id |
-| `passkey_funder` | tested locally | [`tests/test_passkey_fund.py`](../tests/test_passkey_fund.py) |
-| `passkey_fund_relay` | tested locally | [`tests/test_passkey_relay.py`](../tests/test_passkey_relay.py) |
-| `buyer_page` | tested locally | [`tests/test_site_buyer.py`](../tests/test_site_buyer.py) |
+| `passkey_funder` | exercised on devnet | [3oTzLPyD...](https://explorer.solana.com/tx/3oTzLPyDoqerUgRKdqEBEirtLCYhwTb5keUpjECPsD92Zf3UjwkS72s9KNcZntUuE1dKZhMs8cwJyhx7kcYEqdmC?cluster=devnet) |
+| `passkey_fund_relay` | exercised on devnet | [3oTzLPyD...](https://explorer.solana.com/tx/3oTzLPyDoqerUgRKdqEBEirtLCYhwTb5keUpjECPsD92Zf3UjwkS72s9KNcZntUuE1dKZhMs8cwJyhx7kcYEqdmC?cluster=devnet) |
+| `buyer_page` | exercised on devnet | [3oTzLPyD...](https://explorer.solana.com/tx/3oTzLPyDoqerUgRKdqEBEirtLCYhwTb5keUpjECPsD92Zf3UjwkS72s9KNcZntUuE1dKZhMs8cwJyhx7kcYEqdmC?cluster=devnet) |
 | `gitlab_pay` | tested locally | [`tests/test_gitlab_pay.py`](../tests/test_gitlab_pay.py) |
 | `gitlab_ci_example` | implemented | [`examples/gitlab/.gitlab-ci.yml`](../examples/gitlab/.gitlab-ci.yml) |
 | `relay` | tested locally | [`tests/test_relay2.py`](../tests/test_relay2.py) |
@@ -110,7 +105,7 @@ public program ids. The note of each capability and every lower stage's evidence
 | `receipt_mirror` | tested locally | [`tests/test_bundle.py`](../tests/test_bundle.py) |
 | `sas_receipt` | tested locally | [`tests/test_receipt.py`](../tests/test_receipt.py) |
 | `x402_example` | tested locally | [`tests/test_x402_attested.py`](../tests/test_x402_attested.py) |
-| `x402_knos_order` | tested locally | [`tests/test_x402_attested.py`](../tests/test_x402_attested.py) |
+| `x402_knos_order` | exercised on devnet | [2noSVLKX...](https://explorer.solana.com/tx/2noSVLKXsSDc9iL72m6H4geVenuoDvrH7YiQ4FUEwLUYgEbWpqxk9TZxf6GQegSXCsZUR33GT2gn6HEUbkKTpwsX?cluster=devnet) |
 | `cpi_fund` | tested locally | [`tests/test_cpi_fund.py`](../tests/test_cpi_fund.py) |
 | `oidc_gate` | tested locally | [`tests/test_oidc_gate.py`](../tests/test_oidc_gate.py) |
 | `upgrade_gate` | deployed on devnet | `upgrade_gate 1.0` at its public id |
@@ -173,7 +168,7 @@ public program ids. The note of each capability and every lower stage's evidence
 | `release_registry_rule` | tested locally | [`tests/test_release_gate.py`](../tests/test_release_gate.py) |
 | `oidc_strict_json` | tested locally | [`tests/test_oidc_differential.py`](../tests/test_oidc_differential.py) |
 | `unwrap_inventory` | tested locally | [`tests/test_unwraps.py`](../tests/test_unwraps.py) |
-| `outcome_not_code` | tested locally | [`tests/test_outcome_k8s.py`](../tests/test_outcome_k8s.py) |
+| `outcome_not_code` | exercised on devnet | [31HzWxXF...](https://explorer.solana.com/tx/31HzWxXFoya7ZKphG9Tb9czvhKT9dZiCGP4F3sSvgkek9x7FLGATqsA1Mba45gpQpNFa8ELLcEUJyXCXZ2f92okk?cluster=devnet) |
 | `events_ledger` | tested locally | [`tests/test_events.py`](../tests/test_events.py) |
 | `ap_statement` | tested locally | [`tests/test_statement.py`](../tests/test_statement.py) |
 | `four_verdicts_four_ids` | tested locally | [`tests/test_verdicts_ids.py`](../tests/test_verdicts_ids.py) |

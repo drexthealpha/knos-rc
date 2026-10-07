@@ -76,10 +76,10 @@ Below this line: records that scripts write from their sources, and the licence.
 <!-- programs:start -->
 | program | address | on devnet, as [`docs/capabilities.json`](docs/capabilities.json) records it |
 |---|---|---|
-| `knos-oidc`, the verifier | `FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W` | runs `2.0` until its upgrade proposal has executed; `2.1` was proposed through the multisig and runs at this address only once that proposal has executed (the live state is in [`web/upgrades.json`](web/upgrades.json)); the 0.3.14 rehearsal ran it at a staging address of its own ([docs/CAPABILITIES.md](docs/CAPABILITIES.md)) |
-| `knos-pay`, the escrow | `5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k` | runs `2.0` until its upgrade proposal has executed; `2.1` was proposed through the multisig and runs at this address only once that proposal has executed (the live state is in [`web/upgrades.json`](web/upgrades.json)); the 0.3.14 rehearsal ran it at a staging address of its own ([docs/CAPABILITIES.md](docs/CAPABILITIES.md)) |
-| `knos-meter`, the count | `FUMKkcE95x2kZUj1zZTCbgcYBmJ3WXPHL8pyA8J6anX` | runs `1.0` until its upgrade proposal has executed; `1.1` was proposed through the multisig and runs at this address only once that proposal has executed (the live state is in [`web/upgrades.json`](web/upgrades.json)); the 0.3.14 rehearsal ran it at a staging address of its own ([docs/CAPABILITIES.md](docs/CAPABILITIES.md)) |
-| `knos-passkey`, a wallet from a passkey | `FQPX9i5kQxLYKZyyPgM2fVK9am3w1LSk1Cuoer1sSY85` | runs `1.0` until its upgrade proposal has executed; `1.1` was proposed through the multisig and runs at this address only once that proposal has executed (the live state is in [`web/upgrades.json`](web/upgrades.json)); the 0.3.14 rehearsal ran it at a staging address of its own ([docs/CAPABILITIES.md](docs/CAPABILITIES.md)) |
+| `knos-oidc`, the verifier | `FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W` | runs `2.1` |
+| `knos-pay`, the escrow | `5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k` | runs `2.1` |
+| `knos-meter`, the count | `FUMKkcE95x2kZUj1zZTCbgcYBmJ3WXPHL8pyA8J6anX` | runs `1.1` |
+| `knos-passkey`, a wallet from a passkey | `FQPX9i5kQxLYKZyyPgM2fVK9am3w1LSk1Cuoer1sSY85` | runs `1.1` |
 <!-- programs:end -->
 
 This page names no time for an upgrade, so that it is true before and after one. Whether a proposal is pending, has
@@ -89,7 +89,7 @@ committed copy). The first deployment ([`programs`](programs)) has no upgrade au
 new is funded there.
 
 <!-- capabilities:start -->
-**Reproduced by someone else:** none recorded yet. **Exercised on devnet:** none recorded yet. **Deployed on devnet:** `verify_github`, `verify_gitlab`, `key_guardian`, `fund_by_comment`, `fund_from_wallet`, `pay_on_merge`, `hold_and_bind`, `refund`, `pause`, `meter_single`, `passkey_payee_wallet`, `upgrade_gate`. Everything else is tested locally, implemented or not built: [the table with the evidence](docs/CAPABILITIES.md) has one row for each capability, from [`docs/capabilities.json`](docs/capabilities.json). Deployed and exercised are counted only at the public program ids; what the 0.3.14 rehearsal ran at staging addresses of its own is in the note of each capability it ran, with its transaction.
+**Reproduced by someone else:** none recorded yet. **Exercised on devnet:** `verify_github`, `fund_from_wallet`, `refund`, `work_orders`, `order_pay`, `tests_mode`, `order_auto_accept`, `top_up`, `single_use_tokens`, `meter_batch`, `meter_seller_claim`, `passkey_funder`, `passkey_fund_relay`, `buyer_page`, `x402_knos_order`, `outcome_not_code`. **Deployed on devnet:** `verify_gitlab`, `key_guardian`, `fund_by_comment`, `pay_on_merge`, `hold_and_bind`, `pause`, `meter_single`, `passkey_payee_wallet`, `upgrade_gate`. Everything else is tested locally, implemented or not built: [the table with the evidence](docs/CAPABILITIES.md) has one row for each capability, from [`docs/capabilities.json`](docs/capabilities.json). Deployed and exercised are counted only at the public program ids; what the 0.3.14 rehearsal ran at staging addresses of its own is in the note of each capability it ran, with its transaction.
 <!-- capabilities:end -->
 
 MIT, all of it. Built by drexthealpha. Its memory engine is [Sibyl](https://sibyllabs.org).

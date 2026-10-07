@@ -31,6 +31,16 @@ ELF = {n: bytes([i + 1]) * 64 + n.encode() for i, n in enumerate(ex.PROGRAMS)}  
 HASH = {n: gate.executable_hash(e).hex() for n, e in ELF.items()}
 SLOT = 412_000_000
 IDS = json.loads((ROOT / "programs-v2" / "program_ids.json").read_text(encoding="utf-8"))
+# The records as they stood before the round at the public ids (docs/capabilities.json, docs/provenance.json and
+# web/upgrades.json of knos-rc 2f3418d4): what these tests start from. `record` has since written the round into the
+# committed ones, and a round, a status or a proposal is tested on the state it is made for.
+BEFORE = ROOT / "tests" / "fixtures" / "before_round"
+BEFORE_FILES = ("docs/capabilities.json", "docs/provenance.json", "web/upgrades.json")
+
+
+def run(*args, **kw):
+    """ex.run against the manifest of before the round: what is below `exercised` there is what a round has to do."""
+    return ex.run(*args, root=BEFORE, **kw)
 
 
 def cluster(runs: dict[str, bytes]):
@@ -47,6 +57,8 @@ def tree(tmp_path: Path) -> Path:
     """A copy of the repository whose feed names the stand-in builds for proposals 3 to 6."""
     root = tmp_path / "repo"
     shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(".git", "__pycache__", "node_modules", "target", ".venv", ".knos-keys", "*.so"))
+    for f in BEFORE_FILES:
+        shutil.copyfile(BEFORE / f, root / f)
     feed = json.loads((root / "web" / "upgrades.json").read_text(encoding="utf-8"))
     for e in feed["entries"]:
         if e["index"] == ex.PROPOSALS.get(e["program"]):
@@ -63,10 +75,10 @@ def ran():
     try:
         # "new" for a program whose test build is of the source that is live, "next" for one this tree changes
         programs = {n: {**ex.simulated_programs()[n], "hash": HASH[n], "slot": SLOT + i} for i, n in enumerate(ex.PROGRAMS)}
-        ev = ex.run(w, ex.new_evidence(w, programs), say=said.append)
+        ev = run(w, ex.new_evidence(w, programs), say=said.append)
         first = json.loads(json.dumps(ev))
         again: list[str] = []
-        ex.run(w, ev, say=again.append)           # a second run sends nothing
+        run(w, ev, say=again.append)           # a second run sends nothing
     finally:
         w.close()
     return first, ev, said, again
@@ -123,7 +135,7 @@ def test_a_second_run_sends_nothing_and_what_has_no_round_says_why(ran):
     assert first["exercises"]["verify_any_issuer"]["status"].startswith("cannot: no issuer other than GitHub and GitLab")
     assert first["exercises"]["supplier_appeal"]["status"] == "needs run: attest.yml" and first["exercises"]["supplier_preflight"]["status"] == "needs run: knos preflight"
     assert not [e for e in first["exercises"].values() if e["status"].startswith("failed")]
-    plan = ex.exercisable()
+    plan = ex.exercisable(BEFORE)
     assert set(c for _f, _p, caps in ex.ROUNDS.values() for c in caps) <= set(plan) and not set(plan) & ex.NOT_ON_CHAIN
 
 
@@ -135,16 +147,16 @@ def test_a_step_that_needs_a_workflow_run_is_written_down_and_picked_up_by_the_n
                     for n in ex.PROGRAMS}
         real = w.find
         w.find = lambda kind, pick, forge, taken: None if kind == "revert" else real(kind, pick, forge, taken)       # the revert's run has not happened yet
-        ev = ex.run(w, ex.new_evidence(w, programs), only="quorum", say=said.append)
+        ev = run(w, ex.new_evidence(w, programs), only="quorum", say=said.append)
         assert ev["exercises"]["order_quorum"]["status"] == "exercised" and ev["exercises"]["order_challenge"] == {"status": "needs run: attest.yml", "round": "quorum"}
         assert any(line.startswith("  NEEDS A RUN of attest.yml: ") and "-f kind=revert" in line for line in said)
         sent = len(ev["rounds"]["quorum"]["transactions"])
         w.find = real
-        ex.run(w, ev, only="quorum", say=said.append)
+        run(w, ev, only="quorum", say=said.append)
         assert ev["exercises"]["order_challenge"]["status"] == ev["exercises"]["warranty_revert"]["status"] == "exercised"
         assert len(ev["rounds"]["quorum"]["transactions"]) == sent + 1          # the one step that was left, and no other again
         # a round whose program has not been upgraded is skipped, with the reason, and nothing of it is sent
-        ex.run(w, ev, only="meter", say=said.append)
+        run(w, ev, only="meter", say=said.append)
         assert ev["exercises"]["meter_batch"]["status"] == "skipped: knos_meter does not run its upgraded build at the public id"
         assert "transactions" not in ev["rounds"]["meter"]
     finally:
@@ -289,7 +301,7 @@ def test_the_fee_asserted_is_the_live_builds_rule_and_not_the_trees_client(ran):
     w = ex.Simulated()
     try:
         w.tokens = lambda account: 0
-        got = ex.run(w, ex.new_evidence(w, ex.simulated_programs()), only="fees", say=lambda line: None)
+        got = run(w, ex.new_evidence(w, ex.simulated_programs()), only="fees", say=lambda line: None)
         assert got["exercises"]["fee_tiers"]["status"].startswith("cannot: the funding wallet ") and "transactions" not in got["rounds"]["fees"]
     finally:
         w.close()
@@ -304,17 +316,17 @@ def test_a_holdback_needs_a_day_and_resume_finishes_it():
         def a_cluster_waits(t, what):          # devnet's clock is not ours to move: what Public.wait_until does past two and a half minutes
             raise ex.Wait(t, what)
         w.wait_until = a_cluster_waits
-        ev = ex.run(w, ex.new_evidence(w, ex.simulated_programs()), only="holdback", say=said.append)
+        ev = run(w, ex.new_evidence(w, ex.simulated_programs()), only="holdback", say=said.append)
         st = ev["rounds"]["holdback"]
         until = st["paid"]["until"]
         assert ev["exercises"]["holdback_release"] == {"status": f"needs time: {ex.day(until)}: the end of the warranty, after which the holdback is released to the payee",
                                                        "round": "holdback"}
         assert st["needs_time"] == until and until - w.now() > 86_000 and (st["paid"]["paid"], st["paid"]["held_back"]) == (4_000_000, 1_000_000)
         assert len(st["transactions"]) == 2 and any("`--resume` after it finishes this round" in line for line in said)
-        ex.run(w, ev, only="holdback", say=said.append)                 # too early still: nothing more is sent
+        run(w, ev, only="holdback", say=said.append)                 # too early still: nothing more is sent
         assert len(st["transactions"]) == 2
         w.wait_until = warp
-        ex.run(w, ev, only="holdback", say=said.append)                 # a day later, `--resume`
+        run(w, ev, only="holdback", say=said.append)                 # a day later, `--resume`
         assert ev["exercises"]["holdback_release"]["status"] == "exercised" and "needs_time" not in st and len(st["transactions"]) == 3
         assert ev["exercises"]["holdback_release"]["signature"] == st["release"]["signature"] and "1.00 reached the payee's account" in ev["exercises"]["holdback_release"]["asserted"][1]
     finally:
@@ -336,8 +348,8 @@ def test_tokens_the_repositorys_own_run_carried_first_are_read_from_the_chain():
                 assert w.submit(tok).get("ok"), "the repository's run carried its token"
             return tok
         w.find = carried_first
-        ev = ex.run(w, ex.new_evidence(w, ex.simulated_programs()), only="quorum", say=said.append)
-        ex.run(w, ev, only="holdback", say=said.append)
+        ev = run(w, ex.new_evidence(w, ex.simulated_programs()), only="quorum", say=said.append)
+        run(w, ev, only="holdback", say=said.append)
         assert not [line for line in said if "FAILED" in line], said
         q, h = ev["rounds"]["quorum"], ev["rounds"]["holdback"]
         assert ev["exercises"]["order_quorum"]["status"] == ev["exercises"]["warranty_revert"]["status"] == "exercised"
@@ -365,7 +377,7 @@ def test_tokens_the_repositorys_own_run_carried_first_are_read_from_the_chain():
         # one GitHub account: the only neutral run the release can start is the funder's, which a quorum does not count
         ev2 = ex.new_evidence(w, ex.simulated_programs())
         ev2["rounds"]["quorum"] = {"round": "quorum", "issue": w.issue(), "payee": o.user(), "wallet": str(wallet), "judge": o.MAINT}
-        ex.run(w, ev2, only="quorum", say=said.append)
+        run(w, ev2, only="quorum", say=said.append)
         q2 = ev2["rounds"]["quorum"]
         assert ev2["exercises"]["order_quorum"]["status"].startswith("cannot: needs a second GitHub account") and q2["refused_neutral"]["actor"] == o.MAINT
         assert "two" not in q2 and ex.pay.read_order(w.account(ex.Pubkey.from_string(q2["fund1"]["order"]))).paid == 0
@@ -383,10 +395,10 @@ def test_a_step_done_outside_is_held_to_the_chain_and_what_it_cannot_show_is_not
     w = ex.Simulated()
     try:
         new = lambda: ex.new_evidence(w, ex.simulated_programs())  # noqa: E731
-        order = ex.run(w, new(), only="expiry", say=said.append)["rounds"]["expiry"]
+        order = run(w, new(), only="expiry", say=said.append)["rounds"]["expiry"]
         real = order["order"]["signature"]              # a transaction of knos_pay that is on this chain
         # the passkey: nothing noted is a guided step, printed exactly; a transaction that never touched knos_passkey is refused
-        got = ex.run(w, new(), only="passkey", say=said.append)
+        got = run(w, new(), only="passkey", say=said.append)
         assert got["exercises"]["passkey_funder"]["status"] == "needs run: the site's Buy page"
         guide = next(line for line in said if line.startswith("  NEEDS A RUN of the site's Buy page: "))
         for press in ("https://drexthealpha.github.io/Knos/#buy", "`Create a passkey wallet`", "`Sign the order with the passkey`", "`Read the order from devnet`",
@@ -395,51 +407,51 @@ def test_a_step_done_outside_is_held_to_the_chain_and_what_it_cannot_show_is_not
         buttons = (ROOT / "web" / "buyer.js").read_text(encoding="utf-8")
         assert all(f">{b}</button>" in buttons for b in ("Create a passkey wallet", "Check the balance", "Sign the order with the passkey", "Copy the comment", "Read the order from devnet"))
         w.fake["passkey"] = {"fund": real}
-        got = ex.run(w, new(), only="passkey", say=said.append)
+        got = run(w, new(), only="passkey", say=said.append)
         assert got["exercises"]["passkey_funder"]["status"] == f"failed: the transaction {real} does not name knos_passkey at its pinned id {IDS['knos_passkey']}"
         w.fake["passkey"] = {"fund": "1" * 87}
-        assert ex.run(w, new(), only="passkey", say=said.append)["exercises"]["buyer_page"]["status"] == f"failed: the cluster has no transaction {'1' * 87}"
+        assert run(w, new(), only="passkey", say=said.append)["exercises"]["buyer_page"]["status"] == f"failed: the cluster has no transaction {'1' * 87}"
         seen = w.landed
         w.landed = lambda sig: {**seen(sig), "accounts": [*seen(sig)["accounts"], IDS["knos_passkey"]]}        # as if the page's transaction had been one of knos_passkey
         w.fake["passkey"] = {"fund": real}
-        got = ex.run(w, new(), only="passkey", say=said.append)
+        got = run(w, new(), only="passkey", say=said.append)
         assert {got["exercises"][c]["signature"] for c in ("passkey_funder", "passkey_fund_relay", "buyer_page")} == {real}
         assert len(got["exercises"]["passkey_funder"]["asserted"]) == 1
         # how the passkey was had is written beside it when the note says (devnet's round used a virtual authenticator)
         w.fake["passkey"] = {"fund": real, "how": "the passkey was a Chromium virtual authenticator"}
-        got = ex.run(w, new(), only="passkey", say=said.append)
+        got = run(w, new(), only="passkey", say=said.append)
         assert got["exercises"]["buyer_page"]["asserted"][-1] == "the passkey was a Chromium virtual authenticator"
         w.landed = seen
         # an appeal: its comment must be on the pull request and answered; upheld moves no stage, overturned needs its payment
         pull = "drexthealpha/knos-playground#7"
         w.fake["appeal"] = {"pull": pull, "fund": real, "answer": "upheld"}
-        assert ex.run(w, new(), only="appeal", say=said.append)["exercises"]["supplier_appeal"]["status"] == f"failed: {pull} has no `/knos appeal <reason>` comment"
+        assert run(w, new(), only="appeal", say=said.append)["exercises"]["supplier_appeal"]["status"] == f"failed: {pull} has no `/knos appeal <reason>` comment"
         w.fake["comments"] = {pull: ["Rejected: the change touches a protected path.", "/knos appeal the path is listed as allowed"]}
-        assert ex.run(w, new(), only="appeal", say=said.append)["exercises"]["supplier_appeal"]["status"] == "needs run: attest.yml"
+        assert run(w, new(), only="appeal", say=said.append)["exercises"]["supplier_appeal"]["status"] == "needs run: attest.yml"
         w.fake["comments"][pull].append("The neutral judge ran the checks again: the rejection stands.")
-        got = ex.run(w, new(), only="appeal", say=said.append)
+        got = run(w, new(), only="appeal", say=said.append)
         assert got["exercises"]["supplier_appeal"]["status"] == "ran: the neutral judge upheld the refusal" and "stage does not move" in got["exercises"]["supplier_appeal"]["note"]
         assert [t["signature"] for t in got["rounds"]["appeal"]["transactions"]] == [real]
         w.fake["appeal"] = {"pull": pull, "fund": real, "answer": "overturned"}
-        assert ex.run(w, new(), only="appeal", say=said.append)["exercises"]["supplier_appeal"]["status"].startswith("failed: an overturned refusal is paid")
+        assert run(w, new(), only="appeal", say=said.append)["exercises"]["supplier_appeal"]["status"].startswith("failed: an overturned refusal is paid")
         w.fake["appeal"]["paid"] = order["top_up"]["signature"]
-        got = ex.run(w, new(), only="appeal", say=said.append)
+        got = run(w, new(), only="appeal", say=said.append)
         assert got["exercises"]["supplier_appeal"]["status"] == "exercised" and got["exercises"]["supplier_appeal"]["signature"] == order["top_up"]["signature"]
         # a preflight: the memory engine must be on and must recall a refusal under the same terms
         w.fake["preflight"] = {"issue": "drexthealpha/knos-playground#3", "tree": str(tmp_path)}
         w.fake["report"] = {"terms_hash": "ab" * 32, "memory": {"on": False, "said": "Memory is off: the memory engine (sibyl-memory-client) is not installed."}}
-        assert ex.run(w, new(), only="preflight", say=said.append)["exercises"]["supplier_preflight"]["status"].startswith("failed: the memory engine was off")
+        assert run(w, new(), only="preflight", say=said.append)["exercises"]["supplier_preflight"]["status"].startswith("failed: the memory engine was off")
         w.fake["report"]["memory"] = {"on": True, "warnings": []}
-        assert "recalled no earlier refusal under these terms" in ex.run(w, new(), only="preflight", say=said.append)["exercises"]["supplier_preflight"]["status"]
+        assert "recalled no earlier refusal under these terms" in run(w, new(), only="preflight", say=said.append)["exercises"]["supplier_preflight"]["status"]
         w.fake["report"]["memory"]["warnings"] = [{"code": "path.protected", "path": ".github/workflows/ci.yml", "count": 1, "yours": True,
                                                     "said": "1 earlier submission was refused for touching .github/workflows/ci.yml: your change touches it too."}]
-        got = ex.run(w, new(), only="preflight", say=said.append)
+        got = run(w, new(), only="preflight", say=said.append)
         assert got["exercises"]["supplier_preflight"]["status"] == "ran: a remembered refusal was recalled"
         assert got["exercises"]["supplier_preflight"]["asserted"] == ["terms abababababab: 1 earlier submission was refused for touching .github/workflows/ci.yml: your change touches it too."]
         # a token of the cluster that the verifier's rule refuses is never sent: a new run is asked for
         good = w.outcome()
         w.fake["outcome"] = {**good, "audience": "knos:something-else"}
-        got = ex.run(w, new(), only="issuer", say=said.append)
+        got = run(w, new(), only="issuer", say=said.append)
         assert got["exercises"]["outcome_not_code"]["status"] == "needs run: outcome-k8s.yml" and "transactions" not in got["rounds"]["issuer"]
     finally:
         w.close()
