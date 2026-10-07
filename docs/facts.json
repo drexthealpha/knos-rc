@@ -474,15 +474,6 @@
   },
   {
    "say": [
-    "2,620"
-   ],
-   "what": "tests that passed in the release's own run of the suite (`pytest -q` on the release commit). Measured: pytest (ubuntu-latest, 3.12) of tests.yml run 37507234421 on drexthealpha/knos-rc 36024756773d62888e5ebcb24f5d4afed0fff24e, the staging tree of this release: 2620 passed, 46 skipped, https://github.com/drexthealpha/knos-rc/actions/runs/37507234421",
-   "json": "docs/bench.json",
-   "path": "release.tests_passing.value",
-   "equals": 2620
-  },
-  {
-   "say": [
     "16,024,654"
    ],
    "what": "inputs the fuzzer ran against the claim parser in the latest nightly run of program.yml: `executions` and `source` in the fuzz.json of its `fuzz-claims` artifact. Measured: libFuzzer through cargo-fuzz on the claim parser (target claims), 300 seconds, commit 519dffc, https://github.com/drexthealpha/knos-rc/actions/runs/37185319408",
@@ -1005,6 +996,15 @@
    "json": "docs/bench.json",
    "path": "devnet.stats.latency.merge_to_paid.count",
    "equals": 42
+  },
+  {
+   "say": [
+    "3,173"
+   ],
+   "what": "tests that passed in the release's own run of the suite (`pytest -q` on the release commit). Measured: pytest (ubuntu-latest, 3.12) of tests.yml run 37582988812 on drexthealpha/knos-rc d20ac1982bdd7c44ba37645ffb47eda114fa4032, the staging tree of this release: 3173 passed, 50 skipped, https://github.com/drexthealpha/knos-rc/actions/runs/37582988812",
+   "json": "docs/bench.json",
+   "path": "release.tests_passing.value",
+   "equals": 3173
   }
  ]
 }
