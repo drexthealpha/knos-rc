@@ -216,9 +216,17 @@ def on_event(run, name: str, event: dict) -> dict:
 def sweep(run, repo: str) -> list[dict]:
     """Every open issue and pull request of `repo`, newest change first: the ones that claim a payment and have no
     answer get one. This is how a pull request from a fork is answered: its own event carries a read-only token."""
+    return _sweep(run, repo)[1]
+
+
+def _sweep(run, repo: str) -> tuple[int | None, list[dict]]:
+    """(how many open issues and pull requests were read, what was done for each that claims a payment). The count
+    is None when the listing could not be read whole: GitHub did not answer, or there were over 300."""
     from . import terms
     rp = run.github(f"repos/{repo}")
-    rows = terms.pages(f"repos/{repo}/issues?state=open&sort=updated&direction=desc", run.github, cap=3) or []
+    rows = terms.pages(f"repos/{repo}/issues?state=open&sort=updated&direction=desc", run.github, cap=3)
+    if rows is None:
+        return None, []
     out = []
     for item in rows:
         if not isinstance(item, dict) or _ours(item.get("user"), item.get("author_association")) or bot(item.get("user")):
@@ -228,7 +236,7 @@ def sweep(run, repo: str) -> list[dict]:
             continue
         closes = _closes(run, repo, int(item["number"])) if "pull_request" in item else []
         out.append({"number": int(item["number"]), **handle(run, repo, int(rp["id"]), item, texts, closes)})
-    return out
+    return len(rows), out
 
 
 def main(argv: list[str] | None = None, run=None) -> int:
@@ -244,7 +252,14 @@ def main(argv: list[str] | None = None, run=None) -> int:
     if args.event and not args.sweep:
         event = json.loads(Path(args.event).read_text(encoding="utf-8"))
     run = run or flow.Run(args.repo, event)
-    got = sweep(run, args.repo) if args.sweep else [on_event(run, args.event_name, event)]
+    if args.sweep:
+        read, got = _sweep(run, args.repo)
+        if read is None:    # a sweep that read nothing must not look like one that found nothing to answer
+            print("claims: nothing (the open issues and pull requests could not be read whole)")
+            return 1
+        print(f"claims: {read} read (open issues and pull requests), {len(got)} with a claim of payment")
+    else:
+        got = [on_event(run, args.event_name, event)]
     for r in got:       # the job's log: what was done and why, never the claim's words
         print(f"claims: {('#' + str(r['number']) + ' ') if 'number' in r else ''}{r['did']} ({r['why']})")
     return 0

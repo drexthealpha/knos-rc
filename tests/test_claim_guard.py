@@ -203,4 +203,27 @@ def test_the_command_line_reads_an_event_file_and_prints_no_word_of_the_claim(tm
     out = capsys.readouterr().out
     assert out == "claims: answered (/attempt, /claim, /opire, an EVM address, a bounty platform)\n" and len(hub.comments[51]) == 1
     assert claim_guard.main(["--sweep", "--repo", REPO], run=_run(hub)) == 0
-    assert capsys.readouterr().out == "claims: #51 nothing (answered already)\n"
+    assert capsys.readouterr().out == "claims: 2 read (open issues and pull requests), 1 with a claim of payment\nclaims: #51 nothing (answered already)\n"
+
+
+def test_a_sweep_that_cannot_read_the_listing_says_so_and_fails(capsys):
+    """Run on a timer, a sweep whose listing GitHub did not give must not end green and silent, like one that found
+    nothing to answer: it says it read nothing and exits 1. The same when the listing is cut short."""
+    class Down(Hub):
+        def __call__(self, path, data=None, method=None):
+            if "issues?state=open" in path:
+                raise OSError("HTTP Error 502: Bad Gateway")
+            return super().__call__(path, data, method)
+    hub = Down(LOG, _pull())
+    assert claim_guard.main(["--sweep", "--repo", REPO], run=_run(hub)) == 1
+    assert capsys.readouterr().out == "claims: nothing (the open issues and pull requests could not be read whole)\n" and hub.sent == []
+    assert claim_guard.sweep(_run(hub), REPO) == []
+
+    class Many(Hub):        # 300 open items and more: the listing is cut short, so it is not read whole
+        def __call__(self, path, data=None, method=None):
+            if "issues?state=open" in path:
+                return [dict(TASK, number=1000 + n) for n in range(100)]
+            return super().__call__(path, data, method)
+    hub = Many(LOG, _pull())
+    assert claim_guard.main(["--sweep", "--repo", REPO], run=_run(hub)) == 1 and hub.sent == []
+    assert capsys.readouterr().out == "claims: nothing (the open issues and pull requests could not be read whole)\n"
