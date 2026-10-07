@@ -361,6 +361,17 @@ def test_status_lists_the_board_and_the_runs_that_wait_and_approves_nothing():
     assert code == 0 and len(forge.asked) == asked and json.loads(said) == {"v": 1, "read": False, "repository": playground.REPO, "note": tb.FIRST, "tasks": []}
 
 
+def test_the_sites_build_writes_the_empty_board_without_solders():
+    """scripts/build_site.sh runs `status --json --empty` with a bare python3 (tests.yml's web job installs no package):
+    the script must not import knos.settle.v2.pay, and so solders, to say it read nothing."""
+    blocked = ("import runpy, sys; sys.modules['solders'] = None; sys.argv = [sys.argv[1], 'status', '--json', '--empty']; "
+               "runpy.run_path(sys.argv[0], run_name='__main__')")
+    run = subprocess.run([sys.executable, "-c", blocked, str(ROOT / "scripts" / "task_board.py")], capture_output=True, text=True, encoding="utf-8",
+                         env={**os.environ, "PYTHONPATH": ""}, timeout=60)
+    assert run.returncode == 0, run.stderr
+    assert json.loads(run.stdout) == {"v": 1, "read": False, "repository": playground.REPO, "note": tb.FIRST, "tasks": []}
+
+
 # ---- the repository a release publishes keeps what the board wrote --------------------------------------------------------------
 def test_the_playground_holds_every_tasks_starting_file_and_a_rebuild_keeps_the_boards_checks(tmp_path):
     small = _script("small_repos")

@@ -86,6 +86,17 @@ def _src():
     return playground, accept, judge, pay
 
 
+def _playground():
+    """knos.playground alone, from this checkout: what every command needs. `status --empty` runs in the site's build,
+    where solders (knos.settle.v2.pay) is not installed, so nothing else is imported before a command needs it."""
+    sys.path.insert(0, str(ROOT / "src"))
+    try:
+        from knos import playground
+    finally:
+        sys.path.remove(str(ROOT / "src"))
+    return playground
+
+
 # ---- the tasks ----------------------------------------------------------------------------------------------------------------
 def load(slug: str) -> dict:
     """tasks/<slug>/task.json, checked against the schema. Raises Stop with the first thing that is wrong."""
@@ -575,8 +586,8 @@ def status_words(s: dict) -> list[str]:
 
 def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc, now: Callable[[], float] = time.time, say: Callable[[str], None] = print,
          sleep: Callable[[float], None] = time.sleep) -> int:
-    playground = _src()[0]
-    ap = argparse.ArgumentParser(description="Keep funded test tasks open in the playground. Test USDC, no monetary value.")
+    playground = _playground()
+    ap =argparse.ArgumentParser(description="Keep funded test tasks open in the playground. Test USDC, no monetary value.")
     sub = ap.add_subparsers(dest="command", required=True)
     for name, text in (("plan", "what `open` would do"), ("open", "open and fund tasks up to the target; --apply sends it"), ("status", "the board, and runs that wait for approval")):
         one = sub.add_parser(name, help=text)
