@@ -2764,10 +2764,11 @@ const BAL = await k.balance(7000001, WALLET, USDC), BALTOK = await k.baltok(BAL)
   check("upgrade: every program the multisig holds is named, so a proposal for the meter or the passkey wallet is in the banner", JSON.stringify(up.programNames(ids)) === JSON.stringify({ [ids.knos_oidc]: "knos_oidc", [ids.knos_pay]: "knos_pay", [ids.knos_meter]: "knos_meter", [ids.knos_passkey]: "knos_passkey" })
     && JSON.stringify(up.programNames({ knos_pay: "P" })) === JSON.stringify({ P: "knos_pay" }));
   const feed = JSON.parse(readFileSync(join(root, "upgrades.json"), "utf8")), xml = readFileSync(join(root, "upgrades.xml"), "utf8");
-  const now36 = feed.entries.find((e) => e.index === 3)?.status;          // pending until proposals 3 to 6 executed (7 October), executed after
-  check("upgrade feed: the site's file lists proposals 3 to 6 as one (pending, or executed) and 1 and 2 withdrawn, and the Atom feed says the same", ["pending", "executed"].includes(now36)
-    && feed.pending === (now36 === "pending" ? 4 : 0) && JSON.stringify(feed.entries.map((e) => [e.index, e.program, e.status])) === JSON.stringify([[6, "knos_passkey", now36], [5, "knos_meter", now36], [4, "knos_pay", now36], [3, "knos_oidc", now36], [2, "knos_pay", "replaced"], [1, "knos_oidc", "replaced"]])
-    && feed.entries.every((e) => xml.includes(`upgrade proposal ${e.index} is ${e.status}`)) && (xml.match(/<entry>/g) || []).length === 6 && feed.entries.every((e) => e.program_address === ids[e.program]));
+  const now78 = feed.entries.find((e) => e.index === 8)?.status;          // pending until proposals 7 and 8 execute (9 October), executed after
+  check("upgrade feed: the site's file lists proposals 7 and 8 as one (pending, or executed), 3 to 6 executed and 1 and 2 withdrawn, and the Atom feed says the same", ["pending", "executed"].includes(now78)
+    && feed.pending === (now78 === "pending" ? 2 : 0) && JSON.stringify(feed.entries.map((e) => [e.index, e.program, e.status])) === JSON.stringify([[8, "knos_pay", now78], [7, "knos_oidc", now78],
+      [6, "knos_passkey", "executed"], [5, "knos_meter", "executed"], [4, "knos_pay", "executed"], [3, "knos_oidc", "executed"], [2, "knos_pay", "replaced"], [1, "knos_oidc", "replaced"]])
+    && feed.entries.every((e) => xml.includes(`upgrade proposal ${e.index} is ${e.status}`)) && (xml.match(/<entry>/g) || []).length === 8 && feed.entries.every((e) => e.program_address === ids[e.program]));
   const st = await import(pathToFileURL(join(root, "statements.js")).href);
   const scope = { type: "knos.audit-export", version: 1, program: ids.knos_pay, owner_id: 5001, from: "2026-09-01", to: "2026-09-30", wallets: "", partial: 0 };
   const row = Object.fromEntries(st.AUDIT_COLUMNS.filter((c) => !["seq", "prev"].includes(c)).map((c) => [c, c.endsWith("_units") ? 0 : c === "currency" ? "test USDC" : ""]));
