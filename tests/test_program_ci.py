@@ -378,6 +378,34 @@ def test_the_verifiers_two_targets_are_fuzzed_nightly_for_five_minutes_each_and_
     assert not [name for name, other in doc["jobs"].items() if name != "fuzz-claims" and "nightly" in str(other)]
 
 
+def test_every_kani_harness_of_knos_pay_runs_in_a_job_and_none_is_let_off_by_its_time():
+    """Every `#[kani::proof]` of programs-v2/knos_pay/src/proofs.rs is named by exactly one Kani step of program.yml
+    (`--exact --harness`), so a harness added, renamed or left out is found here. The fee-bounds harness, which did not
+    finish in 30 minutes (run 37569582253), has a job of its own with the hosted runner's 360 minutes; its step stops
+    first and fails, and nothing there lets a failure or the limit pass."""
+    from _ghexpr import runs
+    doc = _doc()
+    proofs = (ROOT / "programs-v2" / "knos_pay" / "src" / "proofs.rs").read_text(encoding="utf-8")
+    harnesses = re.findall(r"#\[kani::proof\]\s*(?:#\[[^\]]*\]\s*)*fn (\w+)\(", proofs)
+    assert len(harnesses) == proofs.count("#[kani::proof]") >= 5
+    named: list[str] = []
+    for name, job in doc["jobs"].items():
+        for step in job.get("steps", []):
+            if "kani-github-action" in str(step.get("uses", "")) and step["with"]["working-directory"] == "programs-v2/knos_pay":
+                args = step["with"]["args"].split()
+                assert "--exact" in args and "--harness" in args, name          # by name, or a harness could hide in "every"
+                named += [args[i + 1] for i, a in enumerate(args) if a == "--harness"]
+                assert "continue-on-error" not in step and "continue-on-error" not in job, name
+    assert sorted(named) == sorted(harnesses) and len(named) == len(set(named))
+    fee = "an_orders_fee_is_between_its_floor_and_the_one_rate_for_every_amount"
+    long = doc["jobs"]["kani-fee-bounds"]
+    [step] = [s for s in long["steps"] if "kani-github-action" in str(s.get("uses", ""))]
+    assert step["with"]["args"].split()[-2:] == ["--harness", fee] and step["with"]["args"].count("--harness") == 1
+    assert long["timeout-minutes"] == 360 and step["timeout-minutes"] < long["timeout-minutes"] and "needs" not in long
+    assert step["with"]["kani-version"] == doc["jobs"]["kani"]["steps"][1]["with"]["kani-version"]
+    for event, runs_it in (("schedule", True), ("workflow_dispatch", True), ("push", False), ("pull_request", False)):
+        assert runs(long["if"], {"github": {"event_name": event, "ref": "refs/heads/main"}}) is runs_it, event
+
 def test_the_arithmetic_of_an_orders_money_is_proved_nightly_and_tested_at_random_on_every_push():
     from _ghexpr import runs
     doc = _doc()
@@ -387,12 +415,12 @@ def test_the_arithmetic_of_an_orders_money_is_proved_nightly_and_tested_at_rando
         assert runs(job["if"], {"github": {"event_name": event, "ref": "refs/heads/main"}}) is runs_it, event
     checkout, kani, fees = job["steps"]
     # the fee's bounds, on the program's own lines copied out as text: the same verifier, every harness of that crate
-    assert fees["uses"] == kani["uses"] and fees["with"] == {**kani["with"], "working-directory": "programs-v2/fee_proofs"}
+    assert fees["uses"] == kani["uses"] and fees["with"] == {**kani["with"], "working-directory": "programs-v2/fee_proofs", "args": "--output-format terse"}
     assert "#[kani::proof]" in (ROOT / "programs-v2" / "fee_proofs" / "src" / "lib.rs").read_text(encoding="utf-8")
     assert checkout["uses"] == _pin("actions/checkout@v7") and kani["uses"] == _pin("model-checking/kani-github-action@v1.1")
     # a named version of the verifier, in the crate whose arithmetic it proves; a harness that fails fails the step
     assert re.fullmatch(r"\d+\.\d+\.\d+", kani["with"]["kani-version"]) and kani["with"]["working-directory"] == "programs-v2/knos_pay"
-    assert set(kani["with"]) == {"kani-version", "working-directory", "args"} and "--harness" not in kani["with"]["args"]    # every harness
+    assert set(kani["with"]) == {"kani-version", "working-directory", "args"}
     crate = ROOT / "programs-v2" / "knos_pay"
     proofs, lib = (crate / "src" / "proofs.rs").read_text(encoding="utf-8"), (crate / "src" / "lib.rs").read_text(encoding="utf-8")
     # the proofs are in no build of the program: one line of lib.rs, the last, behind cfg(kani) or cfg(test)
