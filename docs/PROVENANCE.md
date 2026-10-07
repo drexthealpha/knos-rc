@@ -33,6 +33,12 @@ proposal's number, the slot in which the build went live at the public id, and t
 there. The last two are filled by `python scripts/exercise_public.py record`, and only for a program whose hash on
 chain is the proposal's build: until then they say so.
 
+knos_oidc and knos_pay have a second row in that table: the build this release proposes for them, as one set. Its
+source commit and its verified build hash are what `upgrade_gate` recorded for the build the release run made
+(`python scripts/exercise_public.py propose` writes them into `docs/provenance.json`, `next`, and
+`python scripts/provenance.py --write` fills the row). Until that run has made the build the row says **MISSING**,
+and until the proposal has executed it says `not live yet`.
+
 What the chain does not show: that the build does what its source says (that is what the tests, the fuzzing and the
 proofs are for), or that anyone outside Knos has followed it. Everything here is devnet.
 
@@ -59,6 +65,7 @@ What the public id ran when docs/provenance.json was read: `71f8fe068c94ce69262e
 | source commit | verified build hash | program id | proposal | slot it went live | exercise transactions |
 |---|---|---|---|---|---|
 | `6eb81dd152bd6cf752ee6c151b692f4a08815ae5` | `3758348d1051feab739b4dc776ffb597fe9ecef7d50e93abd3c460fa5e9f7d4d` | `FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W` | 3 | not live yet | none: the public id does not run this build yet |
+| MISSING (the release run's verified build is not recorded yet) | MISSING (the release run's verified build is not recorded yet) | `FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W` | not proposed yet | not live yet | none: the public id does not run this build yet (not built yet) |
 
 | # | link | what is recorded | recorded in |
 |---|---|---|---|
@@ -81,6 +88,7 @@ What the public id ran when docs/provenance.json was read: `75d7eb959f75575f6816
 | source commit | verified build hash | program id | proposal | slot it went live | exercise transactions |
 |---|---|---|---|---|---|
 | `6eb81dd152bd6cf752ee6c151b692f4a08815ae5` | `2ed301a2bc99fc6e58abc0dcb767cb35e640898a75f154b2d90c09171143d507` | `5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k` | 4 | not live yet | none: the public id does not run this build yet |
+| MISSING (the release run's verified build is not recorded yet) | MISSING (the release run's verified build is not recorded yet) | `5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k` | not proposed yet | not live yet | none: the public id does not run this build yet (not built yet) |
 
 | # | link | what is recorded | recorded in |
 |---|---|---|---|

@@ -434,7 +434,7 @@
      "names": "test_two_distinct_judges_pay_and_two_tokens_of_one_kind_count_once"
     }
    },
-   "note": "Rehearsed on a staging deployment of the knos_pay 2.1 build (signature 2R5DKU5gCiuppGkXpNnegZfeCVfPbHpWTWTcj9QYzE3nAc4P5jCMaNPjGJUA1fwwzwn37Wm97bD62CKBG6DgCxuT; docs/CAPABILITIES.md, \"The 0.3.14 rehearsal on devnet\"), not on the public program ids: the public knos_pay and knos_oidc carry it only once their upgrade to 2.1 has executed, and no transaction there is recorded yet. A `quorum 2` order recorded its first judge, then paid on the second."
+   "note": "Rehearsed on a staging deployment of the knos_pay 2.1 build (signature 2R5DKU5gCiuppGkXpNnegZfeCVfPbHpWTWTcj9QYzE3nAc4P5jCMaNPjGJUA1fwwzwn37Wm97bD62CKBG6DgCxuT; docs/CAPABILITIES.md, \"The 0.3.14 rehearsal on devnet\"), not on the public program ids: the public knos_pay and knos_oidc carry it only once their upgrade to 2.1 has executed, and no transaction there is recorded yet. A `quorum 2` order recorded its first judge, then paid on the second. The knos_pay 2.2 build of this tree counts judges by repository owner and binds their markers to the order's funding (`quorum_by_owner`): tested, not deployed."
   },
   {
    "id": "hermetic_judge",
@@ -662,19 +662,19 @@
   },
   {
    "id": "fee_tiers",
-   "what": "An order's fee is marginal in three tiers, paid by the funder on top, with a floor and no maximum.",
+   "what": "Under knos_pay 2.1 an order's fee is marginal in three tiers, paid by the funder on top, with a floor and no maximum.",
    "stage": "tested",
    "evidence": {
     "implemented": {
-     "path": "programs-v2/knos_pay/src/lib.rs",
-     "names": "pub fn order_fee"
+     "path": "src/knos/fees.py",
+     "names": "def rule"
     },
     "tested": {
-     "test": "tests/test_order_chain.py",
-     "names": "test_a_wallet_funds_an_order_for_any_issue_and_pays_the_fee_on_top"
+     "test": "tests/test_fees.py",
+     "names": "test_the_014_fee_is_kept_exactly_as_the_public_program_charges_it"
     }
    },
-   "note": "Rehearsed on a staging deployment of the knos_pay 2.1 build (signature 2CuqkJsNDMgE4eGXkEEemq11tS6JNVu5QTyAjRQcASJANVHKYGqZ2pbDAgzkso4qSmM5ZwtXGHKnLCTppkVi4eXy; docs/CAPABILITIES.md, \"The 0.3.14 rehearsal on devnet\"), not on the public program ids: the public knos_pay and knos_oidc carry it only once their upgrade to 2.1 has executed, and no transaction there is recorded yet. An order of 5,000 test USDC was funded with a fee of 65 on top, and one of 100 with 2.50."
+   "note": "Rehearsed on a staging deployment of the knos_pay 2.1 build (signature 2CuqkJsNDMgE4eGXkEEemq11tS6JNVu5QTyAjRQcASJANVHKYGqZ2pbDAgzkso4qSmM5ZwtXGHKnLCTppkVi4eXy; docs/CAPABILITIES.md, \"The 0.3.14 rehearsal on devnet\"), not on the public program ids: the public knos_pay and knos_oidc carry it only once their upgrade to 2.1 has executed, and no transaction there is recorded yet. An order of 5,000 test USDC was funded with a fee of 65 on top, and one of 100 with 2.50. This is the fee the public program charges until knos_pay 2.2 is live; the 2.2 build of this tree replaces it with one rate (`fee_one_rate`)."
   },
   {
    "id": "single_use_tokens",
@@ -2206,7 +2206,7 @@
   },
   {
    "id": "billing_rule",
-   "what": "A month's invoice is the subscription plus the greater of the Meter and Verify charges, never both for one activity; Verify is capped at 250 USD a deliverable, and every line names the rule that produced it.",
+   "what": "A month's invoice is Control, Meter, Acceptance on value reconciled off chain and record lookups; value released on chain is never charged again, and every line names the rule that produced it.",
    "stage": "tested",
    "evidence": {
     "implemented": {
@@ -2215,7 +2215,7 @@
     },
     "tested": {
      "test": "tests/test_billing.py",
-     "names": "test_the_worked_example_month_by_month_adds_up_to_130_000"
+     "names": "test_the_worked_customer_month_by_month_adds_up_to_130_240"
     }
    },
    "note": "Arithmetic on example months. Nobody has been invoiced: nothing has been sold and there is no legal entity to invoice from."
@@ -2318,7 +2318,7 @@
   },
   {
    "id": "fee_bounds_proofs",
-   "what": "Kani proves on the program's own lines, tier by tier and with one part left out, that an order's fee is at least 0.40, is 0.40 or at most 2.5% of the amount, and adds to the amount in a u64.",
+   "what": "Kani proves on the program's own lines that an order's fee is at least 0.05, is 0.05 or at most 0.30% of the amount, and adds to the amount in a u64.",
    "stage": "tested",
    "evidence": {
     "implemented": {
@@ -2330,7 +2330,7 @@
      "names": "test_the_parts_cover_every_amount_and_rate_and_the_status_is_what_they_say"
     }
    },
-   "note": "For amounts from 0 to 100,000.00 at 6 decimals and rates from 50 to 250 basis points. docs/kani.json `fee_proofs`, status `not verified` for the whole statement: verified per part for 0 to 1,000.00 at rates 50..=249, above 1,000.00 to 50,000.00 and above 50,000.00 to 100,000.00 at rates 50..=250; at 0 to 1,000.00 and rate 250, `at least 0.40; adds to the amount in a u64` is verified and `0.40 or at most 2.5% of the amount` is not verified (no harness states it; it is tested at each of the 1,000,000,001 amounts instead). Kani 0.68.0, each harness alone within 150 seconds. The test holds the record to the source's hash: no test of this repository runs Kani itself."
+   "note": "For amounts from 0 to 100,000.00 at 6 decimals and rates from 10 to 30 basis points, one rate and no tiers (the knos_pay 2.2 build of this tree, not deployed). docs/kani.json `fee_proofs`, status `verified but for one bound at one rate`; its `parts` say which statement is verified over which amounts and rates. The test holds the record to the source's hash: no test of this repository runs Kani itself."
   },
   {
    "id": "adversarial_replays",
@@ -2375,6 +2375,258 @@
     }
    },
    "note": "Outside key holders: 0. One person, the founder, holds every member key of both multisigs (docs/KEYHOLDER.md, docs/GOVERNANCE.md); nobody has asked."
+  },
+  {
+   "id": "fee_one_rate",
+   "what": "An order's and a job's fee is one rate: 0.30% of the amount, floor 0.05, no maximum and no tiers; a Plan lowers it to no less than 0.10%.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "programs-v2/knos_pay/src/lib.rs",
+     "names": "pub fn order_fee"
+    },
+    "tested": {
+     "test": "tests/test_fees.py",
+     "names": "test_the_018_fee_is_one_rate_with_a_floor_and_is_pay_pys_own_numbers"
+    }
+   },
+   "note": "In the knos_pay 2.2 build of this tree: tested in the simulator, not deployed. The build is proposed after the release and is not live at the public id until that proposal executes (web/upgrades.json). Until then the public program charges the 0.3.14 fee (`fee_tiers`); orders funded before the upgrade keep the rate fixed at their funding."
+  },
+  {
+   "id": "quorum_by_owner",
+   "what": "A quorum counts judges by repository owner, the neutral judge differs from both sides in owner and actor, and a judge's marker counts only for the funding of the order it was made under.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "programs-v2/knos_pay/src/order_terms.rs",
+     "names": "pub fn quorum"
+    },
+    "tested": {
+     "test": "programs-v2/handlers/tests/adversarial.rs",
+     "names": "the_same_owner_behind_two_repositories_is_refused_as_a_second_judge_and_different_owners_are_accepted"
+    }
+   },
+   "note": "In the knos_pay 2.2 build of this tree: tested in the simulator, not deployed. The build is proposed after the release and is not live at the public id until that proposal executes (web/upgrades.json). What the program cannot know: that two accounts are two people."
+  },
+  {
+   "id": "presentation_grace",
+   "what": "An order may give a token issued by its deadline a grace in which it can still be presented; the refund follows when no such token can live.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "programs-v2/knos_pay/src/order_terms.rs",
+     "names": "grace"
+    },
+    "tested": {
+     "test": "programs-v2/handlers/tests/adversarial.rs",
+     "names": "the_grace_ends_when_no_token_issued_by_the_deadline_can_live_and_the_refund_follows_at_once"
+    }
+   },
+   "note": "In the knos_pay 2.2 build of this tree: tested in the simulator, not deployed. The build is proposed after the release and is not live at the public id until that proposal executes (web/upgrades.json)."
+  },
+  {
+   "id": "commitment_format2",
+   "what": "A batch's commitment (format 2) hashes each complete canonical event, so swapping which of two equal-priced evaluations was accepted changes the root.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/ledger.py",
+     "names": "def merkle_root2"
+    },
+    "tested": {
+     "test": "tests/test_ledger_format2.py",
+     "names": "test_the_swap_keeps_the_root_in_format_1_and_changes_it_in_format_2"
+    }
+   },
+   "note": "Tested on ledger files; no format 2 batch is anchored on the public ids. knos_meter is unchanged: the root is opaque to the program."
+  },
+  {
+   "id": "supplier_record",
+   "what": "A supplier's public record is one file: each deliverable counted once, with the evidence behind every count.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/record_page.py",
+     "names": "def build"
+    },
+    "tested": {
+     "test": "tests/test_record_page.py",
+     "names": "test_a_record_counts_the_log_once_a_deliverable_and_lists_the_evidence_behind_every_count"
+    }
+   },
+   "note": "The committed records are cut from the public index of agent pull requests; no supplier outside Knos has a record of paid work."
+  },
+  {
+   "id": "record_badge",
+   "what": "A badge is drawn from a supplier's record, states its sample and is green only for accepted work.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/record_page.py",
+     "names": "def badge_svg"
+    },
+    "tested": {
+     "test": "tests/test_record_page.py",
+     "names": "test_the_badge_is_drawn_from_the_record_states_its_sample_and_is_green_only_for_accepted_work"
+    }
+   },
+   "note": "Nobody outside Knos shows one."
+  },
+  {
+   "id": "invoice_receipt",
+   "what": "A verified receipt becomes one page to attach to an invoice, with the file that proves it.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/record_page.py",
+     "names": "def invoice_receipt"
+    },
+    "tested": {
+     "test": "tests/test_record_page.py",
+     "names": "test_the_receipt_for_an_invoice_is_one_page"
+    }
+   },
+   "note": "No invoice has been sent with one."
+  },
+  {
+   "id": "supplier_install",
+   "what": "One line in a supplier's repository runs the free check on every pull request, posts once and attaches the receipt.",
+   "stage": "implemented",
+   "evidence": {
+    "implemented": {
+     "path": ".github/workflows/supplier.yml",
+     "names": "knos supplier check"
+    }
+   },
+   "note": "A reusable workflow called at a release's tag; it has not run in a repository outside Knos."
+  },
+  {
+   "id": "terms3_format",
+   "what": "Knos Terms 3 is a versioned document that answers ten questions; a file missing one is refused by name, and two versions diff by meaning.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/terms3.py",
+     "names": "def validate"
+    },
+    "tested": {
+     "test": "tests/test_terms3.py",
+     "names": "test_a_file_missing_a_field_is_refused_and_the_refusal_names_it"
+    }
+   },
+   "note": "`knos terms verify` and `knos terms diff` read it. Funding does not enforce a terms 3 document yet."
+  },
+  {
+   "id": "terms3_proposed",
+   "what": "Terms 3 are proposed from a repository's own record: the checks that passed on every recent merge, its test directories and its code owners.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/propose_terms.py",
+     "names": "def propose"
+    },
+    "tested": {
+     "test": "tests/test_propose_terms.py",
+     "names": "test_the_checks_that_passed_on_every_recent_merge_decide_and_the_others_are_said"
+    }
+   },
+   "note": "Tested on recorded answers of GitHub's API. A repository with no merge in 30 days gets no proposal."
+  },
+  {
+   "id": "provisional_decision",
+   "what": "A decision is given the moment the evidence arrives, as a provisional receipt that never authorises payment; the final receipt names the one it supersedes.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/decide.py",
+     "names": "def provisional"
+    },
+    "tested": {
+     "test": "tests/test_decide.py",
+     "names": "test_a_provisional_receipt_never_authorises_payment_and_never_says_paid"
+    }
+   },
+   "note": "`knos decide`. The workflows and the relay do not post it yet."
+  },
+  {
+   "id": "relay_notes_merge",
+   "what": "Relay runs keep notes that merge by key, so two runners carry one token once; each lane pays from its own fee payer.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/settle/v2/relayq.py",
+     "names": "def payers"
+    },
+    "tested": {
+     "test": "tests/test_relay_speed.py",
+     "names": "test_in_every_interleaving_of_two_runners_one_token_is_sent_once_and_both_end_with_its_answer"
+    }
+   },
+   "note": "Tested with stand-in runners and a stand-in chain; the public relay runs with one fee payer."
+  },
+  {
+   "id": "verdict_gate",
+   "what": "A verdict crosses from the job that runs a pull request's code to the job that signs as one line of fixed fields, read as data and checked again from GitHub's record.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/verdict_gate.py",
+     "names": "def recheck"
+    },
+    "tested": {
+     "test": "tests/test_verdict_gate.py",
+     "names": "test_an_honest_verdict_is_read_held_and_checked_again_from_githubs_record"
+    }
+   },
+   "note": "The signing job runs none of the pull request's code. Tested on recorded answers; the published workflows carry it from the next republish."
+  },
+  {
+   "id": "agent_pays_agent",
+   "what": "An agent pays another agent only when an evaluator signs the acceptance; wrong work releases nothing and the buyer is refunded at expiry.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "examples/agent_pays_agent/buyer.mjs",
+     "names": "knos-order"
+    },
+    "tested": {
+     "test": "tests/test_agent_pays_agent.py",
+     "names": "test_the_seller_is_paid_only_when_the_evaluator_signs_the_acceptance"
+    }
+   },
+   "note": "Separate processes against the test builds of knos_pay and knos_oidc in the simulator, in test USDC; no outside agent has used it."
+  },
+  {
+   "id": "upstream_gate",
+   "what": "Nothing is sent to, opened on or recommended for an outside repository unless it merged a pull request in the last 30 days; what cannot be read is a refusal.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "scripts/upstream_check.py",
+     "names": "def last_merged"
+    },
+    "tested": {
+     "test": "tests/test_upstream_check.py",
+     "names": "test_a_repository_whose_last_merge_is_older_than_30_days_is_refused"
+    }
+   },
+   "note": "Tested on recorded answers of GitHub's API; the date of the last merge is printed."
+  },
+  {
+   "id": "claim_guard",
+   "what": "A claim on an issue or log that holds no funded order gets one automatic answer and a label, once.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/claim_guard.py",
+     "names": "def answer"
+    },
+    "tested": {
+     "test": "tests/test_claim_guard.py",
+     "names": "test_a_second_event_posts_nothing_and_a_marker_in_a_strangers_comment_does_not_count"
+    }
+   },
+   "note": "Runs from .github/workflows/claims.yml on this repository; tested on recorded events."
   }
  ]
 }

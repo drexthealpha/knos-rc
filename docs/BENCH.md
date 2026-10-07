@@ -373,3 +373,19 @@ limit it needs (`src/knos/chain.py`).
 `pytest -q` (offline; the tests refuse every non-loopback connection). `node sdk/settle/test.mjs` checks the
 JavaScript client against the Python client byte for byte. `node tests/web/site.mjs <site>` drives the built site in
 headless Chromium against a mocked GitHub and Solana.
+
+## Decision time
+
+`knos decide` answers accepted, rejected or insufficient evidence the moment the forge's signed token is in hand, by the reads a relay makes before it spends a fee (`knos.settle.v2.relay.precheck`), and writes a provisional receipt. A provisional receipt never authorises payment; the final receipt names it and replaces it ([LOAD.md](LOAD.md), "The five clocks").
+
+<!-- decide:time -->
+Measured on 2026-10-06 by `python scripts/decide_bench.py --write` on this machine: Intel(R) Xeon(R) Processor @ 2.80GHz, 2 CPUs, Linux x86_64, Python 3.11.15. The chain is LiteSVM with the committed test builds, in the same process: no network. A cluster adds a round trip to its RPC endpoint for every read of the chain; that has not been measured, on devnet or anywhere.
+
+| decision | what is timed | n | p50 | p95 | slowest | every sample said | target at p95 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| fresh, accepted | a fund token never seen: signature checked, chain read | 40 | 1.1 ms | 9.3 ms | 10.6 ms | accepted | under 2000 ms |
+| fresh, rejected | a pay token for an issue with nothing in escrow: signature checked, chain read | 40 | 0.7 ms | 5.0 ms | 12.8 ms | rejected | under 2000 ms |
+| cached, accepted | the same fund token again, the chain's answers kept (`knos.decide.Cached`) | 40 | 1.0 ms | 7.8 ms | 12.8 ms | accepted | under 200 ms |
+| no chain | the token alone, `ledger=None`: insufficient evidence, or rejected | 40 | 0.4 ms | 0.7 ms | 12.7 ms | insufficient evidence | under 200 ms |
+| free check | the conclusions of three named checks, no token | 40 | 0.1 ms | 1.8 ms | 4.2 ms | accepted | under 200 ms |
+<!-- /decide:time -->

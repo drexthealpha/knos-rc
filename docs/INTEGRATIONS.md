@@ -47,6 +47,7 @@ that was found.
 | Drips | [drips-network/app](https://github.com/drips-network/app) | GPL-3.0 | TypeScript, SvelteKit | 2026-10-03 | Not seen; no contribution guide at the root | Not in this repository: its commits refer to a separate Wave service | Not looked into further |
 | Polar | [polarsource/polar](https://github.com/polarsource/polar) | Apache-2.0 | Python, TypeScript | 2026-10-03 | The [guide](https://github.com/polarsource/polar/blob/main/CONTRIBUTING.md) requires an assigned issue before any code change | Nowhere now: the server has no module for funding issues | None; it is a billing product today |
 
+<!-- not-active -->
 ### Open source, not active enough to review a pull request
 
 | Platform | Source | License | Stack | Last commit | Note |
@@ -61,6 +62,7 @@ that was found.
 | Gitcoin bounties | [gitcoinco/web](https://github.com/gitcoinco/web) | AGPL-3.0 | Python, Django | 2023-08-01 | Not read further |
 | Bountysource | [bountysource/core](https://github.com/bountysource/core) | MIT | Ruby | 2021-08-17 | Not read further |
 
+<!-- /not-active -->
 ### No public application source found
 
 Opire (its organisation shows one public repository, of guidelines), OnlyDust (the repositories tried could not
@@ -68,6 +70,23 @@ be cloned anonymously), IssueHunt, Boss.dev, BountyHub (a public command-line cl
 [bountyhub-org/bh](https://github.com/bountyhub-org/bh), and no platform source), Replit Bounties, Dework (public
 forks last updated in 2022, no application), Layer3 and Wonderverse. For these the action and the badge still work
 from the repository's side, since both need only GitHub.
+
+## The 30-day gate
+
+Knos sends nothing to, opens nothing on and recommends nothing for a repository it does not own unless that
+repository merged a pull request in the last 30 days. One script decides:
+
+```
+python scripts/upstream_check.py --docs docs/INTEGRATIONS.md docs/X402.md --list     # the outside repositories these pages name
+python scripts/upstream_check.py --docs docs/INTEGRATIONS.md docs/X402.md            # exit 0 only if every one merged in 30 days
+```
+
+It prints, for each repository, the date of its newest merged pull request, and it treats a repository it cannot
+read as a refusal. The table "not active enough to review a pull request" is already marked and is left out of the
+check (`--marked` puts it back). **The script has not been run against GitHub from this tree**, so no row was moved
+by it: "Last commit" is a commit date from an anonymous clone, not a merged pull request. The release run executes
+the second command; a repository it refuses moves to the marked table with the date it printed, and nothing is opened
+on it. Every repository on this page is named as research, not as a recommendation to use it.
 
 ## What is not done
 

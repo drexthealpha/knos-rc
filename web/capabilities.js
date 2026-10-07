@@ -45,8 +45,9 @@ export function renderCapabilities(el, data) {
   const options = [["all", `Every stage (${total})`], ...[...STAGES, "none"].map((s) => [s, `${STAGE_WORDS[s]} (${n[s]})`])];
   el.innerHTML = `<p><label>Show <select class="capabilities-stage">${options.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("")}</select></label></p>
     <div class="capabilities-table">${tableHtml(data, "all")}</div>
-    <p class="fine">A stage is the highest one with evidence, and needs the ones below it: a source file, a test, the on-chain version that carries it,
-      a transaction on devnet, someone else's run. Everything is on Solana devnet, in test USDC.</p>`;
+    <p class="fine" data-fold="What a stage means">A stage is the highest one with evidence, and needs the ones below it: a source file, a test, the on-chain version that carries it,
+      a transaction on devnet, someone else's run. Everything is on Solana devnet, in test USDC.</p>
+    <p class="fine capabilities-manifest"><a href="${REPO}docs/MANIFEST.md" target="_blank" rel="noopener">See source, deployed bytes and limits on one page.</a></p>`;
   const select = el.querySelector(".capabilities-stage"), table = el.querySelector(".capabilities-table");
   select.onchange = () => { table.innerHTML = tableHtml(data, select.value); };
   return el;

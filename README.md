@@ -6,30 +6,39 @@
   </picture>
 </h1>
 
+**Knos: the neutral meter.**
+
 **The neutral meter for AI agent work: neither side keeps the count.**
 
 Of 241 merged agent pull requests that claimed passing tests, 30 had a failed check.
 
-Check your own invoice: [drexthealpha.github.io/Knos](https://drexthealpha.github.io/Knos/)
+[Check your own invoice](https://drexthealpha.github.io/Knos/)
 
-`pip install knos && knos shadow invoice.csv`
+`uvx knos shadow invoice.csv`
+
+## The claim
+
+Two parties who distrust each other compute the same bill from evidence a third party signed.
+The program releases the money on that signature, with no company and no oracle in the middle.
+
+Limits, in one line: Solana devnet, test USDC, no outside users yet ([docs/DISCLOSURE.md](docs/DISCLOSURE.md)).
+
+## The meter: two ledgers, one bill
+
+1. Buyer and supplier each keep their own ledger of the evaluations GitHub signed.
+2. Each runs `knos meter reconcile` on its own copy and rebuilds the same statement, line for line.
+3. A line is agreed, disputed, duplicate or insufficient evidence, and only an agreed line is billed ([docs/METER.md](docs/METER.md)).
+
+## The money: released on a signature
+
+1. The buyer fixes the work, the budget and the acceptance terms before it starts; the terms are hashed into the order.
+2. GitHub signs the workflow run that judged the work, and a Solana program checks that signature itself before it pays, in test USDC.
+3. The smallest example is a bounty: a maintainer comments `/knos fund 20 checks: test`, and a merge with `test` passing pays the author.
 
 ## The number
 
 241 merged pull requests by AI coding agents said tests or CI pass; 30 had a failed check at the head commit ([docs/backtest.json](docs/backtest.json), counted by `scripts/backtest.py`).
 The second number: 17.8% of first such pull requests, 147 of 826 repositories ([docs/BENCH.md](docs/BENCH.md)). A failed check is GitHub's record, not a judgment of why it failed.
-
-## One comment
-
-1. A maintainer comments on an issue: `/knos fund 20 checks: test`. The terms are hashed into the order.
-2. Someone opens a pull request and she merges it. Had `test` failed at that commit, the merge would pay nothing.
-3. GitHub signs the workflow run, a Solana program checks that signature, and the author is paid in test USDC.
-
-## Two ledgers
-
-1. Buyer and supplier each keep their own ledger of the signed evaluations.
-2. Each runs `knos meter reconcile` on its own copy and rebuilds the same statement.
-3. A line is agreed, disputed, duplicate or insufficient evidence, and only an agreed line is billed ([docs/METER.md](docs/METER.md)).
 
 ## What is real today
 
@@ -56,6 +65,8 @@ The second number: 17.8% of first such pull requests, 147 of 826 repositories ([
 
 ## Read more
 
+[docs/STORY.md](docs/STORY.md): the three-minute demonstration in six beats, each with its evidence.
+[docs/MANIFEST.md](docs/MANIFEST.md): this release on one page: source, the build live at each public program id, every capability's stage, the limits.
 [docs/README.md](docs/README.md): every document, under six questions.
 
 ---

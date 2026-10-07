@@ -436,3 +436,61 @@ def test_the_page_about_the_relay_states_the_relays_own_constants():
     # and what is done says when and on what: the stages were measured on the live log, with the dates of its reads
     assert re.search(r"`scripts/latency_stages\.py` on the live log \(\d{1,2} \w+ 20\d\d, \d\d:\d\d to \d\d:\d\d UTC", doc)
     assert "has not yet been run against the live log" not in doc
+
+
+class LogHub:
+    """GitHub as `post_log` touches it: the open issue with the log's label, and what is sent."""
+
+    def __init__(self, issues: list[dict]):
+        self.issues, self.sent = issues, []
+
+    def get(self, path: str):
+        assert path == f"repos/{ghrelay.HOME_REPO}/issues?labels={ghrelay.LOG_LABEL}&state=open&per_page=1"
+        return [dict(i) for i in self.issues[:1]]
+
+    def send(self, path: str, data: dict, method: str = "POST"):
+        self.sent.append((method, path, data))
+        if method == "PATCH":
+            self.issues[0].update(data)
+        elif path.endswith("/issues"):
+            self.issues.append({"number": 41, **data})
+            return {"number": 41}
+        return {}
+
+
+def test_the_relay_log_says_it_is_a_log_and_one_opened_before_is_edited_once_to_say_so(monkeypatch):
+    from knos import ghwords
+    said = "This is a log written by a workflow. It is not a task and carries no payment. "
+    assert ghwords.MACHINE == said
+    home = f"repos/{ghrelay.HOME_REPO}"
+    # no log yet: the issue is opened with the sentence first, and is never edited
+    new = LogHub([])
+    monkeypatch.setattr(ghrelay, "_HUB", new)
+    monkeypatch.setattr(ghrelay, "_LOG", {})
+    monkeypatch.setattr(ghrelay, "_LOG_BODY", {})
+    ghrelay.post_log(["knos-relay fund o/r#7 abc ok sig=s note=n"])
+    ghrelay.post_log(["knos-relay proof o/r#12 def ok sig=s note=n"])
+    opened = [d for m, p, d in new.sent if p == f"{home}/issues"]
+    assert len(opened) == 1 and opened[0]["body"].startswith(said + "One line per token") and [m for m, _p, _d in new.sent].count("PATCH") == 0
+    # a log opened by an earlier release: its body is edited once, before the line is posted, and what it said stays
+    old = LogHub([{"number": 7, "body": "One line per token the always-on worker relayed (see src/knos/proof/ghrelay.py)."}])
+    monkeypatch.setattr(ghrelay, "_HUB", old)
+    monkeypatch.setattr(ghrelay, "_LOG", {})
+    ghrelay.post_log(["knos-relay fund o/r#7 abc ok sig=s note=n"])
+    assert old.sent == [("PATCH", f"{home}/issues/7", {"body": said + "One line per token the always-on worker relayed (see src/knos/proof/ghrelay.py)."}),
+                        ("POST", f"{home}/issues/7/comments", {"body": "knos-relay fund o/r#7 abc ok sig=s note=n"})]
+    ghrelay.post_log(["knos-relay proof o/r#12 def ok sig=s note=n"])
+    monkeypatch.setattr(ghrelay, "_LOG", {})                    # the next pass, a fresh process: the body says so already
+    ghrelay.post_log(["knos-relay bind o/r#3 ghi ok sig=s note=n"])
+    assert [m for m, _p, _d in old.sent] == ["PATCH", "POST", "POST", "POST"]
+    # an edit GitHub refuses (a token that may comment and not edit) never loses a line of the log
+    class Refusing(LogHub):
+        def send(self, path, data, method="POST"):
+            if method == "PATCH":
+                raise RuntimeError("GitHub answered 403")
+            return super().send(path, data, method)
+    refusing = Refusing([{"number": 7, "body": ""}])
+    monkeypatch.setattr(ghrelay, "_HUB", refusing)
+    monkeypatch.setattr(ghrelay, "_LOG", {})
+    ghrelay.post_log(["knos-relay fund o/r#7 abc ok sig=s note=n"])
+    assert refusing.sent == [("POST", f"{home}/issues/7/comments", {"body": "knos-relay fund o/r#7 abc ok sig=s note=n"})]

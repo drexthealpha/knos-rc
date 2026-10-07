@@ -53,6 +53,7 @@ const STYLE = `
 .kd .k-step[data-state="live"] i { background: var(--k-acc); color: var(--k-paper2); }
 .kd .k-step[data-state="done"] i { background: var(--k-ok); color: var(--k-paper2); }
 .kd .k-step[data-state="bad"] i { background: var(--k-bad); color: var(--k-paper2); }
+.kd .k-step[data-end="disputed"] i { background: var(--k-paper2); color: var(--k-bad); box-shadow: inset 0 0 0 2px var(--k-bad); }
 .kd .k-step[aria-current="step"] { color: var(--k-ink); border-color: var(--k-ink); }
 .kd-rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 0 0 16px; padding: 0; list-style: none; position: relative; }
 .kd-rail::before { content: ""; position: absolute; left: 12.5%; right: 12.5%; top: 9px; border-top: 1px dashed var(--k-line); }
@@ -177,8 +178,8 @@ export async function renderDemo(el, env = {}) {
       html: `<label class="kd-tag" for="kd-comment">Comment on the issue</label>
         <input id="kd-comment" class="kd-input" type="text" readonly value="${esc(d.fund.comment)}">
         ${on ? `<div class="kd-box"><div class="kd-row"><span class="kd-tag">Order</span><span class="kd-mono">${esc(short(d.fund.order))}</span><span class="kd-badge" data-s="ok">funded</span></div>
-          <div class="kd-row"><span class="k-num"><strong>${esc(d.fund.amount)}</strong> ${esc(d.money)} held</span><span class="kd-fine k-num">fee ${esc(d.fund.fee)}</span>${tx(d.fund.tx, "transaction")}</div></div>` : ""}`,
-      say: on ? `Order funded: ${d.fund.amount} ${d.money} held, fee ${d.fund.fee}.` : "Press Enter to post the funding comment.",
+          <div class="kd-row"><span class="k-num"><strong>${esc(d.fund.amount)}</strong> ${esc(d.money)} held</span><span class="kd-fine k-num" data-fee-rule="0.3.14" title="This is a recording: the fee is the one the program took then.">fee ${esc(d.fund.fee)}, charged under the 0.3.14 fee</span>${tx(d.fund.tx, "transaction")}</div></div>` : ""}`,
+      say: on ? `Funded: ${d.fund.amount} ${d.money} held; fee ${d.fund.fee}, charged under the 0.3.14 fee.` : "Press Enter to post the funding comment.",
       act: "Post the comment",
     }),
     (on) => ({
@@ -234,7 +235,10 @@ export async function renderDemo(el, env = {}) {
     go.textContent = !on ? v.act : next >= STEPS.length ? "Start over" : straight ? views[next](false).act : `Next: ${STEPS[next]}`;
     resetB.hidden = !(state.done.some(Boolean) || i > 0) || (on && i === STEPS.length - 1);
     el.querySelectorAll(".k-step").forEach((b, k) => {
-      b.dataset.state = state.done[k] ? (BAD[k] ? "bad" : "done") : k === i ? "live" : "idle";
+      // The design system's "bad" step is a refusal: red, and it shakes once. A disputed month is no refusal: nothing was
+      // sent and turned away, two counts differ. So the last step ends as a finished step, marked by its own word.
+      b.dataset.state = state.done[k] ? (BAD[k] && ENDS[k] !== "disputed" ? "bad" : "done") : k === i ? "live" : "idle";
+      if (state.done[k]) b.dataset.end = ENDS[k]; else delete b.dataset.end;
       if (k === i) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
       b.setAttribute("aria-label", `Step ${k + 1}: ${STEPS[k]}${state.done[k] ? `, ${ENDS[k]}` : ""}`);
     });

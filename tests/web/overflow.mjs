@@ -13,7 +13,7 @@ import { join, extname } from "node:path";
 export const WIDTHS = [320, 360, 390, 768, 1280];
 export const PAGES = ["", "#protect", "#fund", "#money", "#task", "#anyissue", "#claim", "#pricing", "#records", "#u=alice", "#r=octo/widgets", "#rank=earners",
   "#network", "#build", "#buy", "#install", "#capabilities", "#status", "#index", "#pilot", "#reproduce", "#demo", "#shadow", "#verifier", "#playground", "#terms",
-  "#supplier", "#invoice-statement", "#story", "#keyholder", "#check-a-pull-request"];
+  "#supplier", "#invoice-statement", "#story", "#keyholder", "#check-a-pull-request", "#record", "#record=codex"];
 export const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
 // With no browser a run says SKIP and exits 0, except where a browser is owed: in CI (the web job installs Playwright and
 // Chromium before these scripts) or with KNOS_REQUIRE_BROWSER=1, where the same thing is a failure. Under pytest

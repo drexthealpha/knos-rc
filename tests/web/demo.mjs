@@ -85,7 +85,7 @@ async function round(label, width, opts = {}) {
     const after = last = await read(page);
     seen.push({ before, after });
     for (const s of [...before.lines, ...after.lines]) check(`${tag}: step ${i + 1}: "${s.slice(0, 40)}" is 12 words or fewer`, words(s) <= 12, [words(s), s]);
-    check(`${tag}: step ${i + 1} changed on one key`, after.step === i && after.states[i] === ([1, 4, 5].includes(i) ? "bad" : "done") && after.say !== before.say, after);
+    check(`${tag}: step ${i + 1} changed on one key`, after.step === i && after.states[i] === ([1, 4].includes(i) ? "bad" : "done") /* a disputed month is no refusal: step 6 does not take the refused look */ && after.say !== before.say, after);
     check(`${tag}: step ${i + 1} does not scroll sideways`, before.sideways <= 0 && after.sideways <= 0, [before.sideways, after.sideways]);
     check(`${tag}: step ${i + 1} keeps the focus on the one button`, after.focus.includes("kd-go"), after.focus);
     if (opts.reduce) check(`${tag}: step ${i + 1} moves nothing`, after.running === 0 && after.animated === 0, [after.running, after.animated]);
@@ -95,7 +95,7 @@ async function round(label, width, opts = {}) {
   check(`${tag}: the whole round took one key a step, and one more before each of the two steps that are read`, true);
   check(`${tag}: the demo says what it is: a replay of a staging round`, first.mark === `A real ${data.cluster} round, replayed (${data.ids} program ids, ${data.date.replace(/^(\d+ \w{3})\w*/, "$1")}).` && data.ids === "staging", first.mark);
   const [fund, claim, fixed, paid, replay, both] = seen.map((s) => s.after);
-  check(`${tag}: the order is the recorded one`, fund.scene.includes(`${data.fund.order.slice(0, 4)}…${data.fund.order.slice(-4)}`) && fund.say.includes(data.fund.amount) && fund.say.includes(data.fund.fee), fund.scene);
+  check(`${tag}: the order is the recorded one`, fund.scene.includes(`${data.fund.order.slice(0, 4)}…${data.fund.order.slice(-4)}`) && fund.say.includes(data.fund.amount) && fund.say.includes(`fee ${data.fund.fee}, charged under the 0.3.14 fee`) && fund.scene.includes(`fee ${data.fund.fee}, charged under the 0.3.14 fee`), fund.scene);
   check(`${tag}: the claim is rejected and the failed check is named`, claim.badges.includes("rejected") && claim.badges.includes("failed") && claim.say === "Rejected: test_mixed failed."
     && claim.scene.includes(data.claim.check.split(".").pop()) && seen[1].before.scene.includes(data.claim.says), claim);
   check(`${tag}: the fix is accepted and signed with the three claims`, fixed.badges.includes("accepted") && fixed.say.startsWith("Accepted: ") && fixed.badges.filter((b) => b === "passes").length === 3 && data.fixed.claims.every((c) => fixed.scene.includes(c.name) && fixed.scene.includes(c.is)), fixed.scene);
