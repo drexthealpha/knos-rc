@@ -150,6 +150,7 @@ export function renderBuyer(el, env = {}) {
     <h2>Buy work per outcome</h2>
     <p class="lede">Fix price and terms first. Pay when a signed run accepts.</p>
     <div class="buy-top"><span class="devnet">Devnet: test USDC, never real money</span>
+      <a class="k-btn quiet" id="buy-get-usdc" href="${FAUCET_ISSUE}" target="_blank" rel="noopener">Get test USDC</a>
       <button type="button" class="k-btn quiet" id="buy-go-records">See one order as four records</button></div>
     <div class="k-tabs buy-tabs" role="tablist" aria-label="The console">${TABS.map(([k, label], n) => `<button type="button" class="k-btn quiet" role="tab" id="proc-tab-${k}" aria-controls="buy-part-${k}" aria-selected="${n === 0}" tabindex="${n === 0 ? 0 : -1}">${label}</button>`).join("")}</div>
 
