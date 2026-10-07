@@ -513,10 +513,14 @@ await reset();
   // what the release's rehearsal ran on devnet ran on staging programs of its own, never on a public one: it is tested, and
   // its note gives the transaction and says it was a staging rehearsal; the rest is tested with no devnet run at all
   const rehearsed014 = ["meter_batch", "meter_seller_claim", "passkey_funder", "single_use_tokens", "fee_tiers", "x402_knos_order"];
-  const as014 = (c) => c.stage === "tested" && !c.evidence.deployed && !c.evidence.exercised && (rehearsed014.includes(c.id)
+  // ... unless a round at the public ids exercised it since: then its transaction is a public one, and the note keeps the
+  // rehearsal as what came before
+  const asRound = (c) => c.stage === "exercised" && c.evidence.exercised && (c.evidence.exercised.ids || "public") === "public" && !!c.evidence.deployed
+    && (!rehearsed014.includes(c.id) || (/rehearsed on a staging deployment/.test(c.note || "") && /the transaction here is at the public program id/.test(c.note || "")));
+  const as014 = (c) => asRound(c) || (c.stage === "tested" && !c.evidence.deployed && !c.evidence.exercised && (rehearsed014.includes(c.id)
     ? c.note.startsWith("Rehearsed on ") && c.note.includes("staging deployment") && c.note.includes("not on the public program ids") && /[1-9A-HJ-NP-Za-km-z]{86,88}/.test(c.note)
-    : !/^Rehearsed on /.test(c.note || ""));
-  check("  what 0.3.14 built is in it, each tested, the rehearsed ones with their staging transaction in the note, and none said to be deployed or exercised",
+    : !/^Rehearsed on /.test(c.note || "")));
+  check("  what 0.3.14 built is in it, each tested or exercised at the public ids, the rehearsed ones with their staging transaction in the note, none on a staging id",
     built014.every((id) => { const c = manifest.capabilities.find((x) => x.id === id); return c && as014(c); }),
     built014.filter((id) => { const c = manifest.capabilities.find((x) => x.id === id); return !c || !as014(c); }));
   // the release's rule: nothing is deployed or exercised on a program that is not a public id, at the version devnet runs there
@@ -2182,11 +2186,17 @@ const BAL = await k.balance(7000001, WALLET, USDC), BALTOK = await k.baltok(BAL)
   await reset(); load(); await visit(page, ""); await page.waitForTimeout(300);
   check("upgrade: the first screen asks devnet nothing and shows no banner under the bar", await page.isHidden("#upgrade-banner") && called("getMultipleAccounts").length === 0 && called("getAccountInfo").length === 0);
   // what it shows instead: one line from upgrades.json, the file of the site scripts/upgrade_feed.py writes from the multisig
-  const feed = JSON.parse(readFileSync(join(root, "upgrades.json"), "utf8")), feedPending = feed.entries.filter((e) => e.status === "pending");
+  const built = JSON.parse(readFileSync(join(root, "upgrades.json"), "utf8")), builtPending = built.entries.filter((e) => e.status === "pending");
   await page.waitForSelector("#hero-upgrades:not([hidden])", { timeout: 5000 }).catch(() => {});
-  check("  but the pending upgrades in one line, from the site's upgrades.json: the count and two words", feedPending.length === 4 && await page.isVisible("#hero-upgrades")
-    && /^Upgrades (pending|approved)$/.test(await text(page, "#hero-upgrades-line")) && (await page.getAttribute("#hero-upgrades-line", "data-count")) === "4"
-    && /^4 program upgrades (pending|approved, delay over)$/.test(await page.getAttribute("#hero-upgrades-line", "aria-label")), await text(page, "#hero-upgrades-line"));
+  if (builtPending.length) {
+    check("  but the pending upgrades in one line, from the site's upgrades.json: the count and two words", await page.isVisible("#hero-upgrades")
+      && /^Upgrades (pending|approved)$/.test(await text(page, "#hero-upgrades-line")) && (await page.getAttribute("#hero-upgrades-line", "data-count")) === String(builtPending.length)
+      && new RegExp(`^${builtPending.length} program upgrades? (pending|approved, delay over)$`).test(await page.getAttribute("#hero-upgrades-line", "aria-label")), await text(page, "#hero-upgrades-line"));
+  } else {
+    check("  and with no upgrade pending in the site's upgrades.json, no line either", await page.isHidden("#hero-upgrades"));
+  }
+  // the line's words, on the feed as it stood with proposals 3 to 6 pending (tests/fixtures/before_round/web/upgrades.json)
+  const feed = JSON.parse(readFileSync(join(here, "..", "fixtures", "before_round", "web", "upgrades.json"), "utf8")), feedPending = feed.entries.filter((e) => e.status === "pending");
   const lib0 = await import(pathToFileURL(join(root, "front.js")).href), said = (l) => (l ? `${l.n}|${l.words}|${l.said}` : null);
   check("  the line is true before and after the earliest time one can run: pending before it, approved with the delay over after it, nothing for a file with none pending",
     said(lib0.feedLine(feed, Math.min(...feedPending.map((e) => e.earliest_execution)) - 1)) === "4|Upgrades pending|4 program upgrades pending"
@@ -2751,7 +2761,9 @@ const BAL = await k.balance(7000001, WALLET, USDC), BALTOK = await k.baltok(BAL)
   check("upgrade: every program the multisig holds is named, so a proposal for the meter or the passkey wallet is in the banner", JSON.stringify(up.programNames(ids)) === JSON.stringify({ [ids.knos_oidc]: "knos_oidc", [ids.knos_pay]: "knos_pay", [ids.knos_meter]: "knos_meter", [ids.knos_passkey]: "knos_passkey" })
     && JSON.stringify(up.programNames({ knos_pay: "P" })) === JSON.stringify({ P: "knos_pay" }));
   const feed = JSON.parse(readFileSync(join(root, "upgrades.json"), "utf8")), xml = readFileSync(join(root, "upgrades.xml"), "utf8");
-  check("upgrade feed: the site's file lists proposals 3 to 6 pending and 1 and 2 withdrawn, and the Atom feed says the same", feed.pending === 4 && JSON.stringify(feed.entries.map((e) => [e.index, e.program, e.status])) === JSON.stringify([[6, "knos_passkey", "pending"], [5, "knos_meter", "pending"], [4, "knos_pay", "pending"], [3, "knos_oidc", "pending"], [2, "knos_pay", "replaced"], [1, "knos_oidc", "replaced"]])
+  const now36 = feed.entries.find((e) => e.index === 3)?.status;          // pending until proposals 3 to 6 executed (7 October), executed after
+  check("upgrade feed: the site's file lists proposals 3 to 6 as one (pending, or executed) and 1 and 2 withdrawn, and the Atom feed says the same", ["pending", "executed"].includes(now36)
+    && feed.pending === (now36 === "pending" ? 4 : 0) && JSON.stringify(feed.entries.map((e) => [e.index, e.program, e.status])) === JSON.stringify([[6, "knos_passkey", now36], [5, "knos_meter", now36], [4, "knos_pay", now36], [3, "knos_oidc", now36], [2, "knos_pay", "replaced"], [1, "knos_oidc", "replaced"]])
     && feed.entries.every((e) => xml.includes(`upgrade proposal ${e.index} is ${e.status}`)) && (xml.match(/<entry>/g) || []).length === 6 && feed.entries.every((e) => e.program_address === ids[e.program]));
   const st = await import(pathToFileURL(join(root, "statements.js")).href);
   const scope = { type: "knos.audit-export", version: 1, program: ids.knos_pay, owner_id: 5001, from: "2026-09-01", to: "2026-09-30", wallets: "", partial: 0 };
@@ -2769,8 +2781,8 @@ const BAL = await k.balance(7000001, WALLET, USDC), BALTOK = await k.baltok(BAL)
   const demo = JSON.parse(readFileSync(join(root, "demo_data.json"), "utf8"));
   await visit(page);
   await page.waitForSelector("#demo .kd-go");
-  check("demo: the round is mounted in the first screen, under the hero, and says it is a replay of a staging round", await page.isVisible("#demo") && await page.isVisible("#view-check") && (await page.$$eval("#demo .k-step", (l) => l.length)) === 6
-    && (await text(page, "#demo .kd-mark")).trim() === `A real devnet round, replayed (${demo.ids} program ids, ${demo.date.replace(/^(\d+ \w{3})\w*/, "$1")}).` && demo.ids === "staging", await text(page, "#demo .kd-mark"));
+  check("demo: the round is mounted in the first screen, under the hero, and says which program ids it replays", await page.isVisible("#demo") && await page.isVisible("#view-check") && (await page.$$eval("#demo .k-step", (l) => l.length)) === 6
+    && (await text(page, "#demo .kd-mark")).trim() === `A real devnet round, replayed (${demo.ids} program ids, ${demo.date.replace(/^(\d+ \w{3})\w*/, "$1")}).` && ["staging", "public"].includes(demo.ids), await text(page, "#demo .kd-mark"));
   await page.click("#demo .kd-go");
   check("  one press funds the recorded order, and links its transaction", (await text(page, "#demo .kd-say")) === `Funded: ${demo.fund.amount} test USDC held; fee ${demo.fund.fee}, charged under the 0.3.14 fee.` && (await page.getAttribute("#demo .kd-scene a", "href")) === `https://explorer.solana.com/tx/${demo.fund.tx}?cluster=devnet`);
   check("  the front door is above the round once it is mounted", await page.isVisible("#front-door [data-fd=run]") && (await overflow(page)) <= 1);

@@ -1,5 +1,5 @@
 // One round, driven by the visitor: fund, a claim rejected, the fix accepted and signed, paid, a second payment that
-// does not happen, and a month the two counts leave disputed. A verdict and a line's state are said in the words of
+// does not happen, and a month the two counts leave disputed or agreed. A verdict and a line's state are said in the words of
 // src/knos/ids.py and no others: accepted, rejected, insufficient evidence, disputed; agreed, disputed, duplicate.
 // renderDemo(el, env) fills `el` (the first screen's <div id="demo">). Every figure, address and signature shown is read
 // from demo_data.json, which scripts/demo_data.py cuts out of this repository's own records; nothing is typed in here.
@@ -9,7 +9,8 @@
 // starts over. A reader who asked for reduced motion gets the same states with no movement.
 // What is shown is what was recorded, and nothing else: the token sent again paid nothing because its order was already
 // paid (the error the rehearsal recorded for it, not the single-use one), and the two counts are the two the chain
-// holds, 3 apart from the start; the last step compares them, it never makes them up.
+// holds from the start (3 apart in the staging rehearsal, the same in the public round); the last step compares them, it
+// never makes them up.
 // The look is the site's design contract (the .k-* classes of app.css, web/motion.js). Both may be absent: the import
 // is guarded, and the style block below is a fallback of zero specificity for the contract's classes.
 
@@ -151,8 +152,9 @@ export async function renderDemo(el, env = {}) {
   const tx = (sig, text) => (online() ? `<a href="${esc(EXPLORER("tx", sig))}" target="_blank" rel="noopener">${esc(text)}</a>` : "");
   const check = d.claim.check.split(".").slice(-1)[0], test = check.split("::").pop();
   const state = { step: 0, done: STEPS.map(() => false), run: 0 };
-  const BAD = [false, true, false, false, true, true];
-  const ENDS = ["funded", "rejected", "accepted", "paid", "not paid again", "disputed"];          // how each step ends, in the words of src/knos/ids.py
+  const agreed = Number(d.count.apart) === 0;          // the two counts the chain holds are the same: the month is agreed, not disputed
+  const BAD = [false, true, false, false, true, false];
+  const ENDS = ["funded", "rejected", "accepted", "paid", "not paid again", agreed ? "agreed" : "disputed"];          // how each step ends, in the words of src/knos/ids.py
   const READ = [false, true, false, false, false, true];          // a step that shows something to read before its action
   const day = String(d.date).replace(/^(\d+ \w{3})\w*/, "$1"), where = d.ids === "public" ? "public program ids" : "staging program ids";
 
@@ -214,11 +216,11 @@ export async function renderDemo(el, env = {}) {
     (on) => ({
       html: `<div class="kd-sides"><div class="kd-box"><span class="kd-tag">Buyer counted</span><span class="kd-big k-num kd-buyer">${thousands(d.count.buyer)}</span>
             <span class="kd-fine">${d.count.buyer_tx.map((t, n) => tx(t, `batch ${n + 1}`)).join(" ")}</span></div>
-          <div class="kd-box kd-seller" data-s="${on ? "bad" : ""}"><span class="kd-tag">Seller counted</span><span class="kd-big k-num">${thousands(d.count.seller)}${on ? ` <small class="kd-apart">+${esc(d.count.apart)}</small>` : ""}</span>
+          <div class="kd-box kd-seller" data-s="${on && !agreed ? "bad" : ""}"><span class="kd-tag">Seller counted</span><span class="kd-big k-num">${thousands(d.count.seller)}${on && !agreed ? ` <small class="kd-apart">+${esc(d.count.apart)}</small>` : ""}</span>
             <span class="kd-fine">${d.count.seller_tx.map((t, n) => tx(t, `claim ${n + 1}`)).join(" ")}</span></div></div>
-        <p class="kd-row"><span class="kd-tag">The month</span><span class="kd-badge kd-row-state" data-s="${on ? "bad" : "wait"}">${on ? "disputed" : "not compared"}</span>
-          ${on ? `<span class="kd-fine k-num">${esc(d.count.apart)} the buyer's ledger left out, each named.</span>` : ""}</p>`,
-      say: on ? `Disputed: the buyer's ledger left out ${d.count.apart} evaluations.` : `Buyer counted ${thousands(d.count.buyer)}. Seller counted ${thousands(d.count.seller)}.`,
+        <p class="kd-row"><span class="kd-tag">The month</span><span class="kd-badge kd-row-state" data-s="${on ? (agreed ? "ok" : "bad") : "wait"}">${on ? (agreed ? "agreed" : "disputed") : "not compared"}</span>
+          ${on ? `<span class="kd-fine k-num">${agreed ? "Both ledgers count the same." : `${esc(d.count.apart)} the buyer's ledger left out, each named.`}</span>` : ""}</p>`,
+      say: on ? (agreed ? `Agreed: both counted ${thousands(d.count.buyer)}.` : `Disputed: the buyer's ledger left out ${d.count.apart} evaluations.`) : `Buyer counted ${thousands(d.count.buyer)}. Seller counted ${thousands(d.count.seller)}.`,
       act: "Compare the two counts",
     }),
   ];

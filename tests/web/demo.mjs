@@ -93,7 +93,7 @@ async function round(label, width, opts = {}) {
     if (i < STEPS.length - 1 && READ[i + 1]) { check(`${tag}: step ${i + 1} offers the next, which is read first`, after.go === `Next: ${STEPS[i + 1]}`, after.go); await page.keyboard.press("Enter"); }
   }
   check(`${tag}: the whole round took one key a step, and one more before each of the two steps that are read`, true);
-  check(`${tag}: the demo says what it is: a replay of a staging round`, first.mark === `A real ${data.cluster} round, replayed (${data.ids} program ids, ${data.date.replace(/^(\d+ \w{3})\w*/, "$1")}).` && data.ids === "staging", first.mark);
+  check(`${tag}: the demo says what it is: a replay of a round, at the program ids it ran on`, first.mark === `A real ${data.cluster} round, replayed (${data.ids} program ids, ${data.date.replace(/^(\d+ \w{3})\w*/, "$1")}).` && ["staging", "public"].includes(data.ids), first.mark);
   const [fund, claim, fixed, paid, replay, both] = seen.map((s) => s.after);
   check(`${tag}: the order is the recorded one`, fund.scene.includes(`${data.fund.order.slice(0, 4)}…${data.fund.order.slice(-4)}`) && fund.say.includes(data.fund.amount) && fund.say.includes(`fee ${data.fund.fee}, charged under the 0.3.14 fee`) && fund.scene.includes(`fee ${data.fund.fee}, charged under the 0.3.14 fee`), fund.scene);
   check(`${tag}: the claim is rejected and the failed check is named`, claim.badges.includes("rejected") && claim.badges.includes("failed") && claim.say === "Rejected: test_mixed failed."
@@ -104,9 +104,14 @@ async function round(label, width, opts = {}) {
   check(`${tag}: the token sent again is refused: a token works once, with the error that was recorded, and is not called single-use`, replay.badges.includes("Refused") && replay.say === `Refused: a token works once. Error ${data.replay.error}.`
     && data.replay.error === data.replay.single_use_error && replay.scene.includes(data.replay.means) && !/single.use/i.test(replay.scene + replay.say) && seen[4].before.go === "Send the same token again", replay);
   const n = (v) => String(v).replace(/\B(?=(\d{3})+$)/g, ",");
-  check(`${tag}: the two counts are the recorded ones from the start, never equal; the action compares them`, seen[5].before.badges.includes("not compared") && !seen[5].before.badges.includes("equal")
-    && seen[5].before.scene.split(n(data.count.seller)).length === 2 && seen[5].before.scene.split(n(data.count.buyer)).length === 2
-    && both.badges.includes("disputed") && both.scene.includes(n(data.count.buyer)) && both.scene.includes(n(data.count.seller)) && both.scene.includes(`+${data.count.apart}`), [seen[5].before.scene, both.scene]);
+  // the counts the chain holds: apart (the staging rehearsal: disputed, by how many) or the same (the public round: agreed, no "+0")
+  const agreed = Number(data.count.apart) === 0;
+  check(`${tag}: the two counts are the recorded ones from the start, never compared before; the action compares them`, seen[5].before.badges.includes("not compared") && !seen[5].before.badges.includes("equal")
+    && (agreed ? seen[5].before.scene.split(n(data.count.buyer)).length === 3
+      : seen[5].before.scene.split(n(data.count.seller)).length === 2 && seen[5].before.scene.split(n(data.count.buyer)).length === 2)
+    && both.scene.includes(n(data.count.buyer)) && both.scene.includes(n(data.count.seller))
+    && (agreed ? both.badges.includes("agreed") && !both.badges.includes("disputed") && !both.scene.includes("+0") && both.say === `Agreed: both counted ${n(data.count.buyer)}.`
+      : both.badges.includes("disputed") && both.scene.includes(`+${data.count.apart}`)), [seen[5].before.scene, both.scene]);
   if (!opts.offline) check(`${tag}: each count links the transactions that wrote it`, [...data.count.buyer_tx, ...data.count.seller_tx].every((t) => both.links.some((l) => l.includes(t))), both.links);
   check(`${tag}: the last step ends, it does not go on`, both.go === "Start over" && both.step === 5);
   if (!opts.reduce) check(`${tag}: a state change moved something`, both.animated > 0, both.animated);

@@ -71,11 +71,16 @@ def test_every_deployed_hash_is_held_to_the_provenance_record_or_to_the_feed_for
     assert set(json.loads((ROOT / "docs" / "provenance.json").read_text(encoding="utf-8"))["programs"]) == set(FOUR)
 
 
-def test_the_recorded_payments_are_the_public_ones_and_none_is_recorded_today(monkeypatch):
-    manifest = json.loads((ROOT / "docs" / "capabilities.json").read_text(encoding="utf-8"))
-    assert rp.recorded_payments(manifest, IDS) == []            # nothing is exercised at the public ids in this tree
+def test_the_recorded_payments_are_the_public_ones_and_none_was_recorded_before_the_round(monkeypatch):
+    # the manifest before the round at the public ids (tests/fixtures/before_round) recorded no payment there
+    before = json.loads((ROOT / "tests" / "fixtures" / "before_round" / "docs" / "capabilities.json").read_text(encoding="utf-8"))
+    assert rp.recorded_payments(before, IDS) == []
     with pytest.raises(rp.Skip, match="records no payment of an order at the public program ids yet"):
-        rp.payments(None, dict, lambda: manifest, IDS)
+        rp.payments(None, dict, lambda: before, IDS)
+    # the committed one records the round's: the order's payment and x402's, each by the transaction the round kept
+    manifest = json.loads((ROOT / "docs" / "capabilities.json").read_text(encoding="utf-8"))
+    by = {c["id"]: c for c in manifest["capabilities"]}
+    assert rp.recorded_payments(manifest, IDS) == [(cid, by[cid]["evidence"]["exercised"]["signature"]) for cid in ("order_pay", "x402_knos_order")]
 
     def cap(cid: str, sig: str, ids: str = "public", at: str = IDS["knos_pay"]) -> dict:
         return {"id": cid, "evidence": {"deployed": {"program": "knos_pay", "id": at}, "exercised": {"signature": sig, "ids": ids}}}
