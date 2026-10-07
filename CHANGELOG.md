@@ -8,8 +8,9 @@ rule, a reserve behind netted work, evidence that verifies when Knos is gone, an
 
 The sentence is unchanged: the neutral meter for AI agent work, where neither side keeps the count. Everything is on
 Solana devnet, which is test mode: the money is test USDC. Everything this release adds is "tested locally" in
-[`docs/CAPABILITIES.md`](docs/CAPABILITIES.md); none of it has run at the public program ids, with a bank, or with
-a person outside this repository, and each line below says its own limit. **No program changes in this release:**
+[`docs/CAPABILITIES.md`](docs/CAPABILITIES.md); apart from one throughput measurement by Knos's own wallets at the
+public knos_pay, none of it has run at the public program ids, with a bank, or with a person outside this
+repository, and each line below says its own limit. **No program changes in this release:**
 nothing under `programs-v2/knos_*`, `programs/` or `idl/` moved by a byte.
 
 ### For whoever approves the invoice
@@ -58,7 +59,9 @@ nothing under `programs-v2/knos_*`, `programs/` or `idl/` moved by a byte.
 - **An archive that verifies when Knos is gone.** `knos archive make` writes one file with the evidence and a
   verifier of one standard-library file: no Knos, no network. Two holders compare by one root; a number a sender
   gave that never arrived is named, and a month is not closed over it. One run on this repository's samples is
-  recorded; they carry no signed token, and the verifier says so. No outside party holds an archive
+  recorded; they carry no signed token, and the verifier says so. One run on a real period is recorded too: the
+  founder's own account on both sides, its batches anchored at the public knos_meter; its log of events starts at
+  number 1 and nobody else acknowledged it, so the strict check fails on it. No outside party holds an archive
   ([`docs/RETENTION.md`](docs/RETENTION.md), [`docs/EVENTS.md`](docs/EVENTS.md)).
 - **The paid record answer is worth more than the free file.** The server signs each answer with an expiry, adds a
   summary, and gives the history a supplier granted to one reader. Its revenue is budgeted at zero and Knos hosts
@@ -83,7 +86,8 @@ nothing under `programs-v2/knos_*`, `programs/` or `idl/` moved by a byte.
   devnet ([`docs/BENCH.md`](docs/BENCH.md), "Decision time").
 - **The relay chain heals.** A failed start is asked again and a watchdog starts a chain when none is alive; the
   upgrade task starts after a missed start. Throughput has a command that measures it, and the page keeps measured
-  and derived apart: nothing is measured on devnet yet ([`docs/RELAY.md`](docs/RELAY.md),
+  and derived apart: measured once on devnet, on 7 October 2026, with four relays and 40 orders each way, a
+  reading of that day and not a capacity ([`docs/RELAY.md`](docs/RELAY.md),
   [`docs/LOAD.md`](docs/LOAD.md)).
 - **The rounds of the release run are files.** `scripts/exercise_rounds/` holds the reserve, GitLab, the private
   path and a hosted judge; each runs on the simulator, and at the public ids each ends with its own code and stops
@@ -100,7 +104,8 @@ nothing under `programs-v2/knos_*`, `programs/` or `idl/` moved by a byte.
 
 - No outside funder, no buyer conversation, no letter of intent, no outside key holder, no outside reproduction,
   and no outside program that reads the verifier.
-- Nothing this release adds has run at the public program ids. The reserve, GitLab, the private path and a hosted
+- Nothing this release adds has run at the public program ids but the throughput measurement, which funded and
+  refunded Knos's own orders. The reserve, GitLab, the private path and a hosted
   judge are commands of the release run (`python scripts/exercise_public.py run --only <round>`): GitLab needs a
   token and a project, a hosted judge needs a repository of another owner, and the private path needs someone with
   a private repository.
