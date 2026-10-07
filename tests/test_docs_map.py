@@ -117,6 +117,25 @@ def _manifest():
     return mod
 
 
+def test_a_program_whose_proposal_ran_and_a_newer_one_is_pending_names_the_pending_one_in_its_row():
+    import copy
+    rm = _manifest()
+    data = copy.deepcopy(rm.prov.load())
+    ran = {"index": 4, "program": "knos_pay", "status": "executed", "build_hash": "a" * 64, "source_commit": "1" * 40, "gate_run": 1}
+    later = {"index": 8, "program": "knos_pay", "status": "pending", "build_hash": "b" * 64, "source_commit": "2" * 40, "gate_run": 2}
+    data["upgrades"] = {**data["upgrades"], "entries": [later, ran]}
+    seen = data["record"].setdefault("programs", {})
+    seen["knos_pay"] = {**seen.get("knos_pay", {}), "on_chain_hash": "a" * 64}
+    row = next(line for line in rm.programs(data) if line.startswith("| knos_pay | `"))
+    # what is live is the build that ran; the row's proposal is the one that would replace it, and it has not run
+    assert "| 8: pending |" in row and f"`{'b' * 64}`" in row and "(not the proposal's build)" in row and f"`{'a' * 64}`" in row
+    assert "| 4: executed |" not in row
+    # with nothing pending after it, the row is the proposal that ran, and the hash at the id is its build
+    data["upgrades"]["entries"] = [ran]
+    row = next(line for line in rm.programs(data) if line.startswith("| knos_pay | `"))
+    assert "| 4: executed |" in row and "(the proposal's build)" in row
+
+
 def test_the_release_manifest_is_what_its_sources_give_and_states_what_is_live_from_the_records():
     rm = _manifest()
     said = []

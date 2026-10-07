@@ -667,9 +667,21 @@ def test_status_want_2_2_exits_0_only_when_proposals_7_and_8_executed_and_json_n
     feed["entries"][:0] = [{"index": i, "program": n, "build_hash": NEXT_HASH[n], "status": "executed", "squads_status": "Executed"} for n, i in ex.NEXT_PROPOSALS.items()]
     (root / "web" / "upgrades.json").write_text(json.dumps(feed), encoding="utf-8")
     assert ex.status("rpc", said.append, both, root, want="2.2") == 0 and ex.status("rpc", said.append, cluster(ELF), root, want="2.2") == 3
-    # the real reader, on a cluster with no multisig: no status, never a guess
+    # the real reader, on a cluster with no multisig: no status, never a guess, when the feed does not name 7 and 8
     monkeypatch.undo()
-    assert ex.next_proposals(cluster(ELF), ROOT) == {"knos_oidc": {"proposal": 7, "version": "2.2", "status": None}, "knos_pay": {"proposal": 8, "version": "2.2", "status": None}}
+    alone = tmp_path / "feed_only"
+    (alone / "web").mkdir(parents=True)
+    (alone / "programs-v2").mkdir()
+    (alone / "programs-v2" / "program_ids.json").write_bytes((ROOT / "programs-v2" / "program_ids.json").read_bytes())
+    feed = json.loads((ROOT / "web" / "upgrades.json").read_text(encoding="utf-8"))
+    feed["entries"] = [e for e in feed["entries"] if e.get("index") not in ex.NEXT_PROPOSALS.values()]
+    (alone / "web" / "upgrades.json").write_text(json.dumps(feed), encoding="utf-8")
+    assert ex.next_proposals(cluster(ELF), alone) == {"knos_oidc": {"proposal": 7, "version": "2.2", "status": None}, "knos_pay": {"proposal": 8, "version": "2.2", "status": None}}
+    # a feed that names them: the multisig's word as the feed was generated, and said to be that
+    feed["entries"][:0] = [{"index": i, "program": n, "status": "pending", "squads_status": "Approved"} for n, i in ex.NEXT_PROPOSALS.items()]
+    (alone / "web" / "upgrades.json").write_text(json.dumps(feed), encoding="utf-8")
+    assert ex.next_proposals(cluster(ELF), alone) == {n: {"proposal": i, "version": "2.2", "status": "Approved", "read": "web/upgrades.json, as it was generated"}
+                                                      for n, i in ex.NEXT_PROPOSALS.items()}
 
 
 @pytest.fixture(scope="module")
