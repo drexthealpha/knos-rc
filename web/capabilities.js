@@ -30,8 +30,12 @@ export function evidenceHtml(c) {
     said.push(`<a href="https://explorer.solana.com/tx/${esc(ev.exercised.signature)}?cluster=devnet" target="_blank" rel="noopener">${esc(ev.exercised.signature.slice(0, 8))}...</a>`);
   }
   if (ev.reproduced && /^https:\/\//.test(ev.reproduced.url || "")) said.push(`<a href="${esc(ev.reproduced.url)}" target="_blank" rel="noopener">outside run</a>`);
-  return said.join(", ") + (c.note ? `${said.length ? ". " : ""}${esc(c.note)}` : "");
+  // a note of twelve words or fewer is said in the row; a longer one (up to a hundred words) is a shut fold under it
+  const note = !c.note ? "" : c.note.split(/\s+/).length <= NOTE_WORDS ? `${said.length ? ". " : ""}${esc(c.note)}`
+    : `<details class="cap-note"><summary>Read the note</summary>${esc(c.note)}</details>`;
+  return said.join(", ") + note;
 }
+export const NOTE_WORDS = 12;
 
 export function tableHtml(data, stage = "all") {
   const rows = filtered(data, stage).map((c) => `<tr data-stage="${esc(stageOf(c))}"><td>${esc(c.what)}</td><td>${esc(STAGE_WORDS[stageOf(c)])}</td><td>${evidenceHtml(c)}</td></tr>`);
@@ -44,7 +48,8 @@ export function tableHtml(data, stage = "all") {
 // budget is spent.
 const STYLE = `@media (max-width:900px){table.capabilities th{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 table.capabilities tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}table.capabilities tr:first-child{padding:0;border:0}
-table.capabilities td{display:block;padding:2px 0;border:0}}`;
+table.capabilities td{display:block;padding:2px 0;border:0}}
+table.capabilities .cap-note summary{cursor:pointer}`;
 
 // Mount the table and its filter in `el`. `data` is docs/capabilities.json, parsed.
 export function renderCapabilities(el, data) {

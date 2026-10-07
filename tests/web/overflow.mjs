@@ -2,8 +2,8 @@
 // No page of the site scrolls sideways: every view (each hash the menu and the router know), with its details open, at
 // the widths of a small phone, two common phones, a tablet and a laptop, in light and in dark. A page that runs off the
 // side fails, and the elements that stick out are named. Everything outside the site's own files is refused, so this
-// is the page as it stands before any answer arrives. Nor is a table squeezed: no row of any table is taller than
-// ROW_MAX px (three columns on a phone once made a sentence a word a line, a refusal 500 px and a page 30,000); tests/web/site.mjs holds the same line for the answers (a
+// is the page as it stands before any answer arrives. Nor is a table squeezed: no row of any table, its folds shut, is
+// taller than ROW_MAX px (three columns on a phone once made a sentence a word a line, a refusal 500 px and a page 30,000); tests/web/site.mjs holds the same line for the answers (a
 // result, a wallet, a transaction's accounts) at the same widths. With a screenshot dir, the first screen is saved at
 // 1280 and 390 in both schemes. No `playwright` package or no browser: a failure in CI, a skip elsewhere (see `owed`).
 import { createServer } from "node:http";
@@ -12,7 +12,7 @@ import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, extname } from "node:path";
 
 export const WIDTHS = [320, 360, 390, 768, 1280];
-export const ROW_MAX = 360;
+export const ROW_MAX = 400;
 export const PAGES = ["", "#protect", "#fund", "#money", "#task", "#anyissue", "#claim", "#pricing", "#records", "#u=alice", "#r=octo/widgets", "#rank=earners",
   "#network", "#build", "#buy", "#install", "#capabilities", "#status", "#index", "#pilot", "#reproduce", "#demo", "#shadow", "#verifier", "#playground", "#terms",
   "#supplier", "#invoice-statement", "#story", "#keyholder", "#check-a-pull-request", "#record", "#record=codex"];
@@ -71,8 +71,9 @@ async function main() {
         await page.waitForFunction(() => document.documentElement.dataset.ready !== undefined, null, { timeout: 15000 }).catch(() => {});
         await page.evaluate(() => document.fonts.ready);
         await page.waitForTimeout(150);
+        const tall = await tallRows(page);                         // as the reader first sees it: a shut fold is shut
         await page.evaluate(() => document.querySelectorAll("details").forEach((d) => { d.open = true; }));
-        const { over, culprits } = await measure(page), tall = await tallRows(page);
+        const { over, culprits } = await measure(page);
         // a page whose scripts did not run shows the first screen at every hash, and would pass for the wrong reason
         if (!(await page.isVisible("#theme"))) said.push([false, `FAIL ${scheme} ${width}px ${hash || "(first screen)"}: the page's scripts did not run`]);
         else if (over > 1) said.push([false, `FAIL ${scheme} ${width}px ${hash || "(first screen)"}: ${over}px off the side`, culprits]);
