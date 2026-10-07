@@ -113,6 +113,40 @@ def test_both_sides_compute_the_same_net_or_nothing_closes():
         closed(small)
 
 
+def test_a_later_period_is_appended_to_the_pairs_ledger_file_and_never_written_alone(tmp_path):
+    # Found on devnet (0.3.19): the pair had anchored batch 0 of the month already, so the period was batch 1, and
+    # `net close --ledger` wrote a file holding batch 1 alone, which `knos meter verify` and attest.yml refuse ("its
+    # batches are numbered [1], not 0 to 0"): the period could not be anchored from the file close wrote.
+    first, _ = added(opened(), [one(i) for i in range(20)])
+    n0, first = closed(first)
+    zero = netting.ledger_text(n0)
+    second, _ = added(first + netting.open_line(netting.read(first), BUYER, SUPPLIER, MONTH, "500") + "\n", [one(i) for i in range(20, 40)])
+    n1, _ = closed(second)
+    assert n1.seq == 1
+    with pytest.raises(Bad, match=r"batch 1 of the pair's month, so the file must hold batches 0 to 0 of 202610 before it \(no file was given\)"):
+        netting.ledger_text(n1)
+    both = netting.ledger_text(n1, zero)
+    assert both.startswith(zero) and [(s.month, s.seq) for s in ledger.load(both)] == [(MONTH, 0), (MONTH, 1)] and ledger.verify(ledger.load(both)) == []
+    with pytest.raises(Bad, match="numbered"):
+        netting.ledger_text(n1, both)                                       # the period is in the file already
+    stranger, _ = added(text=netting.open_line(netting.read(""), BUYER, SUPPLIER + 1, MONTH, "500") + "\n", items=[one(i) for i in range(20)])
+    with pytest.raises(Bad, match=f"this period's pair is {BUYER} and {SUPPLIER}"):
+        netting.ledger_text(n1, netting.ledger_text(closed(stranger)[0]))
+    # the command line appends to the file it is given, and writes nothing when it cannot
+    typer = pytest.importorskip("typer")
+    from typer.testing import CliRunner
+    app = typer.Typer()
+    netting.register(app)
+    book, out, log = tmp_path / "net.jsonl", tmp_path / "pair.jsonl", tmp_path / "events.jsonl"
+    book.write_text(second, encoding="utf-8")
+    r = CliRunner().invoke(app, ["net", "close", str(book), "--ledger", str(out), "--events", str(log)])
+    assert r.exit_code == 1 and "batches 0 to 0" in r.output + str(r.exception) and not out.exists() and book.read_text(encoding="utf-8") == second
+    out.write_text(zero, encoding="utf-8")
+    r = CliRunner().invoke(app, ["net", "close", str(book), "--ledger", str(out), "--events", str(log)])
+    assert r.exit_code == 0, r.output
+    assert out.read_text(encoding="utf-8") == both and netting.read(book.read_text(encoding="utf-8")).open is None
+
+
 def test_a_book_is_recomputed_never_trusted():
     text, _ = added(opened(), [one(i) for i in range(20)])
     _n, done = closed(text)

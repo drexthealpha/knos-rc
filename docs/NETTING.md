@@ -14,7 +14,7 @@ Code: [`src/knos/netting.py`](../src/knos/netting.py). Test: [`tests/test_nettin
 | open | `knos net open BOOK --buyer ID --seller ID --month 2026-10 --cap 500` | a period between one buyer and one supplier, with a cap |
 | add | `knos net add BOOK outcomes.jsonl --events LOG` | accepted outcomes under 20.00, each with its evidence id (sha256 of the signed token or receipt) |
 | dispute | `knos net dispute BOOK --evidence ID --reason "..."` | that line leaves the net; every other line stays payable |
-| close | `knos net close BOOK --other THEIR_BOOK --ledger period.jsonl` | both copies must come to the same root; prints the net, the fee, the two anchoring audiences and the release's terms |
+| close | `knos net close BOOK --other THEIR_BOOK --ledger PAIR_LEDGER` | both copies must come to the same root; prints the net, the fee, the two anchoring audiences and the release's terms; appends the period to the pair's meter ledger file (a period of seq 1 needs the month's batch 0 in that file before it, or nothing is written) |
 | statement | `knos net statement BOOK` | every period: open or closed, lines, net, fee, root, and the table below |
 
 Each side keeps its own book, from what it received. An outcome is one deliverable: an order and a milestone, accepted

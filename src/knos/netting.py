@@ -336,11 +336,32 @@ def close(book: Book, other: Book | None = None) -> tuple[Net, str]:
     return n, canon({"closed": closing(n)})
 
 
-def ledger_text(n: Net) -> str:
-    """The period as a meter ledger file: what `knos meter verify`, `prove` and `reconcile` read."""
+def ledger_text(n: Net, before: str = "") -> str:
+    """The period as a meter ledger file: what `knos meter verify`, `prove` and `reconcile` read, and what attest.yml
+    anchors. A period is batch `seq` of the pair's month on knos_meter, and a ledger file holds a month's batches from
+    0 on (the running hash on chain goes through each of them): `before` is the pair's ledger file so far, and the
+    period is appended to it. Refused, and nothing written, when the result is not a ledger the meter takes: the
+    period of seq 1 with no batch 0 before it, a batch of another pair, a period the file holds already."""
     if n.batch is None:
         raise Bad("this net has no batch")
-    return ledger.dump([n.batch])
+    head = before if not before or before.endswith("\n") else before + "\n"
+    text = head + ledger.dump([n.batch])
+    try:
+        stored = ledger.load(text)
+    except Bad as why:
+        raise Bad(f"the ledger file given is not one the meter reads: {why}") from None
+    other = [s for s in stored if (s.declared["buyer"], s.declared["seller"]) != (n.buyer, n.seller)]
+    bad = ([f"the ledger file given is of buyer {other[0].declared['buyer']} and seller {other[0].declared['seller']}, this period's pair is "
+            f"{n.buyer} and {n.seller}"] if other else []) or ledger.verify(stored)
+    if bad:
+        why = f"period {n.month}.{n.seq} cannot be written as a meter ledger: {bad[0]}"
+        if n.seq:
+            held = sorted(s.seq for s in stored[:-1] if s.month == n.month)
+            why += (f". It is batch {n.seq} of the pair's month, so the file must hold batches 0 to {n.seq - 1} of {n.month} before it "
+                    + (f"(the file given holds {held})" if before else "(no file was given)")
+                    + ": give the pair's ledger file with --ledger, and the period is appended to it")
+        raise Bad(why)
+    return text
 
 
 def audiences(n: Net) -> dict:
@@ -542,7 +563,8 @@ def register(app, help_lines: list | None = None) -> None:
     @net.command("close")
     def close_(book: Path = typer.Argument(..., help="the book file"),
                other: Path = typer.Option(None, help="the other side's book: the two must come to the same root"),
-               ledger_out: Path = typer.Option(None, "--ledger", help="write the period as a meter ledger file here (what `knos meter verify` reads)"),
+               ledger_out: Path = typer.Option(None, "--ledger", help="the pair's meter ledger file (what `knos meter verify` reads): the period is "
+                                                                      "appended to it, and it is made when absent"),
                balance: str = typer.Option("", help="the buyer's Balance address: prints the audience that funds the release"),
                issue: int = typer.Option(0, help="the issue of the buyer's repository the release is funded on"),
                events_log: Path = typer.Option(None, "--events", help="the events log (default: KNOS_EVENTS)")):
@@ -552,12 +574,16 @@ def register(app, help_lines: list | None = None) -> None:
             b = book_of(book)
             try:
                 n, line = close(b, book_of(other) if other else None)
+                before = ledger_out.read_text(encoding="utf-8") if ledger_out and ledger_out.exists() else ""
+                whole = ledger_text(n, before) if ledger_out else ""
             except Bad as why:
                 raise stop(str(why)) from None
+            except OSError:
+                raise stop(f"Cannot read {ledger_out}.") from None
             _append(book, [line])
-        text = ledger_text(n)
         if ledger_out:
-            ledger_out.write_text(text, encoding="utf-8", newline="\n")
+            ledger_out.write_text(whole, encoding="utf-8", newline="\n")
+        text = ledger.dump([n.batch])           # the period's own batch: what the events log takes from this close
         skip = {x for e in (n.batch.evals if n.batch else ()) if e.stands == "disputed" for x in (_evl(e),)}
         _mirror(events.where(events_log), lambda: (ev for ev in events.from_ledger(text) if ev.id not in skip))
         out = {"net": n.json(), "audiences": audiences(n), "terms": terms(n), "compare": compare(n)}
