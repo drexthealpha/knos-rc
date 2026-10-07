@@ -43,7 +43,10 @@ export async function jsonFile(path) {
   return data;
 }
 const sharedTable = (esc, head, rows) => (rows.length ? `<div class="table-wrap"><table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<p class="fine">Nothing to show yet.</p>`);
-const sharedSource = (esc, data, path, id = "rec-source") => `<p class="fine" id="${id}">Read from <a href="${esc(path)}">${esc(path)}</a>, made ${esc(stamp(data.generated))} from ${esc(data.source?.summary || "a source the file does not name")}.</p>`;
+// The file and its time in one line; what it was made from (on the Pages build a list of some thirty words: the chain's
+// log lines, the relay log, GitHub, the Index's root) in a shut fold under it, so no sentence passes twelve words.
+const sharedSource = (esc, data, path, id = "rec-source") => `<div class="fine" id="${id}"><p>Read from <a href="${esc(path)}">${esc(path)}</a>, made ${esc(stamp(data.generated))}.</p>`
+  + `<details class="k-more"><summary>What it was made from</summary><p>${esc(data.source?.summary || "a source the file does not name")}.</p></details></div>`;
 export const isLogin = (x) => LOGIN.test(x);
 export const tableHtml = sharedTable, sourceHtml = sharedSource;
 
