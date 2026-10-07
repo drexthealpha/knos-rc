@@ -342,7 +342,7 @@ def test_a_batch_and_a_sellers_claim_posted_as_knos_eval_reach_the_meters_batch_
     # the first deployment's claim keeps its own marker: knos-eval: carries the meter's three and nothing else
     assert ghrelay.misposted("eval", jwt("knos:claim:1:" + "1" * 44)) == "posted as knos-eval, but its audience is a claim token's"
     assert ghrelay.misposted("eval", jwt("knos2:pay:1:1:9:" + "a" * 40 + ":" + "0" * 64 + ":0:-")) == "posted as knos-eval, but its audience is a pay token's"
-    r = ghrelay.relay_one(net, c.payer, "eval", b)
+    r = first = ghrelay.relay_one(net, c.payer, "eval", b)
     assert r["ok"] and (r["kind"], r["seq"], r["count"], r["accepted"], r["value"], r["fee"]) == ("batch", 0, 3, 2, 4_000_000, 0), r
     assert r["note"] == (f"Counted batch 0 of month {month} for buyer {BUYER} and seller {SELLER}: 3 evaluations, 2 accepted (the buyer's count, fee 0.00 from "
                          f"the buyer's credits). Merkle root {root.hex()}.")
@@ -353,9 +353,14 @@ def test_a_batch_and_a_sellers_claim_posted_as_knos_eval_reach_the_meters_batch_
     theirs = c.book(claim=True)
     assert (theirs.next_seq, theirs.evaluations, theirs.accepted) == (1, 4, 3)
     assert ghrelay.log_line("eval", "o/r", 2, s, r).startswith(f"knos-relay eval o/r#2 {ghrelay.token_id(s)} ok sig=")
-    # the same batch token again: taken once, refused from a read
+    # the same batch again (another relayer carried it first): taken once, nothing sent, answered "already" with the
+    # transaction that took it and the same note; a token for the same seq with another root is refused from a read
+    sent = net.txs
     again = ghrelay.relay_one(net, c.payer, "eval", token(c, batch, file="attest.yml", repository_owner_id=BUYER, run_attempt=1))
-    assert not again["ok"] and again["kind"] == "batch" and again["why"] == meter.ERRORS[meter.E_SEQ]
+    assert again["ok"] and again["already"] and again["sigs"] == first["sigs"][-1:] and again["note"] == first["note"] and net.txs == sent, again
+    other = meter.batch_audience(BUYER, SELLER, month, 0, 3, 2, 4_000_000, bytes([8]) * 32)
+    again = ghrelay.relay_one(net, c.payer, "eval", token(c, other, file="attest.yml", repository_owner_id=BUYER, run_attempt=1))
+    assert not again["ok"] and again["kind"] == "batch" and again["why"] == meter.ERRORS[meter.E_SEQ] and net.txs == sent
     # a relay's result of another kind under the marker is still refused
     assert not ghrelay.relay_one(None, None, "eval", "t", submit=lambda *a: {"ok": True, "kind": "fund", "sigs": ["f"]})["ok"]
 

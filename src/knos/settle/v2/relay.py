@@ -503,6 +503,26 @@ def _said_in(ledger, address: Pubkey, line: str, most: int = 10) -> list[str]:
     return []
 
 
+def _batch_taken(ledger, where: Pubkey, kind: str, b, most: int = 20) -> dict | None:
+    """Where knos_meter took exactly this batch (RecordBatch or ClaimBatch logs every number of the audience and its
+    root), among the last few transactions that named its Ledger account `where`: {"sigs", "fee", "chain"} as that
+    line says them, or None when none is found or the cluster does not say. A seq is taken once, so a line with this
+    seq and this root is this audience's own batch: any token for it asks for what the chain already shows. One with
+    another root is another batch, and is refused."""
+    head = (f"knosm:{kind} buyer={b.buyer} seller={b.seller} month={b.month} seq={b.seq} count={b.count} accepted={b.accepted} "
+            f"value={b.value} root={b.root.hex()} ")
+    recent, logs = getattr(ledger, "recent", None), getattr(ledger, "logs", None)
+    try:
+        for sig, _when in (recent(where, most) if recent and logs else []):
+            for line in chain.said(logs(sig), meter.METER_ID):
+                if line.startswith(head):
+                    fee, made = re.search(r" fee=(\d+)", line), re.search(r" chain=([0-9a-f]{64})", line)
+                    return {"sigs": [sig], "fee": int(fee.group(1)) if fee else 0, **({"chain": made.group(1)} if made else {})}
+    except Exception:  # noqa: BLE001, S110 - not known: the seq rule answers, as before
+        pass
+    return None
+
+
 # -- what each audience asks of the escrow, decided with reads alone ----------------------------------------------------
 Group = tuple[list[Instruction], int]       # instructions that go in one transaction together, and their compute units
 
@@ -1587,7 +1607,9 @@ def _plan_eval(a: _Ask) -> _Plan:
 def _plan_batch(a: _Ask, claim: bool = False) -> _Plan:
     """knosm:batch: the buyer's count of many evaluations in one token (RecordBatch), under Record's rules and paid
     from the same credits. knosm:claim: the seller's own count (ClaimBatch), from any workflow in a repository the
-    seller owns, with no credits and no fee. A batch token is taken once: its seq must be the Ledger's next."""
+    seller owns, with no credits and no fee. A batch token is taken once: its seq must be the Ledger's next. A token
+    for a batch the chain already took (its seq, its numbers and its root in the Ledger's recent logs) is answered
+    "already", with that transaction: another relayer carried it."""
     kind, ledger, me, t, now = "claim" if claim else "batch", a.ledger, a.me, a.t, a.now
     try:
         is_claim, b = meter.parse_batch_audience(t.aud)
@@ -1610,9 +1632,11 @@ def _plan_batch(a: _Ask, claim: bool = False) -> _Plan:
     if old := live.needs(ledger, a.payer, "knos_meter", now):     # the batch mode is 1.1's: 1.0 runs until the upgrade executes
         raise _no(kind, old)
     before = meter.read_ledger(_data(got, where))
-    if (before.next_seq if before else 0) != b.seq:     # the same token again, a batch out of order, or one that is missing: nothing is sent
-        raise _no(kind, meter.ERRORS[meter.E_SEQ], next_seq=before.next_seq if before else 0)
     result = dict(kind=kind, buyer_id=b.buyer, seller_id=b.seller, month=b.month, seq=b.seq, count=b.count, accepted=b.accepted, value=b.value, root=b.root.hex())
+    if before is not None and before.next_seq > b.seq and (taken := _batch_taken(ledger, where, kind, b)):
+        raise _Stop({"ok": True, **result, **taken, "already": True})     # this very batch is counted: another relayer carried it
+    if (before.next_seq if before else 0) != b.seq:     # a seq another batch took, a batch out of order, or one that is missing: nothing is sent
+        raise _no(kind, meter.ERRORS[meter.E_SEQ], next_seq=before.next_seq if before else 0)
     want = meter.chain_hash(before.chain if before else meter.ZERO, b.root, b.seq, b.count, b.accepted, b.value)
 
     def done(sigs: list[str]) -> dict:
