@@ -354,13 +354,13 @@ def ledger_text(n: Net, before: str = "") -> str:
     bad = ([f"the ledger file given is of buyer {other[0].declared['buyer']} and seller {other[0].declared['seller']}, this period's pair is "
             f"{n.buyer} and {n.seller}"] if other else []) or ledger.verify(stored)
     if bad:
-        why = f"period {n.month}.{n.seq} cannot be written as a meter ledger: {bad[0]}"
+        said = f"period {n.month}.{n.seq} cannot be written as a meter ledger: {bad[0]}"
         if n.seq:
             held = sorted(s.seq for s in stored[:-1] if s.month == n.month)
-            why += (f". It is batch {n.seq} of the pair's month, so the file must hold batches 0 to {n.seq - 1} of {n.month} before it "
+            said += (f". It is batch {n.seq} of the pair's month, so the file must hold batches 0 to {n.seq - 1} of {n.month} before it "
                     + (f"(the file given holds {held})" if before else "(no file was given)")
                     + ": give the pair's ledger file with --ledger, and the period is appended to it")
-        raise Bad(why)
+        raise Bad(said)
     return text
 
 
