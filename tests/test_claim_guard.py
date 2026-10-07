@@ -207,6 +207,21 @@ def test_the_command_line_reads_an_event_file_and_prints_no_word_of_the_claim(tm
     assert capsys.readouterr().out == "claims: 2 read (open issues and pull requests), 1 with a claim of payment\nclaims: #51 nothing (answered already)\n"
 
 
+def test_a_sweep_names_a_claim_shaped_item_it_never_answers_and_answers_nothing_more(capsys):
+    """0.3.19, live in staging: the worker's `claims` job read the maintainer's test issue (a claim's words, written
+    by the owner) and printed only "0 with a claim of payment", as if there were none. It still answers nothing
+    the repository's own people or a bot wrote; it now names each such item on the run's page, and no word of it."""
+    owner = _pull(8, user={"login": "drexthealpha", "type": "User"}, author_association="OWNER")
+    robot = _pull(9, user={"login": "renovate[bot]", "type": "Bot"}, author_association="NONE")
+    hub = Hub(LOG, owner, robot)
+    assert claim_guard.main(["--sweep", "--repo", REPO], run=_run(hub)) == 0
+    assert capsys.readouterr().out == (
+        "claims: 3 read (open issues and pull requests), 0 with a claim of payment\n"
+        "claims: #8 not answered (it reads as a claim, but this repository's own people or a bot wrote it)\n"
+        "claims: #9 not answered (it reads as a claim, but this repository's own people or a bot wrote it)\n")
+    assert hub.sent == [] and 8 not in hub.comments and 9 not in hub.comments
+
+
 def test_a_sweep_that_cannot_read_the_listing_says_so_and_fails(capsys):
     """Run on a timer, a sweep whose listing GitHub did not give must not end green and silent, like one that found
     nothing to answer: it says it read nothing and exits 1. The same when the listing is cut short."""
@@ -243,7 +258,8 @@ def test_the_worker_answers_a_fork_pull_request_on_its_next_pass_once_and_never_
     assert [(r["repo"], r["number"], r["did"]) for r in got] == [(REPO, 7, "answered")] and swept == {REPO: 1000.0}
     assert [c["body"] for c in hub.comments[7]] == [EXPECTED] and hub.labels == {7: ["no-order"]} and 8 not in hub.comments
     assert said == [f"claims: {REPO}: 3 read (open issues and pull requests), 1 with a claim of payment",
-                    f"claims: {REPO}#7 answered (/attempt, /claim, /opire, an EVM address, a bounty platform)"]
+                    f"claims: {REPO}#7 answered (/attempt, /claim, /opire, an EVM address, a bounty platform)",
+                    f"claims: {REPO}#8 not answered (it reads as a claim, but this repository's own people or a bot wrote it)"]
     # every later pass inside five minutes asks GitHub nothing at all; the pass after that reads, and posts no second answer
     before, asked = list(hub.sent), []
 
@@ -255,7 +271,9 @@ def test_the_worker_answers_a_fork_pull_request_on_its_next_pass_once_and_never_
     assert asked == [] and swept == {REPO: 1000.0}
     again = claim_guard.sweep_served(counted, [REPO], swept, 1300.0, say=said.append)
     assert asked == [REPO] and [(r["number"], r["why"]) for r in again] == [(7, "answered already")]
-    assert hub.sent == before and len(hub.comments[7]) == 1 and said[-1] == f"claims: {REPO}#7 nothing (answered already)"
+    assert hub.sent == before and len(hub.comments[7]) == 1 and said[-2:] == [
+        f"claims: {REPO}#7 nothing (answered already)",
+        f"claims: {REPO}#8 not answered (it reads as a claim, but this repository's own people or a bot wrote it)"]
 
 
 def test_the_answer_links_the_funded_tasks_of_the_playground():

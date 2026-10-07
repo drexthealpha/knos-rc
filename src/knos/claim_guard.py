@@ -229,9 +229,11 @@ def sweep(run, repo: str) -> list[dict]:
     return _sweep(run, repo)[1]
 
 
-def _sweep(run, repo: str) -> tuple[int | None, list[dict]]:
+def _sweep(run, repo: str, passed: list | None = None) -> tuple[int | None, list[dict]]:
     """(how many open issues and pull requests were read, what was done for each that claims a payment). The count
-    is None when the listing could not be read whole: GitHub did not answer, or there were over 300."""
+    is None when the listing could not be read whole: GitHub did not answer, or there were over 300. `passed`: given
+    a list, the numbers of the items that read as a claim but are never answered (written by this repository's own
+    people or a bot) are added to it, for the run's page (`left_out`)."""
     from . import terms
     rp = run.github(f"repos/{repo}")
     rows = terms.pages(f"repos/{repo}/issues?state=open&sort=updated&direction=desc", run.github, cap=3)
@@ -239,14 +241,24 @@ def _sweep(run, repo: str) -> tuple[int | None, list[dict]]:
         return None, []
     out = []
     for item in rows:
-        if not isinstance(item, dict) or _ours(item.get("user"), item.get("author_association")) or bot(item.get("user")):
+        if not isinstance(item, dict):
             continue
         texts = [str(item.get("title") or ""), str(item.get("body") or "")]
         if not any(claims(t) for t in texts):
             continue
+        if _ours(item.get("user"), item.get("author_association")) or bot(item.get("user")):
+            if passed is not None:      # never answered; named on the run's page, so a claim-shaped item passed over is not invisible
+                passed.append(int(item["number"]))
+            continue
         closes = _closes(run, repo, int(item["number"])) if "pull_request" in item else []
         out.append({"number": int(item["number"]), **handle(run, repo, int(rp["id"]), item, texts, closes)})
     return len(rows), out
+
+
+def left_out(number: int, repo: str = "") -> str:
+    """The run page's line for an item that reads as a claim and is never answered: its author may write here, or is a
+    bot. Before 0.3.19 such an item left no trace, and the page said "0 with a claim of payment" beside it."""
+    return f"claims: {repo}#{int(number)} not answered (it reads as a claim, but this repository's own people or a bot wrote it)"
 
 
 class Unread(RuntimeError):
@@ -268,8 +280,9 @@ def sweep_served(run_for, repos, state: dict, now: float, every: float = SWEEP_E
         if repo in state and float(state[repo]) > now - every:
             continue
         state[repo] = now
+        passed: list[int] = []
         try:
-            read, got = _sweep(run_for(repo), repo)
+            read, got = _sweep(run_for(repo), repo, passed)
         except Exception as why:  # noqa: BLE001 - GitHub or the chain did not answer for this repository: the others are still swept
             read, got = None, []
             say(f"claims: {repo}: {type(why).__name__}: {' '.join(str(why).split())[:200]}")
@@ -280,6 +293,8 @@ def sweep_served(run_for, repos, state: dict, now: float, every: float = SWEEP_E
         say(f"claims: {repo}: {read} read (open issues and pull requests), {len(got)} with a claim of payment")
         for r in got:
             say(f"claims: {repo}#{r['number']} {r['did']} ({r['why']})")
+        for n in passed:
+            say(left_out(n, repo))
         done += [{"repo": repo, **r} for r in got]
     if unread:
         err = Unread(f"the open issues and pull requests of {', '.join(unread)} could not be read whole: no claim there was answered on this pass "
@@ -303,11 +318,14 @@ def main(argv: list[str] | None = None, run=None) -> int:
         event = json.loads(Path(args.event).read_text(encoding="utf-8"))
     run = run or flow.Run(args.repo, event)
     if args.sweep:
-        read, got = _sweep(run, args.repo)
+        passed: list[int] = []
+        read, got = _sweep(run, args.repo, passed)
         if read is None:    # a sweep that read nothing must not look like one that found nothing to answer
             print("claims: nothing (the open issues and pull requests could not be read whole)")
             return 1
         print(f"claims: {read} read (open issues and pull requests), {len(got)} with a claim of payment")
+        for n in passed:
+            print(left_out(n))
     else:
         got = [on_event(run, args.event_name, event)]
     for r in got:       # the job's log: what was done and why, never the claim's words

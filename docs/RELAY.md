@@ -246,6 +246,9 @@ labelled `knos-relay`. `relayq.LogStore` keeps the notes there as well as in the
 - **When GitHub does not take or give a line**, the run keeps its notes in its folder as in 0.3.18 and says so once
   on its run page ("relay notes: ... They are local to this run until it does"), and once more when a line is taken
   again. The guard is then the chain's: it takes a token once.
+- **A run that sends nothing for a token it found says why** on its page: `relay: <kind> <repo>#<n> <token id>: not
+  carried by this run: <runner> has it on chain (relay log comment <id>)`, or holds it, or had it refused. Until this
+  was seen live in staging an event run that found the sweep's token printed only "0 tokens carried".
 
 `tests/test_relayq.py` runs all six orders of two runners' two writes and two reads over one token, each with the
 clocks equal and 50 s apart either way (sent once in each); a runner that dies holding a lease (the other takes the
@@ -279,6 +282,8 @@ none.
   owner, a member, a collaborator or a bot (the guard's own rules, unchanged).
 - **Never silent:** a listing that could not be read whole fails the job (in a relay's own pass: an error line,
   `::error title=claim guard::`, and that repository is asked again a minute later). It does not stop the relay.
+  An item that reads as a claim but is never answered (its author may write here, or is a bot) is named on the
+  page: `claims: #<n> not answered (...)`, and no word of it is quoted.
 - **The answer links the funded tasks:** the open issues labelled `knos-funded` in `drexthealpha/knos-playground`.
 
 `claims.yml` keeps its immediate triggers (an issue, a comment) and its timer, as the fallback when no worker runs.
