@@ -1,4 +1,4 @@
-# Release manifest: Knos 0.3.18
+# Release manifest: Knos 0.3.19
 
 **The neutral meter for AI agent work: neither side keeps the count.**
 
@@ -8,7 +8,7 @@ limits still open. `python scripts/release_manifest.py` writes it from the files
 
 ## Source
 
-- Release: Knos 0.3.18 (`pyproject.toml`). Tag: [`v0.3.18`](https://github.com/drexthealpha/Knos/tree/v0.3.18); `git rev-list -n 1 v0.3.18` prints its commit. A file
+- Release: Knos 0.3.19 (`pyproject.toml`). Tag: [`v0.3.19`](https://github.com/drexthealpha/Knos/tree/v0.3.19); `git rev-list -n 1 v0.3.19` prints its commit. A file
   cannot hold the hash of the commit that holds it.
 - Cluster: Solana devnet. The money is test USDC. Mainnet is not touched.
 
@@ -205,6 +205,20 @@ public program ids. The note of each capability and every lower stage's evidence
 | `agent_pays_agent` | tested locally | [`tests/test_agent_pays_agent.py`](../tests/test_agent_pays_agent.py) |
 | `upstream_gate` | tested locally | [`tests/test_upstream_check.py`](../tests/test_upstream_check.py) |
 | `claim_guard` | tested locally | [`tests/test_claim_guard.py`](../tests/test_claim_guard.py) |
+| `netted_settlement` | tested locally | [`tests/test_netting.py`](../tests/test_netting.py) |
+| `third_party_advance` | tested locally | [`tests/test_advance_offer.py`](../tests/test_advance_offer.py) |
+| `record_lookup_paid` | tested locally | [`tests/test_record_api.py`](../tests/test_record_api.py) |
+| `test_usdc_faucet` | tested locally | [`tests/test_faucet.py`](../tests/test_faucet.py) |
+| `funded_task_board` | tested locally | [`tests/test_task_board.py`](../tests/test_task_board.py) |
+| `claim_guard_worker` | tested locally | [`tests/test_claim_guard.py`](../tests/test_claim_guard.py) |
+| `relay_notes_log` | tested locally | [`tests/test_relayq.py`](../tests/test_relayq.py) |
+| `own_reproduction_path` | tested locally | [`tests/test_reproduce.py`](../tests/test_reproduce.py) |
+| `receipt_assurance` | tested locally | [`tests/test_assurance.py`](../tests/test_assurance.py) |
+| `declared_control` | tested locally | [`tests/test_assurance.py`](../tests/test_assurance.py) |
+| `goods_received_note` | tested locally | [`tests/test_assurance.py`](../tests/test_assurance.py) |
+| `supplier_completes` | tested locally | [`tests/test_supplier_completes.py`](../tests/test_supplier_completes.py) |
+| `upgrade_gate_adoption` | tested locally | [`tests/test_gate_adopt.py`](../tests/test_gate_adopt.py) |
+| `registry_plan` | tested locally | [`tests/test_gate_adopt.py`](../tests/test_gate_adopt.py) |
 
 ## Outstanding limits
 

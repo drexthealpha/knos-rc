@@ -82,8 +82,8 @@ def test_the_story_is_six_beats_each_with_evidence_that_exists_and_asks_for_thre
     for _n, title, said, _name, target in steps:
         assert len(WORDS.findall(f"{title} {said}")) <= 12, (title, said)
         assert target.startswith("https://") or (DOCS / target.split("#")[0]).exists(), target
-    assert [s[1] for s in steps] == ["An invoice does not reconcile.", "Buyer authorises the deliverable.", "A tampered submission is refused.",
-                                     "Legitimate work is accepted.", "A replay pays nothing.", "Both sides rebuild one bill."]
+    assert [s[1] for s in steps] == ["Buyer and supplier agree one task.", "A claimed success fails the condition.", "Valid work passes.",
+                                     "The payment executes.", "A replay pays nothing.", "Accounts get an export."]
     after = story.split(steps[-1][4])[1].split("\n## ")[0]                                  # what follows the last beat claims nobody
     assert "Then your own invoice: [check it](https://drexthealpha.github.io/Knos/). Nobody has paid for this yet." in after
     for _n, title, said, _name, _target in steps:
@@ -91,7 +91,7 @@ def test_the_story_is_six_beats_each_with_evidence_that_exists_and_asks_for_thre
             assert word not in f"{title} {said}".lower()
     # a link to a run on staging program ids says so in its own words, and the page says which beats
     staged = [int(n) for n, _t, _s, name, _target in steps if "staging program ids" in name]
-    assert staged == [2, 4] and "The transactions of beats 2 and 4 ran on the staging program ids" in " ".join(story.split())
+    assert staged == [] and "The transactions of steps 1, 4 and 5 are one round on the public program ids" in " ".join(story.split())
     assert "](MANIFEST.md)" in story and "](submission/demo_script.md)" in story
     ask = story.split("## The ask")[1].split("\n## ")[0]
     needs = re.findall(r"(?m)^\d\. (.+)$", ask)

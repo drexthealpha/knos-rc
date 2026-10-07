@@ -379,13 +379,21 @@ headless Chromium against a mocked GitHub and Solana.
 `knos decide` answers accepted, rejected or insufficient evidence the moment the forge's signed token is in hand, by the reads a relay makes before it spends a fee (`knos.settle.v2.relay.precheck`), and writes a provisional receipt. A provisional receipt never authorises payment; the final receipt names it and replaces it ([LOAD.md](LOAD.md), "The five clocks").
 
 <!-- decide:time -->
-Measured on 2026-10-06 by `python scripts/decide_bench.py --write` on this machine: Intel(R) Xeon(R) Processor @ 2.80GHz, 2 CPUs, Linux x86_64, Python 3.11.15. The chain is LiteSVM with the committed test builds, in the same process: no network. A cluster adds a round trip to its RPC endpoint for every read of the chain; that has not been measured, on devnet or anywhere.
+Measured on 2026-10-07 by `python scripts/decide_bench.py --write` on this machine: Intel(R) Xeon(R) Processor @ 2.80GHz, 2 CPUs, Linux x86_64, Python 3.11.15. The chain is LiteSVM with the committed test builds, in the same process: no network. On devnet, four runs of the 0.3.18 command (the relay's whole precheck, on real fund tokens over the shared public RPC) took 4.3 to 32.6 s: a first reading, not a sample. The split below has not been timed on devnet.
 
-| decision | what is timed | n | p50 | p95 | slowest | every sample said | target at p95 |
+| decision | what is timed | n | p50 | p95 | slowest | every sample said | target at p95 (a target, not a measurement) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| fresh, accepted | a fund token never seen: signature checked, chain read | 40 | 1.1 ms | 9.3 ms | 10.6 ms | accepted | under 2000 ms |
-| fresh, rejected | a pay token for an issue with nothing in escrow: signature checked, chain read | 40 | 0.7 ms | 5.0 ms | 12.8 ms | rejected | under 2000 ms |
-| cached, accepted | the same fund token again, the chain's answers kept (`knos.decide.Cached`) | 40 | 1.0 ms | 7.8 ms | 12.8 ms | accepted | under 200 ms |
-| no chain | the token alone, `ledger=None`: insufficient evidence, or rejected | 40 | 0.4 ms | 0.7 ms | 12.7 ms | insufficient evidence | under 200 ms |
-| free check | the conclusions of three named checks, no token | 40 | 0.1 ms | 1.8 ms | 4.2 ms | accepted | under 200 ms |
+| fresh, accepted | a fund token never seen: signature checked, chain read | 40 | 1.2 ms | 1.9 ms | 2.1 ms | accepted | under 2000 ms |
+| fresh, rejected | a pay token for an issue with nothing in escrow: signature checked, chain read | 40 | 0.7 ms | 1.0 ms | 1.2 ms | rejected | under 2000 ms |
+| cached, accepted | the same fund token again, the chain's answers kept (`knos.decide.Cached`) | 40 | 0.9 ms | 1.4 ms | 6.1 ms | accepted | under 200 ms |
+| no chain | the token alone, `ledger=None`: insufficient evidence, or rejected | 40 | 0.4 ms | 0.6 ms | 0.7 ms | insufficient evidence | under 200 ms |
+| free check | the conclusions of three named checks, no token | 40 | 0.1 ms | 0.1 ms | 0.1 ms | accepted | under 200 ms |
+| offline, accepted | the fund token against kept key lists: signature, claims, terms; nothing read (`knos.decide.offline`) | 40 | 0.6 ms | 0.9 ms | 4.6 ms | accepted | under 250 ms |
+| chain check | one request to the simulated chain and the updated answer (`knos.decide.chain_check`, `after_chain`) | 40 | 0.7 ms | 0.9 ms | 1.3 ms | accepted | under 250 ms |
+
+Requests to an RPC endpoint for one fund token, counted through an endpoint that only counts (`round_trips()`): before the split, the relay's whole precheck made 4 calls of the ledger (1 now, 1 simulate, 2 infos), each at least one request, one after another, and fetched the issuer's key list besides; the chain check makes 1 (1 infos: one getMultipleAccounts), with a timeout of 2 s, and the offline half makes none.
+
+The whole offline command in a new process each time (`python -m knos.decide --token-file ... --no-chain`: interpreter start, imports, decision, receipt written), n 10: p50 177 ms, p95 198 ms, slowest 198 ms; of that, inside the command p50 102 ms, p95 122 ms. Every run said: Provisional: rejected (token expired) (the simulator's clock is not this machine's, so its token is past its time for the command; the signature and the key lookup are the same work). The 250 ms target is for the warm offline decision; the cold command meets it here.
+
+What `python -m knos.decide` imports, by `python -X importtime` (the median of 5 new processes, each module's own time summed): deciding on a token offline, 236 modules in 141 ms, typer not loaded, the relay's rules loaded (they are the rules it decides by); the free check, 91 modules in 55 ms, typer not loaded, the relay's rules not loaded. Before 0.3.19 the same command loaded typer for every answer: on this machine, idle, 151 modules in 94 ms for the free check and 268 in 165 ms for a token.
 <!-- /decide:time -->

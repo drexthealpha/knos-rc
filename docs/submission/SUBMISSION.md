@@ -20,8 +20,8 @@ What is in this folder:
 | [../STORY.md](../STORY.md) | the one page: the number, the six beats with the evidence under each, and the ask |
 | [../MANIFEST.md](../MANIFEST.md) | the release manifest, written by a script: source, the build live at each public program id, pending proposals, every capability's stage with its evidence, the outstanding limits |
 | [NUMBERS.md](NUMBERS.md) | the nine numbers about outside use, each with today's value, zeros included |
-| [pitch_script.md](pitch_script.md) | the presentation, under three minutes: the number, the customer, the insight, a round, the model, the founder, and the limits in one sentence |
-| [demo_script.md](demo_script.md) | the technical demonstration, three minutes in six beats, each captioned with the program ids it ran on |
+| [pitch_script.md](pitch_script.md) | the presentation, under three minutes: the buyer, the problem, the insight, the evidence, the team, the business, and the limits in one sentence |
+| [demo_script.md](demo_script.md) | the technical demonstration, three minutes in six steps, the refusal first, each captioned with the program ids it ran on |
 | [CRITERIA.md](CRITERIA.md) | one paragraph for each factor Colosseum lists, founder and market fit included, and for each criterion in the rules; then six evidence targets, as targets |
 | [../PILOT.md](../PILOT.md) | the one offer for money: a 30-day pilot for one buyer and its suppliers, and what blocks it |
 | [../TEAM.md](../TEAM.md) | who builds Knos today, and the three roles the plan needs first, none hired |

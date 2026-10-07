@@ -234,7 +234,7 @@ its amount and is never more than it (`fee_of`). 5.00 pays 0.05; 100.00 pays 0.3
   under the build before this one (2.5% of the first 1,000, 1% to 50,000, 0.5% above, at least 0.40) pays, refunds
   and reverts with that fee; a top-up of it is charged at 0.30% and never less than the fee already there. A Plan set
   under that build (0.5% to 2.5%) is read as 0.30%: no rate is above the standard one.
-- **Volume rates are not on chain.** The price book's lower rates above 1M and 10M a month are a rebate by contract.
+- **Volume rates are not on chain.** The price book's 0.20% on monthly value above 1M is a rebate by contract.
   The program knows 0.30%, the floor, and a Plan's rate for one repository owner.
 - **Checked by:** the unit tests of `order_fee` and `fee_of` in [`lib.rs`](../programs-v2/knos_pay/src/lib.rs) and
   the Kani harnesses in [`proofs.rs`](../programs-v2/knos_pay/src/proofs.rs) (run by `cargo test` and `cargo kani`,
@@ -254,15 +254,18 @@ its amount and is never more than it (`fee_of`). 5.00 pays 0.05; 100.00 pays 0.3
     **verified** (two harnesses that take the rates one by one);
   - at the rate 30, the rate of an order with no Plan: at least 0.05; 0.05 or at most 0.31% of the amount; amount
     plus fee fits a u64: **verified**;
-  - at the rate 30, "0.05 or at most 0.30% of the amount" is **not verified**: at that rate the fee is exactly 0.30%
-    rounded down, with nothing to spare, and the solver did not answer in any of four forms. It is tested instead at
-    all 10,000 remainders of an amount by ten thousand on 2,001 values of its ten-thousands, with 10,000,000 amounts
-    and rates from a fixed seed and every amount within 20,000 units of each edge of the schedule at every rate,
-    against a reference in 128-bit integers (`cargo test --release` in `programs-v2/fee_proofs`, not run by pytest);
+  - at the rate 30, "0.05 or at most 0.30% of the amount", and that the fee is 0.30% of the amount rounded down or
+    0.05, whichever is larger (stated without a division, in 128 bits): **verified with cvc5**, bit-vectors solved as
+    integers (`--solve-bv-as-int=sum`, set by [`solvers/cvc5`](../programs-v2/fee_proofs/solvers/cvc5)). This one
+    result rests on cvc5's translation as well as on Kani. CaDiCaL, Kissat and Z3 did not answer it as bits in any
+    form tried, nor a sixteenth of the amounts, nor the division's own identity; `not_answered` in the record lists
+    each form, solver and limit, and a false statement the same setup refuted. It stays tested at all 10,000
+    remainders of an amount by ten thousand on 2,001 values of its ten-thousands and at 10,000,000 amounts from a
+    fixed seed (`cargo test --release` in `programs-v2/fee_proofs`, not run by pytest);
   - a job's fee, at every u64 amount: never more than the amount: **verified**.
 
-  So the statement over every amount an order may hold is **verified but for one bound at one rate**. The one
-  harness over every u64 amount and every rate at once,
+  So the statement over every amount an order may hold is **verified**, in parts: by rate, never in one harness.
+  The one harness over every u64 amount and every rate at once,
   `an_orders_fee_is_between_its_floor_and_the_one_rate_for_every_amount` in `proofs.rs`, is recorded at the top of
   [`kani.json`](kani.json) with what it got.
 - **The meter:** the fee of a month is the count beyond the free allowance times the rate, taken from prepaid

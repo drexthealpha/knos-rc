@@ -9,6 +9,11 @@ unanswered, that reads as a debt. This module answers it once, in words that acc
     python -m knos.claim_guard --event "$GITHUB_EVENT_PATH" --event-name "$GITHUB_EVENT_NAME"
     python -m knos.claim_guard --sweep          # every open issue and pull request (the timer: see claims.yml)
 
+Since 0.3.19 the always-on worker runs the same sweep (`sweep_served`, called by every pass of
+`knos.proof.ghrelay.once`): at most once in SWEEP_EVERY seconds for each repository it may write to, through the
+worker's own conditional reader, so a listing with nothing new is a 304. GitHub's timer is a fallback: in the 0.3.18
+release run claims.yml's 15-minute schedule did not fire once in 38 minutes.
+
 What it does, and all it does: one comment (found again by its hidden first line, so a second event posts nothing)
 and the label `no-order`. It closes nothing. It answers nothing written by the owner, a member, a collaborator or a
 bot, and nothing when any issue the claim is about holds money on chain (the check is flow.py's own:
@@ -33,6 +38,10 @@ LABEL = "no-order"
 LABEL_ABOUT = "No funded Knos order is attached, so no payment is due."    # GitHub keeps 100 characters of it
 BOT = "github-actions[bot]"
 PLAYGROUND = "https://github.com/drexthealpha/knos-playground"
+FUNDED_LABEL = "knos-funded"            # the label every funded task of the playground carries
+FUNDED = f"{PLAYGROUND}/issues?q=is%3Aissue+is%3Aopen+label%3A{FUNDED_LABEL}"       # the funded tasks, open to anyone
+SWEEP_EVERY = 300                       # seconds between two sweeps of one repository by the always-on worker
+SWEEP_AGAIN = 60                        # and after a sweep that could not read the listing
 LOG_LINE = "a log written by a workflow. It is not a task and carries no payment."
 OURS = {"OWNER", "MEMBER", "COLLABORATOR"}       # GitHub's author_association for whoever may write here
 MAX_TEXT = 20_000                       # of a claim, what is read: the words of a claim come first or not at all
@@ -104,6 +113,7 @@ def answer(pull: bool, logs: list[int], plain: list[int]) -> str:
         "- Knos pays only orders funded with `/knos fund`, on Solana devnet, in test USDC that has no monetary value.",
         "- A payment goes to the Solana address or passkey its payee binds. An address on another chain cannot be paid.",
         f"- Funded work is listed by `knos work list`. The playground shows a funded order from start to finish: {PLAYGROUND}",
+        f"- Funded tasks anyone may take carry the label `{FUNDED_LABEL}` there: {FUNDED}",
         "",
         ("This pull request is welcome as an ordinary, unpaid contribution if it is useful, and will be read as one."
          if pull else "A pull request is welcome as an ordinary, unpaid contribution if it is useful."),
@@ -237,6 +247,46 @@ def _sweep(run, repo: str) -> tuple[int | None, list[dict]]:
         closes = _closes(run, repo, int(item["number"])) if "pull_request" in item else []
         out.append({"number": int(item["number"]), **handle(run, repo, int(rp["id"]), item, texts, closes)})
     return len(rows), out
+
+
+class Unread(RuntimeError):
+    """A sweep could not read a repository's open issues and pull requests whole: nothing is known about its claims.
+    `done`: what the same pass did in the repositories it could read."""
+    done: list[dict] = []
+
+
+def sweep_served(run_for, repos, state: dict, now: float, every: float = SWEEP_EVERY, say=print) -> list[dict]:
+    """The always-on worker's part: sweep each of `repos` that is due. `state` is the worker's own note of when each
+    repository was last swept ({repo: unix time}; changed here), so one repository is swept at most once in `every`
+    seconds however often a pass asks. `run_for(repo)` gives the Run to read and write that repository with (the
+    worker hands in its conditional reader: a listing it already holds costs a 304). Returns what was done, each
+    with its repository. A repository whose listing could not be read is tried again after SWEEP_AGAIN seconds, and
+    after every other repository was swept `Unread` is raised naming each: a sweep that read nothing is never silent."""
+    done: list[dict] = []
+    unread: list[str] = []
+    for repo in sorted({str(r) for r in repos if "/" in str(r)}):
+        if repo in state and float(state[repo]) > now - every:
+            continue
+        state[repo] = now
+        try:
+            read, got = _sweep(run_for(repo), repo)
+        except Exception as why:  # noqa: BLE001 - GitHub or the chain did not answer for this repository: the others are still swept
+            read, got = None, []
+            say(f"claims: {repo}: {type(why).__name__}: {' '.join(str(why).split())[:200]}")
+        if read is None:
+            state[repo] = now - every + SWEEP_AGAIN
+            unread.append(repo)
+            continue
+        say(f"claims: {repo}: {read} read (open issues and pull requests), {len(got)} with a claim of payment")
+        for r in got:
+            say(f"claims: {repo}#{r['number']} {r['did']} ({r['why']})")
+        done += [{"repo": repo, **r} for r in got]
+    if unread:
+        err = Unread(f"the open issues and pull requests of {', '.join(unread)} could not be read whole: no claim there was answered on this pass "
+                     f"(asked again in {SWEEP_AGAIN} seconds)")
+        err.done = done
+        raise err
+    return done
 
 
 def main(argv: list[str] | None = None, run=None) -> int:

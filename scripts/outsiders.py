@@ -23,6 +23,8 @@ needs nothing else, so a build that read no chain can still write the three zero
 """
 from __future__ import annotations
 
+import re
+
 LABEL_KNOS_FAUCET = "outside funder, Knos repository, faucet money"
 DEFINITIONS = {
     "funders": "accounts and wallets that are not Knos's and funded a job: the commenter, or the wallet that funded it",
@@ -91,3 +93,44 @@ def count(jobs: list[dict], own: frozenset, own_wallets: frozenset, own_repos: f
     return {"measured": bool(measured), "funders": len(outside | faucet), "funders_in_outside_repositories": len(outside),
             "funders_in_knos_repositories_faucet": len(faucet), "repositories": len(repos), "payees": len(payees),
             "summed": False, "definitions": DEFINITIONS}
+
+
+# ---- pull requests strangers sent to funded tasks: counted from the forge and the chain, apart from the three above --------------
+PULL_DEFINITIONS = {
+    "received": "pull requests opened by accounts that are not Knos's that name (Closes #N) an issue a job or work order held money for",
+    "merged": "of those, the ones the forge says were merged",
+    "paid": "of those, the ones whose author the chain says was paid by the job on an issue the pull request names",
+    "accounts": "distinct accounts that opened the received ones",
+    "payees": "distinct accounts among the paid ones: each is an outside PAYEE. None is an outside funder: the task's money was Knos's",
+}
+_CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#(\d+)\b", re.I)
+
+
+def named_issues(pull: dict) -> set[int]:
+    """The issues a pull request's description says it closes."""
+    return {int(n) for n in _CLOSES.findall(str(pull.get("body") or ""))}
+
+
+def pulls(forge_pulls: list[dict] | None, jobs: list[dict] | None, own: frozenset, repo: int | None = None) -> dict:
+    """Outside pull requests on funded tasks of ONE repository. `forge_pulls`: the forge's list of its pull requests
+    (number, user.id, merged_at, body), None when the forge was not read. `jobs`: the chain's jobs and work orders
+    (knos.records), None when the chain was not read; `repo`: that repository's id there (None: every job given is its).
+    A number that was not read is None, never 0. `funders` is always 0 here and says why: paying a stranger for a task
+    Knos funded makes an outside payee."""
+    out: dict = {"measured": forge_pulls is not None and jobs is not None, "received": None, "merged": None, "paid": None, "accounts": None,
+                 "payees": None, "funders": 0, "summed": False, "definitions": PULL_DEFINITIONS}
+    if forge_pulls is None or jobs is None:
+        return out
+    mine = [j for j in jobs if repo is None or j.get("repo") == repo]
+    funded = {int(j["issue"]) for j in mine if j.get("issue")}
+    paid_to: dict[int, set[int]] = {}
+    for j in mine:
+        if _paid(j) and j.get("issue"):
+            paid_to.setdefault(int(j["issue"]), set()).update(int(i) for i in (j.get("payees") or [j.get("payee") or 0]) if i)
+    got = [(p, named_issues(p) & funded) for p in forge_pulls if isinstance(p, dict)]
+    got = [(p, on) for p, on in got if on and int((p.get("user") or {}).get("id") or 0) not in own | {0}]
+    author = lambda p: int(p["user"]["id"])  # noqa: E731
+    paid = [p for p, on in got if any(author(p) in paid_to.get(n, ()) for n in on)]
+    out.update(received=len(got), merged=sum(1 for p, _ in got if p.get("merged_at")), paid=len(paid), accounts=len({author(p) for p, _ in got}),
+               payees=len({author(p) for p in paid}))
+    return out
