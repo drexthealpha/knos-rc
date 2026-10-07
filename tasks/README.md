@@ -61,8 +61,10 @@ Knos's own. The files are [`tasks/outside/`](outside/); `knos task kinds` prints
 | `judge` | host a judge from the template `examples/host_a_judge` | one GitHub-signed attestation run in a repository you own | judges hosted outside |
 
 Every one pays 5 test USDC from a task Knos funded itself, and a count that comes from one is shown with those words:
-"on tasks Knos funded itself". None is an offer of work. `tasks.accepts` checks the evidence
-and `outsiders.task_counts` decides who is outside; neither has been met by anyone yet.
+"on tasks Knos funded itself". `python scripts/task_board.py open --kinds` opens each as a funded issue in the playground
+that a maintainer's merge pays: the pull request adds one file, `outside/<kind>/<login>.json`, with the evidence.
+None is an offer of work. `tasks.accepts` checks the evidence and `outsiders.task_counts` decides who is outside;
+neither has been met by anyone yet.
 
 The text of each is `KINDS` in [`src/knos/tasks.py`](../src/knos/tasks.py), and a test holds the files to it. Each file states what to
 do, the `evidence`, the fields that evidence `needs`, and the one `counter` it can move

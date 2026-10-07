@@ -180,22 +180,32 @@ class Forge:
             self.labels.add(body["name"])
             return {}
         if where[:1] == ["contents"]:
-            data = self.files.get("/".join(where[1:]))
-            return {"content": base64.b64encode(data).decode()} if data is not None else None
+            key = "/".join(where[1:])
+            data = self.files.get(key)
+            if data is None:            # a folder: GitHub lists what is directly in it
+                inside = {k[len(key) + 1:].split("/")[0]: k for k in self.files if k.startswith(key + "/")}
+                return [{"type": "dir" if "/" in k[len(key) + 1:] else "file", "path": f"{key}/{name}"} for name, k in sorted(inside.items())] or None
+            return {"content": base64.b64encode(data).decode()}
         if where[:2] == ["git", "ref"]:
             return {"object": {"sha": f"c{len(self.commits)}"}}
         if where[:2] == ["git", "commits"] and method == "GET":
             return {"tree": {"sha": f"t{len(self.commits)}"}}
         if where[:2] == ["git", "trees"]:
             assert body["base_tree"] == f"t{len(self.commits)}"
-            self._trees["new"] = {e["path"]: e["content"].encode("utf-8") for e in body["tree"]}
+            self._trees["new"] = {e["path"]: e["content"].encode("utf-8") if "content" in e else e["sha"] for e in body["tree"]}
+            assert all(v is None or isinstance(v, bytes) for v in self._trees["new"].values()), "a tree entry adds content or removes a path"
             return {"sha": "new"}
         if where[:2] == ["git", "commits"]:
             assert body["parents"] == [f"c{len(self.commits)}"] and body["tree"] == "new"
             return {"sha": "made", "message": body["message"]}
         if where[:2] == ["git", "refs"]:
             assert method == "PATCH" and body == {"sha": "made", "force": False}
-            self.files.update(self._trees.pop("new"))
+            for rel, data in self._trees.pop("new").items():
+                if data is None:
+                    assert rel in self.files, "git refuses to remove a path the tree does not hold"
+                    del self.files[rel]
+                else:
+                    self.files[rel] = data
             self.commits.append("made")
             return {}
         if where == ["actions", "runs"]:
@@ -284,6 +294,49 @@ def test_the_days_budget_stops_it_and_a_strangers_marker_opens_nothing():
     forge.issue("Fake", "x\n<!-- knos-task: wrap amount=5000000 days=14 -->", user=STRANGER)
     state = tb.read(forge, playground.REPO, playground.OWNER_ID)
     assert "wrap" not in {r["slug"] for r in state["rows"]} and len(state["rows"]) == 4
+
+
+def test_the_five_tasks_that_are_not_code_open_first_paid_on_the_merge_within_the_days_budget(tmp_path):
+    """`--kinds`: tasks/outside/ as funded issues. No checks are theirs: the starter task's checks under the issue's number
+    go in the same commit as its line on the board, so the funding is merge mode, and a rebuild of the playground keeps it so."""
+    from knos import tasks
+    kinds = tb.kinds()
+    assert [k["slug"] for k in kinds] == [tb.KIND + k for k in tasks.KINDS] and len(kinds) == 5
+    for k in kinds:
+        assert (ROOT / "tasks" / "outside" / f"{k['kind']}.json").read_text(encoding="utf-8") == tasks.kind_file(k["kind"])
+        assert k["amount"] == 5_000_000 and k["statement"].startswith(tb.FIRST + "\n") and tb.fund_line(k) == f"/knos fund 5 days {tb.KIND_DAYS}"
+    forge = Forge()
+    for n in range(4, 9):                                                    # the starter task's checks, as small_repos.slots writes them
+        forge.files.update({f".knos/acceptance/{n}/{name}": b"x\n" for name in ("README.md", "blackbox.py", "cases.json")})
+    code, said, _ = run(forge, "plan", "--kinds", "-n", "1", "--budget", "12")
+    assert code == 0 and forge.wrote == [] and "open outside-reproduce: 5.00 test USDC, fee 0.05 test USDC, 30 days" in said
+    assert "today's budget of 12.00 test USDC is used up to 10.10 test USDC: outside-fund (5.05 test USDC with its fee) waits for tomorrow (UTC)" in said
+    code, said, slept = run(forge, "open", "--apply", "--faucet", "--kinds", "-n", "1")
+    assert code == 0 and "6 tasks written" in said and slept == [tb.PACE] * 5
+    assert [tb.MARK.search(i["body"]).group(1) for i in forge.issues] == [k["slug"] for k in kinds] + [SLUGS[0]]
+    for n, k in zip(range(4, 9), kinds):
+        body = forge.issues[n - 4]["body"]
+        assert body.splitlines()[0] == tb.FIRST and k["evidence"] in body and f"`outside/{k['kind']}/<your login>.json`" in body and "Closes #" in body
+        assert not [f for f in forge.files if f.startswith(f".knos/acceptance/{n}/")], "a task that is not code keeps no checks: it is merge mode"
+        assert [c["body"] for c in forge.comments[n]] == [f"/knos fund 5 days {tb.KIND_DAYS}"]
+    assert {k.split("/")[-1] for k in forge.files if k.startswith(".knos/acceptance/9/")} == set(tb.bundle(tb.load(SLUGS[0]), 9))
+    board = {int(k): v for k, v in json.loads(forge.files["board.json"])["tasks"].items()}
+    assert board == {**{n: k["slug"] for n, k in zip(range(4, 9), kinds)}, 9: SLUGS[0]}
+    wrote = len(forge.wrote)                                                 # a second run, with or without --kinds, opens nothing again
+    for argv in (("--kinds",), ()):
+        code, said, _ = run(forge, "open", "--apply", "--faucet", "-n", "1", *argv)
+        assert code == 0 and len(forge.wrote) == wrote and "not in tasks/" not in said and "6 funded tasks open, 0 half opened, 0 to open" in said
+    s = json.loads(run(forge, "status", "--json", "-n", "1")[1])
+    assert [(t["issue"], t["kind"], t["file"], t["state"]) for t in s["tasks"][:2]] == [(4, "reproduce", "outside/reproduce/", "funding asked"),
+                                                                                     (5, "shadow", "outside/shadow/", "funding asked")]
+    assert s["tasks"][5]["kind"] == "code" and s["budget"]["opened"] == 6 * 5_050_000 and "A maintainer checks it and merges." in s["tasks"][0]["accept"]
+    assert [t["kind"] for t in tasks.rows(s)] == [k["kind"] for k in kinds] + ["code"]
+    # the release's rebuild of the playground keeps them merge mode: no checks under their numbers, the code task's own
+    small = _script("small_repos")
+    out = small.files("knos-playground", board)
+    assert not [f for f in out if any(f.startswith(f".knos/acceptance/{n}/") for n in range(4, 9))]
+    assert {f.split("/")[-1] for f in out if f.startswith(".knos/acceptance/9/")} == set(tb.bundle(tb.load(SLUGS[0]), 9))
+    assert {f for f in out if f.startswith(".knos/acceptance/10/")} and out["board.json"] == forge.files["board.json"]
 
 
 @pytest.fixture(scope="module")

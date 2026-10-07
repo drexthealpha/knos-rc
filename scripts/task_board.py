@@ -1,7 +1,8 @@
 """The task board: a fixed number of funded test tasks kept open in drexthealpha/knos-playground for whoever arrives.
 
     python scripts/task_board.py plan                  what `open` would do, and why it stops where it stops
-    python scripts/task_board.py open [--apply]        do it; without --apply nothing leaves this machine
+    python scripts/task_board.py open [--apply] [--kinds]   do it; without --apply nothing leaves this machine; --kinds: the
+                                                       five tasks that are not code as well (below)
     python scripts/task_board.py status [--json]       the board, and the pull requests whose runs wait for approval
     python scripts/task_board.py status --json --empty the same document with nothing read: what a build with no network writes
     python scripts/task_board.py why OWNER/REPO#N [--pull M]   one sentence: why a merged pull request was not paid, and what fixes it
@@ -34,6 +35,12 @@ run may pay it. `open` reads the playground's own workflow files first (`unpinne
 reusable workflow they call is drexthealpha/knos-workflows at the commit this checkout's examples name: an order funded
 through a staging copy is one the public worker cannot pay (that is why one merged pull request was not paid in
 0.3.19). `plan` and `status` say the same check's result; `why` reads one order back from the chain (knos.tasks.why).
+
+THE FIVE TASKS THAT ARE NOT CODE (`--kinds`; tasks/outside/<kind>.json, knos.tasks.KINDS). Each opens as a board issue
+`outside-<kind>` that pays 5 test USDC on a maintainer's MERGE of the pull request filing its evidence, one file
+outside/<kind>/<login>.json; the maintainer checks it with knos.tasks.accepts first. No acceptance bundle is theirs: the
+starter task's checks under the issue's number are removed in the same commit as its line in board.json, so the funding
+is merge mode. They are opened before the code tasks, count in the same day's budget, and not in the target.
 
 A HELD PAYMENT IS A STATE OF THE BOARD. `status` lists, under `held`, each merged pull request on a board task whose
 payment waits for its author to say where it goes, with the one instruction for the payee: comment
@@ -84,6 +91,8 @@ USES = re.compile(r"(?m)^\s*(?:-\s*)?uses:\s*['\"]?([\w.-]+/[\w.-]+)/\.github/wo
 CALLERS = (".github/workflows/knos.yml", ".github/workflows/knos-check.yml")      # the playground's two callers (scripts/small_repos.py)
 HELD_SAYS = re.compile(r"^Knos: held for @([A-Za-z0-9-]{1,39})\.")                  # knos.ghwords: the reply to a merge that could pay nobody yet
 INSTRUCTION = "comment `/knos address <your Solana address>` on the pull request"
+KIND = "outside-"                   # the board's slug of a task that is not code: outside-<kind> (knos.tasks.KINDS)
+KIND_DAYS = 30                      # days a task that is not code stays funded: each asks for a repository and a run of the taker's own
 
 
 class Stop(Exception):
@@ -154,6 +163,24 @@ def load(slug: str) -> dict:
 def catalogue() -> list[dict]:
     """Every task, in the order the board opens them (by seed, which is the order they were written in)."""
     return sorted((load(p.parent.name) for p in TASKS.glob("*/task.json")), key=lambda t: (t["seed"], t["slug"]))
+
+
+def kinds() -> list[dict]:
+    """The five tasks that are not code puzzles (knos.tasks.KINDS: tasks/outside/<kind>.json holds the same text), each
+    as a board task `outside-<kind>`: no acceptance bundle, paid on the merge of the pull request that files its evidence
+    under outside/<kind>/. Raises Stop when one breaks a rule every task of the board keeps."""
+    out = []
+    for kind, spec in _tasks().KINDS.items():
+        if not str(spec["statement"]).startswith(FIRST + "\n") or not LEAST <= spec["amount"] <= MOST or spec["currency"] != "test USDC":
+            raise Stop(f"tasks/outside/{kind}.json: the statement's first line is {FIRST!r} and it pays 2 to 5 test USDC")
+        out.append({"slug": KIND + kind, "kind": kind, "title": spec["title"], "statement": spec["statement"], "amount": spec["amount"],
+                    "deadline_days": KIND_DAYS, "labels": list(LABELS), "file": f"outside/{kind}/", "evidence": spec["evidence"],
+                    "needs": list(spec["needs"]), "doc": spec["doc"]})
+    return out
+
+
+def is_kind(task: dict) -> bool:
+    return str(task.get("slug", "")).startswith(KIND)
 
 
 def _module(path: Path, name: str):
@@ -307,6 +334,26 @@ def issue_body(task: dict, repo: str) -> str:
             "comment, `/knos address <your Solana address>`, or with the passkey wallet on the Knos site. Until you do, the payment is held for your account.\n\n"
             "A first pull request from an account new to GitHub waits until a maintainer lets its check run. Change only the one file: "
             "a pull request that touches `.knos/` or `.github/` is refused.\n\n"
+            f"<!-- knos-task: {task['slug']} amount={task['amount']} days={task['deadline_days']} -->\n")
+
+
+def kind_body(task: dict, repo: str) -> str:
+    """The issue of a task that is not code: the money's worth first, what to do, the evidence and the one file it goes in."""
+    doc = task["doc"]
+    link = f"https://github.com/drexthealpha/Knos/{'blob' if '.' in Path(doc).name else 'tree'}/main/{doc}"
+    fields = ", ".join(f"`{n}`" for n in task["needs"])
+    return (f"{task['statement']}\n\nHow: [{doc}]({link}).\n\n"
+            f"**The evidence a machine checks:** {task['evidence']}. As JSON, with the fields {fields}.\n\n"
+            f"**Pays {task['amount'] // 1_000_000} test USDC** on Solana devnet when the pull request that files the evidence is merged, "
+            f"within {task['deadline_days']} days of the funding comment below.\n\n"
+            "### Take it\n\n"
+            "1. Do the task, in a repository of your own account.\n"
+            f"2. [Add one file](https://github.com/{repo}/new/main?filename={task['file']}YOUR-LOGIN.json), `{task['file']}<your login>.json`, "
+            "holding the evidence. Change nothing else: a pull request that touches `.knos/` or `.github/` is refused.\n"
+            "3. Open the pull request with `Closes #<this issue's number>` in its description.\n"
+            "4. A maintainer checks the evidence (`knos.tasks.accepts`) and merges; the merge pays your GitHub account. Bind where it goes with one "
+            "comment, `/knos address <your Solana address>`, or with the passkey wallet on the Knos site. Until you do, the payment is held for your account.\n\n"
+            "It counts among the outside numbers only when your account is not one of Knos's own, and is shown as \"on tasks Knos funded itself\".\n\n"
             f"<!-- knos-task: {task['slug']} amount={task['amount']} days={task['deadline_days']} -->\n")
 
 
@@ -483,13 +530,14 @@ def read(gh: Forge, repo: str, owner_id: int) -> dict:
 
 
 def plan(state: dict, now: float, target: int = TARGET, budget: int = BUDGET, reserve: int = RESERVE, balance: int | None = None,
-         tasks: list[dict] | None = None) -> dict:
+         tasks: list[dict] | None = None, kinds_: list[dict] | None = None) -> dict:
     """What `open` would do. `balance`: millionths the named Balance holds, None when none was named (the faucet pays).
+    `kinds_`: the tasks that are not code to keep open as well (`--kinds`), first, in the same budget and not in the target.
     Returns {"open": rows that are whole, "resume": rows missing a step, "new": tasks to open, "said": why it stops
     where it stops, "spent": opened today, "left": of today's budget}."""
     tasks = catalogue() if tasks is None else tasks
     least = _src()[3].ORDER_MIN_AMOUNT
-    by_slug = {t["slug"]: t for t in tasks}
+    by_slug = {t["slug"]: t for t in tasks + kinds()}
     today = _iso(now)[:10]
     live = [r for r in state["rows"] if r["state"] == "open"]
     whole = [r for r in live if r["funded"] and r["number"] in state["listed"]]
@@ -502,12 +550,15 @@ def plan(state: dict, now: float, target: int = TARGET, budget: int = BUDGET, re
     if room is not None and room < 0 and funds:
         said.append(f"the Balance holds {_usdc(balance)}: funding what is already open would leave less than the reserve of {_usdc(reserve)}, so nothing is funded")
         resume = [r for r in resume if r["funded"]]
-    last = max(state["rows"], key=lambda r: r["number"])["slug"] if state["rows"] else None
+    code = [r for r in state["rows"] if not is_kind(r)]
+    last = max(code, key=lambda r: r["number"])["slug"] if code else None
     start = next((n + 1 for n, t in enumerate(tasks) if t["slug"] == last), 0)
     taken = {r["slug"] for r in live}
+    live_code = len([r for r in live if not is_kind(r)])
     left = budget - spent
-    for t in tasks[start:] + tasks[:start]:
-        if len(live) + len(new) >= target:
+    stopped = False
+    for t in list(kinds_ or []) + tasks[start:] + tasks[:start]:
+        if not is_kind(t) and live_code + len([x for x in new if not is_kind(x)]) >= target:
             break
         if t["slug"] in taken:
             continue
@@ -517,9 +568,11 @@ def plan(state: dict, now: float, target: int = TARGET, budget: int = BUDGET, re
         price = cost(t)
         if price > left:
             said.append(f"today's budget of {_usdc(budget)} is used up to {_usdc(budget - left)}: {t['slug']} ({_usdc(price)} with its fee) waits for tomorrow (UTC)")
+            stopped = True
             break
         if room is not None and price > room:
             said.append(f"the Balance holds {_usdc(balance)} and keeps a reserve of {_usdc(reserve)}: {t['slug']} ({_usdc(price)} with its fee) is not opened")
+            stopped = True
             break
         new.append(t)
         left -= price
@@ -528,8 +581,9 @@ def plan(state: dict, now: float, target: int = TARGET, budget: int = BUDGET, re
     if unknown:
         said.append(f"open on the board and not in tasks/: {', '.join(unknown)} (left as they are)")
         resume = [r for r in resume if r["slug"] in by_slug]
-    if not said and len(live) + len(new) < target:
-        said.append(f"every task of tasks/ is open: {len(live) + len(new)} of {target}")
+    count = live_code + len([x for x in new if not is_kind(x)])
+    if not stopped and not said and count < target:
+        said.append(f"every task of tasks/ is open: {count} of {target}")
     return {"open": whole, "resume": resume, "new": new, "said": said, "spent": spent, "left": left, "target": target, "budget": budget,
             "reserve": reserve, "balance": balance}
 
@@ -556,15 +610,17 @@ def words(p: dict, repo: str) -> list[str]:
 
 
 # ---- writing ------------------------------------------------------------------------------------------------------------------
-def commit(gh: Forge, repo: str, files: dict[str, bytes], message: str) -> str:
-    """One commit on the default branch that holds these files: git's own blob-less tree call, a commit, the ref."""
+def commit(gh: Forge, repo: str, files: dict[str, bytes], message: str, gone: list[str] | tuple = ()) -> str:
+    """One commit on the default branch that holds these files, and not the files `gone` names: git's own blob-less tree
+    call (an entry whose sha is null removes the path), a commit, the ref."""
     ref = gh("GET", f"repos/{repo}/git/ref/heads/main")
     held_at = gh("GET", f"repos/{repo}/git/commits/{ref['object']['sha']}") if ref else None
     if not ref or not held_at:
         raise Stop(f"{repo} has no branch main")
     tip, base = ref["object"]["sha"], held_at["tree"]["sha"]
     tree = gh("POST", f"repos/{repo}/git/trees", {"base_tree": base, "tree": [
-        {"path": rel, "mode": "100644", "type": "blob", "content": data.decode("utf-8")} for rel, data in sorted(files.items())]})
+        {"path": rel, "mode": "100644", "type": "blob", "content": data.decode("utf-8")} for rel, data in sorted(files.items())] + [
+        {"path": rel, "mode": "100644", "type": "blob", "sha": None} for rel in sorted(set(gone) - set(files))]})
     made = gh("POST", f"repos/{repo}/git/commits", {"message": message, "tree": tree["sha"], "parents": [tip]})
     gh("PATCH", f"repos/{repo}/git/refs/heads/main", {"sha": made["sha"], "force": False})
     return str(made["sha"])
@@ -573,7 +629,7 @@ def commit(gh: Forge, repo: str, files: dict[str, bytes], message: str) -> str:
 def open_tasks(gh: Forge, repo: str, p: dict, state: dict, apply: bool, say: Callable[[str], None] = print, sleep: Callable[[float], None] = time.sleep,
                pace: float = PACE) -> list[dict]:
     """Carry the plan out (`apply`), or say what would be sent. Returns what was done: [{"issue", "slug", "did": [...]}]."""
-    by_slug = {t["slug"]: t for t in catalogue()}
+    by_slug = {t["slug"]: t for t in catalogue() + kinds()}
     todo = [(r["number"], by_slug[r["slug"]], r["number"] in state["listed"], r["funded"]) for r in p["resume"]] + [(0, t, False, False) for t in p["new"]]
     if not apply:
         for number, t, has, funded in todo:
@@ -588,14 +644,18 @@ def open_tasks(gh: Forge, repo: str, p: dict, state: dict, apply: bool, say: Cal
     for number, t, has, funded in todo:
         did = []
         if not number:
-            number = int(gh("POST", f"repos/{repo}/issues", {"title": t["title"], "body": issue_body(t, repo), "labels": list(LABELS)})["number"])
+            number = int(gh("POST", f"repos/{repo}/issues", {"title": t["title"], "body": (kind_body if is_kind(t) else issue_body)(t, repo),
+                                                             "labels": list(LABELS)})["number"])
             did.append("opened")
         if not has:
             listed[number] = t["slug"]
-            files = {f".knos/acceptance/{number}/{rel}": data for rel, data in bundle(t, number).items()}
+            if is_kind(t):      # merge mode: the starter task's checks under this number would make the funding a tests-mode order
+                files, gone = {}, _folder(gh, repo, f".knos/acceptance/{number}")
+            else:
+                files, gone = {f".knos/acceptance/{number}/{rel}": data for rel, data in bundle(t, number).items()}, []
             files[BOARD] = board_file(listed)
-            commit(gh, repo, files, f"Task #{number}: {t['slug']} (test USDC, no monetary value)")
-            did.append("checks committed")
+            commit(gh, repo, files, f"Task #{number}: {t['slug']} (test USDC, no monetary value)", gone)
+            did.append("its line on the board committed" + (f", {len(gone)} starter checks removed" if gone else "") if is_kind(t) else "checks committed")
         if not funded:
             if funded_one:
                 sleep(pace)
@@ -606,6 +666,22 @@ def open_tasks(gh: Forge, repo: str, p: dict, state: dict, apply: bool, say: Cal
         done.append({"issue": number, "slug": t["slug"], "did": did})
     say(f"{len(done)} tasks written. The workflow answers each funding in a comment; `status` shows what is funded.")
     return done
+
+
+def _folder(gh: Forge, repo: str, path: str) -> list[str]:
+    """Every file under `path` on the default branch, [] when there is no such folder."""
+    got = gh("GET", f"repos/{repo}/contents/{path}")
+    if got is None:
+        return []
+    if not isinstance(got, list):
+        raise Stop(f"{path} in {repo} is not a folder: nothing is written over it")
+    out: list[str] = []
+    for e in got:
+        if isinstance(e, dict) and e.get("type") == "dir":
+            out += _folder(gh, repo, str(e["path"]))
+        elif isinstance(e, dict) and e.get("type") == "file":
+            out.append(str(e["path"]))
+    return sorted(out)
 
 
 def board_file(listed: dict[int, str]) -> bytes:
@@ -637,6 +713,7 @@ def status(gh: Forge, repo: str, owner_id: int, now: float, target: int = TARGET
     """The board as one JSON document: what the site's playground page draws (web/playground.js) and what a person reads."""
     tasks = _tasks()
     files = {t["slug"]: t["file"] for t in catalogue()}
+    other = {t["slug"]: t for t in kinds()}
     wrong = unpinned(gh, repo)
     state = read(gh, repo, owner_id)
     pulls = [p for p in _pages(gh, f"repos/{repo}/pulls?state=all") if (p.get("user") or {}).get("id") != owner_id]
@@ -645,7 +722,10 @@ def status(gh: Forge, repo: str, owner_id: int, now: float, target: int = TARGET
     rows = []
     for r in sorted((r for r in state["rows"] if r["state"] == "open"), key=lambda r: r["number"]):
         rows.append({"issue": r["number"], "slug": r["slug"], "title": r["title"], "amount": r["amount"], "decimals": 6, "currency": "test USDC",
-                     "kind": "code", "file": files.get(r["slug"], ""), "accept": tasks.ACCEPT, "pays": tasks.PAYS,
+                     "kind": other[r["slug"]]["kind"] if r["slug"] in other else "code",
+                     "file": other[r["slug"]]["file"] if r["slug"] in other else files.get(r["slug"], ""),
+                     "accept": f"The evidence, one file under {other[r['slug']]['file']}: {other[r['slug']]['evidence']}. A maintainer checks it and merges."
+                               if r["slug"] in other else tasks.ACCEPT, "pays": tasks.PAYS,
                      "opened": _iso(r["created"]), "deadline": _iso(r["created"] + r["days"] * 86_400), "url": f"https://github.com/{repo}/issues/{r['number']}",
                      "state": "funding asked" if r["funded"] and r["number"] in state["listed"] else "being opened",
                      "pulls": sorted(int(p["number"]) for p in on_board if p.get("state") == "open" and r["number"] in {int(n) for n in CLOSES.findall(str(p.get("body") or ""))})})
@@ -696,6 +776,7 @@ def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc,
             one.add_argument("--balance", default=os.environ.get("KNOS_BOARD_BALANCE", ""), help="the address of the Balance the owner's comment spends")
             one.add_argument("--faucet", action="store_true", help="no Balance: the devnet faucet mints each funding")
             one.add_argument("--pace", type=float, default=PACE, help="seconds between two fundings")
+            one.add_argument("--kinds", action="store_true", help="also keep the five tasks that are not code open (tasks/outside/), first, in the same budget")
         if name == "open":
             one.add_argument("--apply", action="store_true", help="send it (the account must own the repository)")
         if name == "status":
@@ -733,7 +814,8 @@ def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc,
         if a.command == "open" and a.apply and not a.balance and not a.faucet:
             raise Stop("nothing was sent: say what pays, `--balance <address>` (its reserve is kept) or `--faucet` (the devnet faucet mints it)")
         state = read(gh, a.repo, playground.OWNER_ID)
-        p = plan(state, now(), a.target, budget, int(round(a.reserve * 1_000_000)), held(a.balance, ask) if a.balance else None)
+        p = plan(state, now(), a.target, budget, int(round(a.reserve * 1_000_000)), held(a.balance, ask) if a.balance else None,
+                 kinds_=kinds() if a.kinds else None)
         p["listed"] = state["listed"]
         for line in words(p, a.repo):
             say(line)

@@ -22,7 +22,8 @@ own files, byte for byte, with nothing in them that is not derived from the sour
                     It also holds the starting file and the public examples of every task of tasks/ here, and
                     `check.py`, which tries a solution on them. scripts/task_board.py opens those tasks as funded
                     issues and commits each one's checks under its issue's number, with the line in `board.json`:
-                    `build DIR` and `check DIR` read DIR/board.json, so a rebuild keeps what the board wrote.
+                    `build DIR` and `check DIR` read DIR/board.json, so a rebuild keeps what the board wrote (a task
+                    that is not code, `outside-<kind>`, has no checks: its issue number's starter checks are left out).
                     And `.github/workflows/knos-faucet.yml`: the worker's `faucet` job alone (`faucet_workflow`), so
                     a rebuild keeps the faucet.
     knos-attest     drexthealpha/knos-attest: the template a seller makes his own `knos-attest` repository from. It
@@ -325,7 +326,10 @@ def task_files(board: dict[int, str] | None = None) -> dict[str, bytes]:
         for rel, src in t["starting_files"].items():
             out[rel] = (tb.TASKS / t["slug"] / src).read_bytes()
         out[f"tasks/{Path(t['file']).stem}.examples.json"] = (json.dumps(t["public"], indent=1, ensure_ascii=False) + "\n").encode("utf-8")
+    kinds = {t["slug"] for t in tb.kinds()}
     for number, slug in sorted((board or {}).items()):
+        if slug in kinds:           # a task that is not code has no checks: its issue's starter checks are left out (`files`)
+            continue
         if slug not in by_slug:
             raise SystemExit(f"board.json gives issue {number} the task {slug}, and tasks/ has none of that name")
         for rel, data in tb.bundle(by_slug[slug], number).items():
@@ -411,6 +415,10 @@ def files(name: str, board: dict[int, str] | None = None) -> dict[str, bytes]:
         for rel in (".github/ISSUE_TEMPLATE/fund-a-test-task.md", "README.md"):
             out[rel] = out[rel].decode("utf-8").format(**said).encode("utf-8")
         out.update(slots())
+        for number, slug in (board or {}).items():      # a task that is not code is paid on the merge: no checks under its number
+            if slug.startswith(_board().KIND):
+                for rel in [k for k in out if k.startswith(f".knos/acceptance/{number}/")]:
+                    del out[rel]
         out.update(task_files(board))
         out[FAUCET_WORKFLOW] = faucet_workflow()
     problems = wrong(name, out)
