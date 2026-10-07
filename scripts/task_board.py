@@ -42,6 +42,11 @@ outside/<kind>/<login>.json; the maintainer checks it with knos.tasks.accepts fi
 starter task's checks under the issue's number are removed in the same commit as its line in board.json, so the funding
 is merge mode. They are opened before the code tasks, count in the same day's budget, and not in the target.
 
+A STRANDED TASK IS OPENED AGAIN. `plan` and `open` read each open funded issue's order from the chain (knos.tasks.why):
+one funded through a commit of the workflows the playground no longer calls (every release rebuilds it at the next
+commit), past its deadline, or no longer open can pay no merge. `plan` names it; `open --apply` closes it with that
+sentence (its money goes back at its deadline) and the board opens the task again in a new issue, in the day's budget.
+
 A HELD PAYMENT IS A STATE OF THE BOARD. `status` lists, under `held`, each merged pull request on a board task whose
 payment waits for its author to say where it goes, with the one instruction for the payee: comment
 `/knos address <your Solana address>` on the pull request.
@@ -529,6 +534,26 @@ def read(gh: Forge, repo: str, owner_id: int) -> dict:
     return {"rows": rows, "listed": {int(k): str(v) for k, v in listed.items()}}
 
 
+STRANDED = ("pin", "late", "closed")     # knos.tasks.explain's codes for an order on an open issue that no merge can pay
+
+
+def stranded(state: dict, repo: str, why: Callable) -> dict[int, str]:
+    """{issue: the chain's sentence} for each open, funded board issue whose money no merge can pay any more: funded
+    through a commit of the workflows the playground no longer calls (a release rebuilt it at the next commit), past its
+    deadline, or no longer open. `why(where, pull)` is knos.tasks.why, which reads the order from the chain."""
+    out = {}
+    for r in state["rows"]:
+        if r["state"] != "open" or not r["funded"]:
+            continue
+        try:
+            got = why(f"{repo}#{r['number']}", None)
+        except Exception as no:  # noqa: BLE001 - knos.tasks.Stop and what the chain's client raises: an order that was not read is not judged
+            raise Stop(f"the order of #{r['number']} could not be read ({' '.join(str(no).split())[:160]}): nothing was sent") from None
+        if got.get("code") in STRANDED:
+            out[r["number"]] = str(got["said"])
+    return out
+
+
 def plan(state: dict, now: float, target: int = TARGET, budget: int = BUDGET, reserve: int = RESERVE, balance: int | None = None,
          tasks: list[dict] | None = None, kinds_: list[dict] | None = None) -> dict:
     """What `open` would do. `balance`: millionths the named Balance holds, None when none was named (the faucet pays).
@@ -814,11 +839,18 @@ def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc,
         if a.command == "open" and a.apply and not a.balance and not a.faucet:
             raise Stop("nothing was sent: say what pays, `--balance <address>` (its reserve is kept) or `--faucet` (the devnet faucet mints it)")
         state = read(gh, a.repo, playground.OWNER_ID)
+        lost = stranded(state, a.repo, why or _tasks().why)
+        for r in state["rows"]:
+            if r["number"] in lost:
+                r["state"] = "stranded"         # not open for the plan: its money cannot pay a merge, so the task is opened again
         p = plan(state, now(), a.target, budget, int(round(a.reserve * 1_000_000)), held(a.balance, ask) if a.balance else None,
                  kinds_=kinds() if a.kinds else None)
         p["listed"] = state["listed"]
         for line in words(p, a.repo):
             say(line)
+        for n, said in sorted(lost.items()):
+            say(f"  stranded #{n}: {said} {'It is closed with that sentence' if a.command == 'open' and a.apply else 'open --apply closes it with that sentence'}, "
+                "and its task can be opened again.")
         wrong = unpinned(gh, a.repo)
         for line in wrong:
             say(f"  not public: {line}")
@@ -827,6 +859,11 @@ def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc,
         if not wrong:
             say("  funds through the public pinned workflows: checked in the playground's own workflow files.")
         if a.command == "open":
+            if a.apply:
+                for n, said in sorted(lost.items()):
+                    gh("POST", f"repos/{a.repo}/issues/{n}/comments", {"body": f"{said} The money goes back to its funder at its deadline; "
+                                                                            f"the task is opened again in a new issue. {FIRST}"})
+                    gh("PATCH", f"repos/{a.repo}/issues/{n}", {"state": "closed", "state_reason": "not_planned"})
             open_tasks(gh, a.repo, p, state, a.apply, say, sleep, a.pace)
     except Stop as why:
         say(f"task board: {why}")

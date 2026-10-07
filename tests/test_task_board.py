@@ -169,6 +169,10 @@ class Forge:
             assert body["body"].splitlines()[0] == tb.FIRST
             assert set(body["labels"]) <= self.labels, "GitHub would make the labels up with no description"
             return {"number": self.issue(body["title"], body["body"], labels=body["labels"])}
+        if len(where) == 2 and where[0] == "issues" and method == "PATCH":
+            assert body == {"state": "closed", "state_reason": "not_planned"}
+            next(i for i in self.issues if i["number"] == int(where[1]))["state"] = "closed"
+            return {}
         if len(where) == 3 and where[0] == "issues" and where[2] == "comments":
             if method == "GET":
                 return self.comments.get(int(where[1]), [])
@@ -218,9 +222,15 @@ class Forge:
         raise AssertionError(f"the board asked the forge something it has no business asking: {method} {path}")
 
 
-def run(forge: Forge, *argv: str, ask=None, now: float = NOW) -> tuple[int, str, list[float]]:
+def payable(where, pull):
+    """knos.tasks.why's answer for an order nothing stands in the way of: the chain the tests make up has only such orders."""
+    return {"code": "retry", "said": f"Nothing read here stands in the way of {where}.", "fix": "", "note": tb.FIRST}
+
+
+def run(forge: Forge, *argv: str, ask=None, now: float = NOW, why=payable) -> tuple[int, str, list[float]]:
     said, slept = [], []
-    code = tb.main(list(argv), gh=forge, ask=ask or (lambda *a: pytest.fail("the chain was asked")), now=lambda: now, say=said.append, sleep=slept.append)
+    code = tb.main(list(argv), gh=forge, ask=ask or (lambda *a: pytest.fail("the chain was asked")), now=lambda: now, say=said.append, sleep=slept.append,
+                   why=why)
     return code, "\n".join(said), slept
 
 
@@ -337,6 +347,43 @@ def test_the_five_tasks_that_are_not_code_open_first_paid_on_the_merge_within_th
     assert not [f for f in out if any(f.startswith(f".knos/acceptance/{n}/") for n in range(4, 9))]
     assert {f.split("/")[-1] for f in out if f.startswith(".knos/acceptance/9/")} == set(tb.bundle(tb.load(SLUGS[0]), 9))
     assert {f for f in out if f.startswith(".knos/acceptance/10/")} and out["board.json"] == forge.files["board.json"]
+
+
+def test_a_task_whose_order_no_merge_can_pay_is_closed_with_the_chains_sentence_and_opened_again():
+    """A release rebuilds the playground at the next commit of the workflows, and every order funded before names the
+    commit before: no merge can pay it (knos-playground #6 to #13 in 0.3.20). The board reads each order back and
+    opens the task again, within the day's budget."""
+    from knos import tasks
+    forge = Forge()
+    run(forge, "open", "--apply", "--faucet", "-n", "3")
+    assert [i["state"] for i in forge.issues] == ["open"] * 3
+    asked = []
+
+    def why(where, pull):
+        asked.append((where, pull))
+        if where.endswith("#5"):
+            return tasks.explain({"where": where, "orders": [{"state": "open", "wf_public": True, "wf_sha": "b" * 40, "called": False}]})
+        return payable(where, pull)
+    forge.day = "2026-10-08"
+    wrote = len(forge.wrote)
+    code, said, _ = run(forge, "plan", "-n", "3", now=NOW + 86_400, why=why)
+    assert code == 0 and len(forge.wrote) == wrote and sorted(asked) == [(f"{playground.REPO}#{n}", None) for n in (4, 5, 6)]
+    assert (f"  stranded #5: The order on {playground.REPO}#5 was funded through commit bbbbbbbbbbbb of the public workflows, which the repository no "
+            "longer calls, so the public worker's signed run cannot pay it. open --apply closes it with that sentence, and its task can be opened again.") in said
+    assert "2 funded tasks open, 0 half opened, 1 to open" in said
+    code, said, _ = run(forge, "open", "--apply", "--faucet", "-n", "3", now=NOW + 86_400, why=why)
+    assert code == 0 and [i["state"] for i in forge.issues] == ["open", "closed", "open", "open"]
+    assert forge.comments[5][-1]["body"].startswith(f"The order on {playground.REPO}#5 was funded through commit bbbbbbbbbbbb") and tb.FIRST in forge.comments[5][-1]["body"]
+    assert tb.MARK.search(forge.issues[-1]["body"]).group(1) == SLUGS[3] and [c["body"] for c in forge.comments[7]] == [tb.fund_line(tb.load(SLUGS[3]))]
+    asked.clear()                                                            # closed now: never read, never closed twice
+    code, said, _ = run(forge, "open", "--apply", "--faucet", "-n", "3", now=NOW + 86_400, why=why)
+    assert code == 0 and "3 funded tasks open, 0 half opened, 0 to open" in said and (f"{playground.REPO}#5", None) not in asked
+
+    def down(where, pull):
+        raise tasks.Stop("devnet did not answer")
+    wrote = len(forge.wrote)
+    code, said, _ = run(forge, "open", "--apply", "--faucet", "-n", "3", now=NOW + 86_400, why=down)
+    assert code == 1 and len(forge.wrote) == wrote and "could not be read (devnet did not answer): nothing was sent" in said
 
 
 @pytest.fixture(scope="module")
