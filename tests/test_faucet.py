@@ -316,7 +316,7 @@ def test_reading_the_line():
 def test_the_faucet_key_signs_holds_no_sol_and_the_transfer_moves_exactly_twenty(monkeypatch):
     pytest.importorskip("solders.litesvm")
     from solders.keypair import Keypair
-    from tests._pay2 import Chain
+    from _pay2 import Chain                               # as every test imports it: `tests._pay2` resolves only when run from the root
     from knos.settle.v2 import pay
     c = Chain()
     mint = c.new_mint()
