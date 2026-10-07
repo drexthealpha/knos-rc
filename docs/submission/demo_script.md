@@ -82,14 +82,14 @@ the terms and their hash.
 ## 2. A claimed success fails the condition (0:30, 35 seconds)
 
 **On screen.** A pull request whose description says the tests pass. It leaves the bug in place and edits the test
-that already existed. Plain CI: green. The judge's comment: "The change edits or deletes a test that already
-existed.", with the file, the rule's code `judge.existing-test-edited` and what to do next. The order's balance,
+that already existed. Plain CI: green. The judge's comment: "The change edits a test that already existed.", with
+the file, the rule's code `judge.protected-test-edited` and what to do next. The order's balance,
 unchanged. *Captions: replay; speed.*
 
 > The supplier's agent submits, and says the tests pass. Plain CI is green. But this submission does not fix the
 > bug: it edits the test that already existed. The judge takes the acceptance checks from the buyer's branch, as
 > funded, and never from the submission. The condition fails, so payment is withheld, with the reason in these
-> words: the change edits or deletes a test that already existed. In our benchmark plain CI passed 56 of 63 such cheats, and this check refused all 63.
+> words: the change edits a test that already existed. In our benchmark plain CI passed 56 of 63 such cheats, and this check refused all 63.
 
 **Must be visible.** The claim, the edited test, the green CI, the refusal word for word with its code, and the
 unchanged balance.

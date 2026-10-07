@@ -68,8 +68,14 @@ def test_the_demo_leads_with_the_refusal_and_tells_the_six_steps_in_order():
     assert "**The refusal leads.**" in demo and said[0].startswith(NUMBER) and "it was not paid" in said[0]
     assert "price and the acceptance terms" in said[0] and "hashed into the order" in said[0]
     from_table = (ROOT / "src" / "knos" / "ghwords.py").read_text(encoding="utf-8")
-    refusal = "The change edits or deletes a test that already existed."
-    assert refusal in from_table and f'"{refusal}"' in " ".join(parts[1].split()) and "`judge.existing-test-edited`" in parts[1]
+    refusal = "The change edits a test that already existed."
+    # the words and the code are what the judge's refusal of an edited existing test gives, not a neighbouring row's
+    import sys
+    sys.path.insert(0, str(ROOT / "src"))
+    from knos import ghwords, judge
+    assert ghwords.code_of_reason(judge.REFUSALS["protected_test_edited"]) == "judge.protected-test-edited"
+    assert ghwords.refusal("judge.protected-test-edited")[0] == refusal
+    assert refusal in from_table and f'"{refusal}"' in " ".join(parts[1].split()) and "`judge.protected-test-edited`" in parts[1]
     assert "payment is withheld, with the reason" in said[1] and refusal[0].lower() + refusal[1:].rstrip(".") in said[1]
     assert "the condition passes" in said[2] and "two independent records" in said[2] and "They reconcile." in said[2]
     assert said[3].startswith("The payment executes.") and "a receipt it can carry anywhere" in said[3] and "the network off" in said[3]
