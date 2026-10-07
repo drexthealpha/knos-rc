@@ -40,10 +40,19 @@ try {
     page.on("request", (r) => { if (!r.url().startsWith(origin)) asked.push(r.url()); });
     await page.goto(origin);
     await page.waitForFunction(() => window.ready === true);
-    const t0 = Date.now();
+    // timed in the page, from the click event to the first thing drawn in #aps-result: Playwright's own checks before a
+    // click and its round trips are not the page's time (several browsers share the runner's cores under pytest -n auto)
+    await page.evaluate(() => {
+      const out = document.getElementById("aps-result");
+      window.answered = {};
+      document.addEventListener("click", (e) => { if (e.target.closest("#aps-sample")) window.answered.click ??= performance.now(); }, { capture: true });
+      new MutationObserver((_, o) => { if (window.answered.click !== undefined && out.firstElementChild) { window.answered.drawn = performance.now(); o.disconnect(); } })
+        .observe(out, { childList: true, subtree: true });
+    });
     await page.click("#aps-sample");
     await page.waitForSelector("#aps-result > *");                        // the pending state, or the statement itself
-    ok(`${width}px: the click is answered within 300 ms`, Date.now() - t0 < 300, Date.now() - t0);
+    const took = await page.evaluate(() => window.answered.drawn - window.answered.click);
+    ok(`${width}px: the click is answered within 300 ms`, took < 300, Math.round(took));
     await page.waitForSelector("#aps-statement");
     const head = await page.$$eval("#aps-lines th", (x) => x.map((e) => e.textContent.trim()));
     ok(`${width}px: the lines have an assurance column`, head.includes("assurance"), head);
