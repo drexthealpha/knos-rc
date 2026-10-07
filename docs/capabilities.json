@@ -2658,7 +2658,7 @@
      "names": "test_the_swap_keeps_the_root_in_format_1_and_changes_it_in_format_2"
     }
    },
-   "note": "Tested on ledger files; no format 2 batch is anchored on the public ids. knos_meter is unchanged: the root is opaque to the program."
+   "note": "Tested on ledger files. Format 2 batches are anchored at the public knos_meter (one in 0.3.18; two more, batch and claim, in the 0.3.19 release run, 202610.1 and 202610.2 of one account as buyer and seller). knos_meter is unchanged: the root is opaque to the program."
   },
   {
    "id": "supplier_record",
@@ -2878,7 +2878,7 @@
      "names": "test_the_take_is_whole_or_nothing_no_assignment_without_the_payment_and_no_payment_without_the_assignment"
     }
    },
-   "note": "`knos advance`, on the program's Assign. Knos lends nothing and charges nothing for it. Tested in the simulator; no advancer exists and none has run on devnet (docs/ADVANCE.md)."
+   "note": "`knos advance`, on the program's Assign. Knos lends nothing and charges nothing for it. Tested in the simulator. No advancer exists; one advance ran on devnet at the public ids between two wallets of Knos's own release run (0.3.19), with no outside party (docs/ADVANCE.md)."
   },
   {
    "id": "record_lookup_paid",

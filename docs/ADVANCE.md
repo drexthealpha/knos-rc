@@ -1,7 +1,10 @@
 # Advance: a third party pays the supplier now and collects from the order
 
 **Not offered by Knos: a third party can do this today with the program as it is.** Knos lends nothing, holds
-nothing and charges nothing for it. No advance has been made on devnet or anywhere else, and no advancer exists.
+nothing and charges nothing for it. No advancer exists. One advance has run on devnet, at the public program ids,
+between two wallets of Knos's own release run (0.3.19), so it shows the mechanism and no market: an order of 5.00 test
+USDC, the take in [one transaction](https://explorer.solana.com/tx/2oQRB85o6WbZ9T5XXwHpsb13EgQypHK4xKJErNmURT1Zujn1bB6oE84ENiMgT6pRkh79fupPf7VRzm8WPBpe5kAZ?cluster=devnet)
+(4.90 to the supplier's bound wallet, and `Assign`), and the acceptance that [paid the advancer 5.00](https://explorer.solana.com/tx/5BLLtaDDBxWxucygnHuuNkAtir7CHfWqpdgQoxnyJg2p1uk1zbaViDbuRDaogjVbrz8cSzYxPwKLBCyDGa4RDuMm?cluster=devnet).
 Everything here is tested in the Solana runtime (LiteSVM) with test USDC:
 `python -m pytest -q tests/test_advance_offer.py tests/test_advance.py`.
 
@@ -102,4 +105,5 @@ fee is unchanged by an advance: the funder paid it at funding.
 - A bond: an advancer posts nothing, and nothing makes it pay. The single transaction is the only guarantee.
 - An advance against only the holdback after acceptance: `Assign` after a payment moves nothing.
 - A check of the offer's `assurances` on chain: the order does not record how its judge will run.
-- Any run on devnet. `Assign` is in the build at the public program ids; no advance has used it there.
+- An advance between two parties. The one run on devnet was between two wallets of the same operator, and its
+  acceptance token came from a workflow of that operator's own repository that signs the audience it is given.

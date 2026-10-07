@@ -330,7 +330,7 @@ def test_the_two_targets_hold_here_a_cached_decision_under_200_ms_and_evidence_t
                               "no chain": ["insufficient_evidence"], "free check": ["accepted"], "offline, accepted": ["accepted"], "chain check": ["accepted"]}
     # the table states its machine and its sample, and the document holds what the script writes
     lines = bench.table(r, "2026-10-06")
-    assert "on this machine: " in lines[0] and "no network" in lines[0] and "4.3 to 32.6 s" in lines[0] and "has not been timed on devnet" in lines[0]
+    assert "on this machine: " in lines[0] and "no network" in lines[0] and "4.3 to 32.6 s" in lines[0] and "timed there on 24 real tokens" in lines[0]
     assert len(lines) == 4 + len(bench.ROWS) and "a target, not a measurement" in lines[2]
     assert rows["offline, accepted"]["p95"] < 250 and rows["chain check"]["p95"] < 250, rows       # the target, held on this machine
     trips = bench.round_trips()

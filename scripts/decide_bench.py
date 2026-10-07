@@ -46,7 +46,7 @@ DOC = ROOT / "docs" / "BENCH.md"
 OPEN, CLOSE = "<!-- decide:time -->", "<!-- /decide:time -->"
 TARGETS = {"cached": 200.0, "fresh": 2000.0, "local": 250.0}        # milliseconds at p95: targets, on one machine with no network
 DEVNET = ("On devnet, four runs of the 0.3.18 command (the relay's whole precheck, on real fund tokens over the shared public RPC) took 4.3 to 32.6 s: "
-          "a first reading, not a sample. The split below has not been timed on devnet.")
+          "a first reading, not a sample. The 0.3.19 split was timed there on 24 real tokens: the tables after this block.")
 ROWS = (("fresh, accepted", "fresh", "a fund token never seen: signature checked, chain read"),
         ("fresh, rejected", "fresh", "a pay token for an issue with nothing in escrow: signature checked, chain read"),
         ("cached, accepted", "cached", "the same fund token again, the chain's answers kept (`knos.decide.Cached`)"),

@@ -105,17 +105,20 @@ moved by a byte, and `scripts/deploy_v2.sh --propose` refuses in this tree.
   Until they do, the public programs charge the earlier fee (2.5% of the first 1,000, 1% to 50,000, 0.5% above, at
   least 0.40) and count the judges of a quorum by repository. The live state, and the time they can run from, are
   in [`web/upgrades.json`](web/upgrades.json) once the feed is written again from the chain.
-- The faucet, the task board, netting, advances, the record server and the worker's claim sweep have not run on
-  GitHub or on devnet: the faucet key does not exist yet, and nothing has been netted, advanced or looked up there.
+- The faucet, the task board and the worker's claim sweep have not run on GitHub or on devnet: the faucet key does
+  not exist yet. Netting, an advance and a paid record lookup have run once each on devnet, between wallets of Knos's
+  own release run and on tokens of its own workflows: none with an outside party.
 - The proof of a judge's execution is an experiment with no on-chain verifier, and `attested` stays unreachable.
 - No workflow keeps the issuers' key lists on its runner, so on GitHub the provisional line is still the relay's
-  whole precheck. The devnet figures for a decision are those of the 0.3.18 run (4.3 to 32.6 s for four runs of the
-  whole precheck) until the split is timed there.
+  whole precheck. On devnet the split was timed once on each of 24 real tokens: a median of 356 ms offline, 854 ms
+  for the chain check and 9.1 s for the whole precheck, and 23 of the 24 had been carried before they were decided
+  ([`docs/BENCH.md`](docs/BENCH.md), "Decision time").
 - A cold decision is not instant. The whole offline command in a new process (`python -m knos.decide`: interpreter
   start, imports, decision, receipt) took 177 ms at the median on one idle machine, and a busy machine takes
   several times that. Through the whole `knos` command line it is slower again, and that was not benchmarked
   ([`docs/BENCH.md`](docs/BENCH.md), "Decision time").
-- No version 5 receipt of a public payment exists.
+- No version 5 receipt reads `rerun`. The one of a public payment (a neutral re-run of the release run's own order)
+  reads `reported`: its payee and the run's owner and starter are one GitHub account.
 - The record lookup's server is one anyone can run and Knos hosts none; single sign-on, private deployment and a
   support contract do not exist, so the Control plans cannot be delivered.
 - Nothing has been sold, and there is no legal entity to sell from.

@@ -106,8 +106,11 @@ payment and the receipt `knos attest` leaves for a run that paid nothing all wri
 receipt, so the level is computed and never typed). `knos bundle make --terms3 FILE` reads the declared control
 relationships from the Knos Terms 3 document the order cites, and refuses a document the order does not cite; a run
 of `knos attest` reads them from the repository's own copy of that document. Without one, nothing is declared.
-`knos bundle verify` takes versions 2 to 5, and so do the webhook verifiers (`integrations/webhook`). No version 5
-receipt of a public payment exists yet: none has been written on devnet.
+`knos bundle verify` takes versions 2 to 5, and so do the webhook verifiers (`integrations/webhook`). One version 5
+receipt of a public payment has been written (0.3.19): `knos bundle make` of an order a neutral attest.yml run in
+drexthealpha/knos-attest judged again and [paid](https://explorer.solana.com/tx/3i37jK6P7hWyMntNgEKT3TsiSQQcHzNh7Dku4zsZC3m1E53ynAJZvzBgKUyahH7C9eH2A6ctRHwuSdTSqFkWfGND?cluster=devnet).
+Its evaluator entry says `reexecuted: true`, and its level is `reported`, not `rerun`: the run's owner and starter
+and the payee are one GitHub account, the only one Knos's release run has. No `rerun` receipt exists yet.
 
 - Schema: [`docs/receipt/acceptance-receipt.v5.schema.json`](receipt/acceptance-receipt.v5.schema.json).
 - Conformance vectors: [`docs/receipt/vectors.v5.json`](receipt/vectors.v5.json): seven to accept, each with its

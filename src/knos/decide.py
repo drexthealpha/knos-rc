@@ -53,8 +53,9 @@ A cached decision: `Cached(ledger)` keeps what the chain answered for `ttl` seco
 the provisional receipt carries the time of the read.
 
 Measured by `scripts/decide_bench.py` (docs/BENCH.md, "Decision time"); `tests/test_decide.py` holds the bounds. What
-is measured is this machine's own time. Against devnet, four runs of the 0.3.18 command took 4.3 to 32.6 s; the split
-has not been timed there yet (docs/RELAY.md, "Measuring it at release", has the command).
+is measured is this machine's own time. Against devnet, four runs of the 0.3.18 command took 4.3 to 32.6 s; the split,
+once on each of 24 real tokens, took a median of 356 ms offline and 854 ms for the chain check (docs/BENCH.md, after
+the "Decision time" block; docs/RELAY.md has the command).
 """
 from __future__ import annotations
 

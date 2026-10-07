@@ -74,7 +74,14 @@ credits: on a 0.32 outcome that is 0.6% beside the 0.30% acceptance fee.
 
 ## Not built
 
-- No workflow asks the forge for the three tokens yet: `close` prints the audiences and the terms, and the simulator
-  test sends them. On devnet nothing has been netted.
+- No published workflow asks the forge for the release's fund and pay tokens yet: `close` prints the audiences and the
+  terms, and the simulator test sends them. On devnet one period has been netted, at the public program ids, between
+  two wallets of Knos's own release run (0.3.19), with one GitHub account as both buyer and supplier: 20 outcomes of
+  0.32 the run itself made up, period 202610.1, anchored by the [buyer](https://explorer.solana.com/tx/56iBxBoqnSnVJ4pZf8PDQw6oNXdUb9WFD8XPxbMSPWs693iXMkXbnLhSsjaRA26pPPZERzAhCSXitj5kMUMJjpCL?cluster=devnet)
+  and the [supplier](https://explorer.solana.com/tx/DwtaXvibQ8bFVyTW5X1UeXwEstREPW7HJX4sjMKLoSzeAJy7ML4q4QYj5HyS6vQ5thkFprP2CkZhjKXUrK5RCoC?cluster=devnet)
+  through attest.yml, then one order of 6.40 [funded](https://explorer.solana.com/tx/4zzdjLJx8YPK1DkZNGMbZEDpiFm55f7VavAgPcVzaY3mJPHquHmSyhoKRspEDnMaQSnpXgogC23KnBNVUU943P1u?cluster=devnet)
+  from a capped Balance and [paid](https://explorer.solana.com/tx/49ydAiiexCVrXQNArt1LuDoqY3mATmKbmx8i5kT8EQdtyHQH64HqFJ4Gxnqmg3PwCtVsu8sXY8YunmU8Aypoqqgr?cluster=devnet)
+  to the supplier's wallet, on tokens a workflow of the run's own repository asked for (it signs the audience it is
+  given). The fee taken was 0.40, the rule of knos_pay 2.1, which the public id ran then; `close` prints the 2.2 rule.
 - No carry of a closed period's correction into the next period's net.
 - One payee per release (an order takes up to four; netting uses one).

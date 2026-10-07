@@ -384,8 +384,11 @@ conclusions of the named checks.
 What is measured, and where ([BENCH.md](BENCH.md), "Decision time"; the sample and the machine are stated there):
 the two halves on one machine with the chain simulated in the same process, so with no network; the whole offline
 command in a new process; and the requests each path makes, counted. What is measured on devnet: four runs of the
-0.3.18 command, which was the whole precheck, took 4.3 to 32.6 s over the shared public RPC. That is a first
-reading, not a sample, and the split has not been timed there. 250 ms at p95 for the offline decision is a target.
+0.3.18 command, which was the whole precheck, took 4.3 to 32.6 s over the shared public RPC: a first reading, not a
+sample. The 0.3.19 command, once on each of 24 real tokens (step 4 below, 7 October 2026), took a median of 356 ms
+for the offline half, 854 ms for the chain check (one of the 24 was not answered in its 2 s), and 9.1 s for the
+whole precheck; 23 of the 24 had been carried before they were decided. 250 ms at p95 for the offline decision is a
+target.
 
 Who posts the line: `knos settle` writes "accepted, settling" at the moment it has the token, and the provisional
 line goes into that same edit (`knos.flow`). Where the offline half decides, its line is posted at once, then one

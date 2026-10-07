@@ -9,7 +9,10 @@ paid through the proposed x402 `knos-order` scheme of [`examples/x402_attested`]
     python -m knos.record_api offer.json --records docs/records --memory .record-api --port 8402
 
 The second line is `knos record serve` once the `record` command carries it. It reads the chain from the RPC URL
-every Knos command uses. It has not been run against devnet.
+every Knos command uses. It has been run against devnet once, on the operator's machine during Knos's own release
+run (0.3.19): a wallet of that run [funded a pack](https://explorer.solana.com/tx/2Z9NtBn78XRfLaY928d34qZQxTFxZrGDxcEbBjwpWm9bqjTjcNgPtSrtFZDC3snMCvuWpWWPWqYnVWRkjZSj5rrd?cluster=devnet)
+at the public knos_pay and got lookup 0 of 50; the same call again and another wallet's call got `402`. The order
+stays in escrow until its deadline, because no judge for lookups exists.
 
 | path | price | answer |
 |---|---|---|
@@ -52,7 +55,7 @@ returns everything to the caller after the deadline when none arrives (`RefundOr
 - **Netting across orders**, and any price below a pack.
 - **Anything the free file lacks.** The paid answer is the same record, with the order, the count and the time it
   was served. A lookup built fresh from an events log is not built.
-- **A run on devnet**, and a hosted server. Outside callers: 0.
+- **A hosted server.** The one run on devnet was the operator's own, with its own wallets. Outside callers: 0.
 
 ## The offer file
 
