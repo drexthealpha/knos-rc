@@ -394,13 +394,16 @@ def test_every_kani_harness_of_knos_pay_runs_in_a_job_and_none_is_let_off_by_its
             if "kani-github-action" in str(step.get("uses", "")) and step["with"]["working-directory"] == "programs-v2/knos_pay":
                 args = step["with"]["args"].split()
                 assert "--exact" in args and "--harness" in args, name          # by name, or a harness could hide in "every"
-                named += [args[i + 1] for i, a in enumerate(args) if a == "--harness"]
+                # `--exact` takes the full path of a harness (Kani: "Please specify the fully-qualified name")
+                full = [args[i + 1] for i, a in enumerate(args) if a == "--harness"]
+                assert all(f.startswith("proofs::harness::") for f in full), name
+                named += [f.removeprefix("proofs::harness::") for f in full]
                 assert "continue-on-error" not in step and "continue-on-error" not in job, name
     assert sorted(named) == sorted(harnesses) and len(named) == len(set(named))
     fee = "an_orders_fee_is_between_its_floor_and_the_one_rate_for_every_amount"
     long = doc["jobs"]["kani-fee-bounds"]
     [step] = [s for s in long["steps"] if "kani-github-action" in str(s.get("uses", ""))]
-    assert step["with"]["args"].split()[-2:] == ["--harness", fee] and step["with"]["args"].count("--harness") == 1
+    assert step["with"]["args"].split()[-2:] == ["--harness", f"proofs::harness::{fee}"] and step["with"]["args"].count("--harness") == 1
     assert long["timeout-minutes"] == 360 and step["timeout-minutes"] < long["timeout-minutes"] and "needs" not in long
     assert step["with"]["kani-version"] == doc["jobs"]["kani"]["steps"][1]["with"]["kani-version"]
     for event, runs_it in (("schedule", True), ("workflow_dispatch", True), ("push", False), ("pull_request", False)):
