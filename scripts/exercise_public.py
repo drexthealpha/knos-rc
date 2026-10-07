@@ -318,6 +318,18 @@ class World:
         """What a step done outside this script left for the round `name` (`note` writes it), or None."""
         return None
 
+    def consumed(self, tok: Tok, line: str) -> tuple[str, str] | None:
+        """The transaction in which knos_pay took this token and itself logged a line starting with `line`, as
+        (its signature, that line); None when there is none. At a public id the repository's own run carries its
+        tokens to the chain before a round does, so a round finds the token's work done and its marker set: what the
+        token did is then read from the transactions that set the marker, never assumed."""
+        used = pay.used_pda(tok.jwt)
+        for sig in self.ledger.history(used, 50):
+            said = [x for x in chain.said(self.ledger.logs(sig), pay.PAY_ID) if x.startswith(line)]
+            if said:
+                return sig, said[0]
+        return None
+
     def landed(self, signature: str) -> dict | None:    # pragma: no cover - overridden
         """A transaction as the chain has it: {"ok": it succeeded, "accounts": every address it names}. None: no such transaction."""
         raise NotImplementedError
@@ -718,6 +730,10 @@ class Book:
                                             **({"refusals": refusals} if refusals else {})}
 
 
+def ev_status(book: Book, capability: str) -> str:
+    return str(book.ev["exercises"].get(capability, {}).get("status", ""))
+
+
 def _check(condition: bool, what: str) -> None:
     if not condition:
         raise Failed(what)
@@ -734,12 +750,30 @@ def fund_parts(t: Tok) -> dict:
             "order": pay.order_pda(pay.scope_of(repo, int(p[2])), balance, int(p[8]))}
 
 
+def _held(w: World, order: Pubkey) -> int:
+    """What an order paid less its holdback keeps for its warranty, read from the chain: the relay's answer for a
+    token another relayer carried first names what was paid and not what was held back."""
+    hb = pay.read_holdback(w.account(pay.hb_pda(order)))
+    return sum(amount for _i, _w, amount in hb.payees) if hb else 0
+
+
 def _fund(book: Book, st: dict, key: str, tok: Tok, what: str) -> tuple[dict, Pubkey]:
     """Relays a fund token; the order is funded with its fee on top. Returns the relay's answer and the order."""
     w, f = book.w, fund_parts(tok)
     source = pay.baltok_pda(f["balance"])
     before = w.tokens(source)
     r = w.submit(tok)
+    if not r.get("ok") and (took := w.consumed(tok, f"knos3:funded order={f['order']} ")):
+        # the repository's run carried the token first, and its order may be paid already: the funding is the
+        # transaction that set the token's marker, and what it funded is what knos_pay logged in it
+        sig, line = took
+        said = dict(kv.split("=", 1) for kv in line.split()[1:] if "=" in kv)
+        _check(int(said.get("amount", -1)) == f["amount"] and said.get("source") == str(f["balance"]),
+               f"{what}: the transaction that took the token ({sig}) funded another amount or from another Balance: {line}")
+        o = pay.read_order(w.account(f["order"]))
+        if o is not None and o.state == "open" and o.fee == int(said["fee"]):
+            _check(w.tokens(pay.ov_pda(f["order"])) == o.amount + o.fee, f"{what}: the order does not hold its amount and its fee")
+        r = {"ok": True, "already": True, "order": str(f["order"]), "amount": f["amount"], "fee": int(said["fee"]), "sigs": [sig]}
     _check(bool(r.get("ok")), f"{what}: the relay answered: {r.get('why')}")
     order = Pubkey.from_string(r["order"])
     _check(order == f["order"] and r["amount"] == f["amount"], f"{what}: the order funded is not the one the token names")
@@ -831,6 +865,17 @@ def round_order(book: Book, st: dict) -> None:
                   [f"the fund token's second use is refused with error {replay} ({words}) and funds nothing",
                    "the proof relayed a second time is answered with the first payment and sends nothing"],
                   [{"signature": sig, "error": code, "means": words, "what": "the fund token, sent again"}])
+    if not st.get("verify") and ev_status(book, "verify_github") != "exercised":
+        # the repository's run carried the fund token, so this round sent no verification of its own with the funding:
+        # the one the replay above needed is knos_oidc verifying GitHub's signature on that same token at the public id
+        at, _key, sigs = w.verified(t1)
+        sig = sigs[-1] if sigs else next(iter(w.ledger.history(at, 5)), "")
+        _check(bool(_SIG.fullmatch(sig)) and bool(have(oidc.read_token(w.account(at)), "the verified token").verified),
+               "knos_oidc holds no verified account of the fund token")
+        st["verify"] = sig
+        book.tx(st, "knos_oidc verifies GitHub's signature on the fund token", sig, "knos_oidc")
+        book.done(st, "verify_github", "knos_oidc", sig, [f"knos_oidc verified GitHub's signature on the fund token into its account {at}",
+                                                          "the same token was then refused by knos_pay as a second use"])
     try:        # a second funding of the same address, and the first proof against it: the double payment of 0.3.13
         t2 = fund_token("fund2", 600 if sim else 14 * 86_400)
     except Need as need:
@@ -940,6 +985,8 @@ def round_quorum(book: Book, st: dict) -> None:
     if "one" not in st:
         had, held = (w.tokens(dest) if dest else 0), w.tokens(pay.ov_pda(order))
         r = w.submit(first)
+        if not r.get("ok") and (took := w.consumed(first, f"knos3:quorum order={order} ")):
+            r = {"ok": True, "already": True, "sigs": [took[0]]}     # the repository's run carried this judge first: its marker is that transaction's
         _check(bool(r.get("ok")), f"the first judge: the relay answered: {r.get('why')}")
         o = pay.read_order(w.account(order))
         _check(o is not None and o.state == "open" and o.paid == 0 and w.tokens(pay.ov_pda(order)) == held and (w.tokens(dest) if dest else 0) == had,
@@ -950,8 +997,14 @@ def round_quorum(book: Book, st: dict) -> None:
     if "two" not in st:
         had = w.tokens(dest) if dest else 0
         r = w.submit(second)
+        o = pay.read_order(w.account(order))
+        if not r.get("ok") and o is not None and int(second.c.get("actor_id", 0)) in (o.funder_id, o.owner_id):
+            st["refused_neutral"] = {"run": str(second.c.get("run_id")), "actor": int(second.c["actor_id"]), "why": str(r.get("why"))}
+            raise Cannot("needs a second GitHub account: a neutral run counts toward a quorum only when someone other than the order's funder "
+                         f"started it, and the run the release can start (attest.yml run {second.c.get('run_id')}) was started by the funder "
+                         f"(GitHub id {second.c['actor_id']}), the only account there is. Nothing moved and nothing was sent in anyone else's name")
         _check(bool(r.get("ok")), f"the second judge: the relay answered: {r.get('why')}")
-        paid, back = sum(p["amount"] for p in r["paid"]), int(r.get("held_back", 0))
+        paid, back = sum(p["amount"] for p in r["paid"]), int(r.get("held_back", 0)) or (_held(w, order) if r.get("already") else 0)
         _check(paid + back == st["fund1"]["amount"] and back > 0, "the second judge did not pay the order less its holdback")
         if not r.get("already") and dest:
             _check(w.tokens(dest) - had == paid and have(pay.read_order(w.account(order)), "the order").state == "warranty",
@@ -1205,7 +1258,7 @@ def round_holdback(book: Book, st: dict) -> None:
         had = w.tokens(dest)
         r = w.submit(proof)
         _check(bool(r.get("ok")), f"the proof: the relay answered: {r.get('why')}")
-        paid, back = sum(p["amount"] for p in r["paid"]), int(r.get("held_back", 0))
+        paid, back = sum(p["amount"] for p in r["paid"]), int(r.get("held_back", 0)) or (_held(w, order) if r.get("already") else 0)
         _check(paid + back == st["fund1"]["amount"] and back == st["fund1"]["amount"] * 2000 // 10_000, "the proof did not pay the order less one fifth")
         if not r.get("already"):
             _check(w.tokens(dest) - had == paid, "the payee was not paid four fifths")

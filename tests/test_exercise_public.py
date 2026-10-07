@@ -321,6 +321,58 @@ def test_a_holdback_needs_a_day_and_resume_finishes_it():
         w.close()
 
 
+def test_tokens_the_repositorys_own_run_carried_first_are_read_from_the_chain():
+    """At the public ids the repository's own workflow carries every token it posts before a round reads it: a fund
+    token's order may be paid already, a quorum's first judge recorded, a holdback's proof paid. The rounds then hold
+    what the chain shows (the transaction that set the token's marker, the holdback's record) and send nothing twice."""
+    said: list[str] = []
+    w = ex.Simulated()
+    try:
+        real = w.find
+
+        def carried_first(kind, pick, forge, taken):
+            tok = real(kind, pick, forge, taken)
+            if tok is not None and kind in ("fund", "pay"):
+                assert w.submit(tok).get("ok"), "the repository's run carried its token"
+            return tok
+        w.find = carried_first
+        ev = ex.run(w, ex.new_evidence(w, ex.simulated_programs()), only="quorum", say=said.append)
+        ex.run(w, ev, only="holdback", say=said.append)
+        assert not [line for line in said if "FAILED" in line], said
+        q, h = ev["rounds"]["quorum"], ev["rounds"]["holdback"]
+        assert ev["exercises"]["order_quorum"]["status"] == ev["exercises"]["warranty_revert"]["status"] == "exercised"
+        assert q["fund1"]["already"] and (q["two"]["paid"], q["two"]["held_back"]) == (4_000_000, 1_000_000)
+        assert w.landed(q["one"]["signature"])["ok"]          # the first judge's marker: the transaction the run sent
+        assert ev["exercises"]["holdback_release"]["status"] == "exercised" and (h["paid"]["paid"], h["paid"]["held_back"]) == (4_000_000, 1_000_000)
+
+        # an order funded and paid by the run before the round read its fund token: the funding is the transaction
+        # that set the token's marker, with the amount and the fee knos_pay logged in it
+        w.find = real
+        o, n = w.o, w.issue()
+        fund = w.forge(ex.pay.order_fund_audience(n, ex.AMOUNT, ex.pay.MERGE, o.TH, w.c.bal, 14 * 86_400), "fund.yml", o.TERMS,
+                       event_name="issue_comment", actor_id=o.MAINT, repository_id=o.REPO, repository_owner_id=o.OWNER)
+        first = w.submit(fund)
+        order = ex.Pubkey.from_string(first["order"])
+        wallet = ex.Keypair.from_seed(bytes([47]) * 32).pubkey()
+        proof = w.forge(ex.pay.order_pay_audience(order, o.HEAD, o.TH, ex.pay.MERGE, 7, [(o.user(), 10_000, wallet)]), repository_id=o.REPO)
+        assert w.submit(proof).get("ok") and w.account(order) is None
+        assert not w.submit(fund).get("ok")          # what the relay answers a round now: the token was used, and its order is gone
+        book, st = ex.Book(ev, w, said.append), {"round": "order"}
+        _r, got = ex._fund(book, st, "fund1", fund, "the fund token")
+        assert got == order and st["fund1"] == {"order": str(order), "amount": ex.AMOUNT, "fee": first["fee"], "signature": first["sigs"][-1], "already": True}
+        assert w.consumed(proof, f"knos3:funded order={order} ") is None        # a line the token's transactions never logged finds nothing
+
+        # one GitHub account: the only neutral run the release can start is the funder's, which a quorum does not count
+        ev2 = ex.new_evidence(w, ex.simulated_programs())
+        ev2["rounds"]["quorum"] = {"round": "quorum", "issue": w.issue(), "payee": o.user(), "wallet": str(wallet), "judge": o.MAINT}
+        ex.run(w, ev2, only="quorum", say=said.append)
+        q2 = ev2["rounds"]["quorum"]
+        assert ev2["exercises"]["order_quorum"]["status"].startswith("cannot: needs a second GitHub account") and q2["refused_neutral"]["actor"] == o.MAINT
+        assert "two" not in q2 and ex.pay.read_order(w.account(ex.Pubkey.from_string(q2["fund1"]["order"]))).paid == 0
+    finally:
+        w.close()
+
+
 def test_a_step_done_outside_is_held_to_the_chain_and_what_it_cannot_show_is_not_taken(ran, tmp_path):
     ev = ran[0]
     x = ev["rounds"]["x402"]
