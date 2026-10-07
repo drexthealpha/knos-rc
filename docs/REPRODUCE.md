@@ -38,9 +38,10 @@ completes: the same signed file is put on the branch `reproduction-own-<run id>`
 It is not a reproduction and is never counted as one. Every count reads `reproductions/*.json` and no deeper;
 `knos.reproduce.verified(..., ours=True)` accepts in `own/` only a run that is Knos's own and gives it no capability;
 an own run's file directly under `reproductions/` is refused as before. `reproductions/own/` holds 0 files today: the
-release run files the first. Not done: `reproductions.yml` does not yet check a pull request that adds a file under
-`own/` (it refuses any path below `reproductions/` that is not a file directly in it), so that pull request's check is
-red until it does; the file is checked by `knos.reproduce.own_runs`.
+release run files the first. A pull request that adds a file under `own/` is checked by `reproductions.yml` like a
+stranger's (`scripts/capabilities.py reproduction --own`): it passes only for a run that is Knos's own, and says it
+counts for nothing. Seen in staging: [an own run](https://github.com/drexthealpha/knos-rc/actions/runs/37628067412),
+filed on its branch by the second workflow, and the check of its pull request green.
 
 ## From a terminal
 

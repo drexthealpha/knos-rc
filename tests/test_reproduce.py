@@ -204,6 +204,12 @@ def test_an_own_run_completes_is_filed_apart_and_counts_for_nothing(tmp_path):
     for script in ("bench_docs.py", "capabilities.py"):
         text = (ROOT / "scripts" / script).read_text(encoding="utf-8")
         assert '.glob("*.json")' in text and "rglob" not in text and "**/*.json" not in text, script
+    # the pull request's check takes own/ files apart and holds them as Knos's own; the page says so, and no longer
+    # that the check is red for them (it said that after the workflow had learned it: seen in the 0.3.19 staging run)
+    flow = (ROOT / ".github" / "workflows" / "reproductions.yml").read_text(encoding="utf-8")
+    assert 'into="$RUNNER_TEMP/sent/own"' in flow and '--own "${own[@]}"' in flow
+    page = (ROOT / "docs" / "REPRODUCE.md").read_text(encoding="utf-8")
+    assert "does not yet check" not in page and "checked by `reproductions.yml`" in page
 
 
 def test_a_report_edited_after_it_was_signed_is_refused_and_so_is_a_token_github_did_not_sign():
