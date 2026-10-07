@@ -690,3 +690,48 @@ def test_an_event_run_and_the_sweep_on_two_runners_see_each_other_through_the_re
     [line] = once(now + 7 + relayq.LEASE)
     assert f" {ghrelay.token_id(three)} ok " in line and len(sent) == 2
     assert [(c["body"].split(" ")[2][:5], c["body"].split('"s":"')[1].split('"')[0]) for c in log.comments[2:]] == [("event", "sending"), ("sweep", "sending"), ("sweep", "confirmed")]
+
+
+def test_an_event_run_that_sends_nothing_for_a_token_it_found_says_who_holds_it_and_where_the_log_says_so(tmp_path, monkeypatch):
+    """0.3.19, live in staging: an event run found the token the sweep had carried a moment before and printed only
+    "0 tokens carried". It now says, for each token it found and does not carry, which runner the notes name and
+    the relay-log comment that carries their word; also when the other runner answered while this run waited."""
+    import hashlib
+    now = ghrelay._unix("2026-10-04T08:00:30Z")
+    one = jwt(fund_aud(7), repository="o/r", repository_owner_id="77", run_id="1")
+    two = jwt(fund_aud(8), repository="o/r", repository_owner_id="78", run_id="2")
+    key = lambda t: hashlib.sha256(f"fund\n{t}\n".encode() + TERMS.encode()).hexdigest()[:16]  # noqa: E731
+    api = [_comment(12, ghrelay.token_comment("fund", one, TERMS), "2026-10-04T08:00:10Z")]
+    event = {"client_payload": {"repo": "o/r", "number": 12}}
+    log, sent, said = Log(), [], []
+    sweep_notes = relayq.Notes(tmp_path / "sweep" / "notes", "sweep-1", lambda: now, store=log.store("S"))
+    assert sweep_notes.lease(key(one), now + relayq.LEASE)
+    sweep_notes.append(key(one), "confirmed")
+    monkeypatch.setattr(ghrelay, "relay_one", lambda *a, **k: sent.append(a) or {"ok": True, "kind": "fund", "sigs": ["s"], "note": "funded"})
+
+    class Ledger:
+        def send(self):
+            return "sig"
+    theirs = relayq.Notes(tmp_path / "event" / "notes", "event-1", lambda: now, store=log.store("E"))
+    assert theirs.store.read()                  # what `main` does before anything is queued
+    serve = lambda: relayq.serve_event("repository_dispatch", event, Ledger(), None, tmp_path / "event" / "ghrelay.json",  # noqa: E731
+                                       get=lambda path: api, post=lambda lines: None, clock=lambda: now, say=said.append, notes=theirs)
+    assert serve() == 0 and sent == []
+    confirmed_at = log.comments[1]["id"]
+    assert said == [f"relay: fund o/r#12 {ghrelay.token_id(one)}: not carried by this run: sweep-1 has it on chain "
+                    f"(relay log comment {confirmed_at}), so nothing is sent from here"]
+    assert len(log.comments) == 2               # nothing written by the run that sent nothing
+    # the sweep holds the next one when the event run queues it, and answers while the event run waits for its lease
+    api.append(_comment(12, ghrelay.token_comment("fund", two, TERMS), "2026-10-04T08:00:20Z"))
+    assert sweep_notes.lease(key(two), now + relayq.LEASE)
+    real = relayq.work
+
+    def work(queue, *a, **k):
+        sweep_notes.append(key(two), "confirmed")
+        theirs.store.read()
+        return real(queue, *a, **k)
+    monkeypatch.setattr(relayq, "work", work)
+    said.clear()
+    assert serve() == 0 and sent == []
+    assert said[-1] == (f"relay: fund o/r#12 {ghrelay.token_id(two)}: not carried by this run: sweep-1 has it on chain "
+                        f"(relay log comment {log.comments[-1]['id']}), so nothing is sent from here")

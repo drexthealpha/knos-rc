@@ -82,6 +82,8 @@ durable store, beside the folder:
                        that lease one token, in any interleaving of their writes and reads, exactly one is told yes.
     when GitHub fails  the line is written to this run's folder as before and the run says, once, that its notes are
                        local until GitHub takes one again. The chain's single-use rule is then the guard, as in 0.3.18.
+    said on the page   an event run that finds a token and sends nothing for it says so on its run's page, naming the
+                       runner the notes say holds or answered it and the relay-log comment that says so (`passed_over`).
 Only lines the log repository's own workflow account wrote on the log issue count: anyone can comment on a public issue.
 """
 from __future__ import annotations
@@ -853,9 +855,11 @@ def named(event_name: str, event: Mapping[str, Any]) -> tuple[str, list[int]]:
 
 
 def ingest(queue: Queue, event_name: str, event: Mapping[str, Any], get: Callable[[str], Any], now: float,
-           lane: Callable[[str], str] | None = None) -> list[str]:
+           lane: Callable[[str], str] | None = None, passed: list | None = None) -> list[str]:
     """Reads what the event names and queues every token posted there in the last 70 minutes that the journal does
-    not hold yet. Returns the keys queued. Raises Full (the queue), Slow (GitHub's quota) or ValueError (the event)."""
+    not hold yet. Returns the keys queued. Raises Full (the queue), Slow (GitHub's quota) or ValueError (the event).
+    `passed`: given a list, each token found and NOT queued is added to it as (key, kind, where, token id), so that
+    the run can say why it sends nothing for it (`passed_over`)."""
     from ...proof import ghrelay
     if lane is None:
         from . import relay
@@ -875,7 +879,25 @@ def ingest(queue: Queue, event_name: str, event: Mapping[str, Any], get: Callabl
         key = hashlib.sha256(f"{kind}\n{jwt}\n".encode() + (f.terms or b"")).hexdigest()[:16]      # the journal's key for a token as posted
         if queue.put(key, lane(jwt), item, id=ghrelay.token_id(jwt), kind=kind, where=f"{repo}#{n}"):
             queued.append(key)
+        elif passed is not None:
+            passed.append((key, kind, f"{repo}#{n}", ghrelay.token_id(jwt)))
     return queued
+
+
+def passed_over(queue: Queue, notes: Notes | None, key: str, kind: str, where: str, tid: str) -> str:
+    """The run page's line for a token this run found and does not carry: who answered it or holds it, as the
+    merged notes say (another runner's word, and the relay-log comment that carries it), or this run's own journal.
+    An event run that sends nothing for a token it found says so, and why: the log's `knos-note` lines are the reason."""
+    head = f"relay: {kind} {where} {tid}: not carried by this run:"
+    other = notes.theirs(key) if notes is not None else None
+    if other is not None:
+        state = {"confirmed": "has it on chain", "refused": "had it refused", "sending": "holds it (a lease)", "waiting": "waits for it"}[str(other["state"])]
+        at = f" (relay log comment {other['at']})" if other.get("at") is not None else " (its notes)"
+        return f"{head} {other['by']} {state}{at}, so nothing is sent from here"
+    e = queue.entries().get(key) or {}
+    if e.get("by"):
+        return f"{head} {e['by']} answered it while this run waited, so nothing is sent from here"
+    return f"{head} this run's journal has it already ({SPELLED.get(str(e.get('state')), e.get('state'))})"
 
 
 def carrier(ledger: Any, payer: Any, clock: Callable[[], float] = time.time) -> Callable[[dict[str, Any]], dict[str, Any]]:
@@ -914,10 +936,14 @@ def serve_event(event_name: str, event: Mapping[str, Any], ledger: Any, payer: A
     run's own journal, and what the sweep holds or has answered is left to the sweep. `payer`: one key or `Payers`."""
     from ...proof import ghrelay
     queue = Queue(path, clock, workers=workers, notes=notes)
+    passed: list = []
     try:
-        ingest(queue, event_name, event, get or Forge(clock=clock).get, clock())
+        mine = ingest(queue, event_name, event, get or Forge(clock=clock).get, clock(), passed=passed)
     except (Full, Slow, ValueError) as why:
+        mine = []
         say(f"relay: {why} The relay's next sweep of the comments carries what is posted there.")
+    for p in passed:
+        say(passed_over(queue, notes, *p))
     carried = 0
 
     def after(entry: dict[str, Any], r: Mapping[str, Any], state: str) -> None:
@@ -942,6 +968,11 @@ def serve_event(event_name: str, event: Mapping[str, Any], ledger: Any, payer: A
     except ValueError:
         pass
     work(queue, carrier(ledger, payer, clock), workers, after=after, leave=LEFT_TO_SWEEP)
+    entries = queue.entries()
+    for key in mine:                    # queued here, then closed by another runner's answer (`Queue.take`): said, as above
+        e = entries.get(key) or {}
+        if e.get("by"):
+            say(passed_over(queue, notes, key, str(e.get("kind")), str(e.get("where")), str(e.get("id"))))
     return carried
 
 
