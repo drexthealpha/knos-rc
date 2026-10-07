@@ -233,7 +233,7 @@ What was measured on devnet: 41 payments have a whole wait (first table). Only 5
 
 What was measured locally: `python scripts/decide_bench.py --write`, run on 2026-10-06: 40 decisions for each row, the chain simulated in the same process (LiteSVM, no network). Machine: Intel(R) Xeon(R) Processor @ 2.80GHz, 2 CPUs, Linux x86_64, Python 3.11.15. That is the time Knos's own code takes to decide; on a cluster every read of the chain adds a round trip, and that has not been measured ([BENCH.md](BENCH.md), "Decision time").
 
-What is a target and not a measurement: the last column. No decision has been timed on devnet, no payment has been carried there by the 0.3.18 relay, and the floor stays above zero: a forge must run a job and sign before there is anything to decide ([RELAY.md](RELAY.md), "The floor").
+What is a target and not a measurement: the last column. No decision has been timed on devnet by a benchmark (four `knos decide` runs on real fund tokens of this release's public rounds took 4.3 to 32.6 s each over the shared public RPC: a first reading, not a sample), no payment has been carried there by the 0.3.18 relay, and the floor stays above zero: a forge must run a job and sign before there is anything to decide ([RELAY.md](RELAY.md), "The floor").
 
 ### The relay's queue (a local test of the queue, not a benchmark of the service)
 

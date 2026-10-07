@@ -80,8 +80,9 @@ the release, and neither is live at its public id until its proposal executes.
 - **A decision before the chain settles.** `knos decide` answers accepted, rejected or insufficient evidence from
   the token in hand, by the reads a relay makes before it spends a fee, and writes a provisional receipt that
   never authorises payment; the final receipt names it and replaces it. Measured on one machine with the chain
-  simulated in the same process: 40 fresh decisions, 1.1 ms at the median and 9.3 ms at p95. No decision has been
-  timed on devnet, and nothing posts the provisional line yet ([`docs/RELAY.md`](docs/RELAY.md),
+  simulated in the same process: 40 fresh decisions, 1.1 ms at the median and 9.3 ms at p95. On devnet, four
+  decisions on real fund tokens took 4.3 to 32.6 s each over the shared public RPC, a first reading and not a
+  benchmark; nothing posts the provisional line yet ([`docs/RELAY.md`](docs/RELAY.md),
   [`docs/LOAD.md`](docs/LOAD.md)).
 - **The relay's runs no longer cross.** An event run and the sweep each keep a journal and append notes to a file
   of their own, and a reader merges every file by key, so two runs that share a folder send a token once. In
@@ -107,8 +108,12 @@ the release, and neither is live at its public id until its proposal executes.
   as one set and are live only when they execute. Until then the public programs charge the earlier fee (2.5% of
   the first 1,000, 1% to 50,000, 0.5% above, at least 0.40) and count the judges of a quorum by repository. The
   live state is in [`web/upgrades.json`](web/upgrades.json).
-- Terms 3, the supplier workflow, `knos terms propose` and the claim guard have not run on GitHub.
-- No format 2 batch is anchored.
+- Terms 3, the supplier workflow, `knos terms propose` and the claim guard ran for the first time in this release,
+  in Knos's own repositories only: `knos terms propose` drafted the terms of `drexthealpha/knos-e2e` from its merged
+  pull requests, the supplier workflow judged two test pull requests in a staging repository, and the claim guard
+  answered a claim of payment by an outside account on a staging issue. None has run for another owner's repository.
+- One format 2 batch is anchored, at the public `knos_meter`: four evaluations of Knos's own pull requests, with
+  one account as buyer and seller.
 - The records hold zero Knos orders for outside suppliers: what they show is public pull requests.
 - The record lookup through a hosted API is not built; single sign-on, private deployment and a support contract
   do not exist, so the Control plans cannot be delivered.
