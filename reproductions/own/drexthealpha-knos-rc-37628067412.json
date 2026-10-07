@@ -1,0 +1,285 @@
+{
+ "report": {
+  "at": 1791379469,
+  "checks": [
+   {
+    "capabilities": [
+     "order_pay"
+    ],
+    "evidence": {
+     "audience": "knos3:pay:72mT1tBvTsf82bmttzfoytG7xhMJdWZyErRJYS5TJgh6:6b9aed878ba6658d9cd8bfe3503aac0dd2ffb9ff:27eab601188a3d54515b6b3ea5eb7e0ec3576a05ffcbc4b0a3a28732942ad49c:0:6:142920951.10000.-",
+     "fee": 350000,
+     "key": "the chain's key account, and GitHub publishes the same key",
+     "key_account": "Cz28DtqTixQh1fBQ9roTHuGk2eLRim2ZXsSA3grNcaEB",
+     "kid": "38826b17-6a30-5f9b-b169-8beb8202f723",
+     "order": "72mT1tBvTsf82bmttzfoytG7xhMJdWZyErRJYS5TJgh6",
+     "paid": 10000000,
+     "payees": [
+      142920951
+     ],
+     "program": "FJJtqcRjQ9ATx37sBTCLUBxBqLUA9aQgSTLAsZynqtnH",
+     "signed_for": {
+      "iat": "1791137358",
+      "repository": "drexthealpha/knos-e2e-202610020610",
+      "repository_id": "1401117742",
+      "run_id": "37223274487",
+      "sha": "772c9c8cbbe67513d2a2c8ba72ec2922e5bbf1df",
+      "workflow_ref": "drexthealpha/knos-e2e-202610020610/.github/workflows/knos.yml@refs/heads/main"
+     },
+     "terms_sha256": "27eab601188a3d54515b6b3ea5eb7e0ec3576a05ffcbc4b0a3a28732942ad49c",
+     "token_sha256": "910826a3c8aa3c42ae1f59aa294bf7fef93c862607d9db6dd8ba39bc54f6bacd",
+     "transaction": "63wT5rhYhEKbgmF5k8vEKdexzoCaXZCiDvRG2GQMGSMBBsc9avGfDw3izER9D6LHoe4ucJeinTBiWaWGWpnFWvfq",
+     "verified_in": "4GcGCFsLUaYHZ2Ld9ZiNbLmrf1Fn3BfkNUFAvdatUWn8jnExkdNd4hAeiWjBKL1GnqfcRnun6VVEnS4JitzvExvM",
+     "verifier": "iosu8ARUNvvruHPCcMWQ5rqsnJewzBxcPXajSpoHqXd"
+    },
+    "id": "payment",
+    "result": "pass",
+    "seconds": 4.4,
+    "why": ""
+   },
+   {
+    "capabilities": [
+     "upgrade_delay",
+     "upgrade_feed"
+    ],
+    "evidence": {
+     "multisig": "9HcsMEo2o6zZu9t1kbFWpnyKn7hiHaZYYFwNHZSpmWqK",
+     "multisig_state": "9HcsMEo2o6zZu9t1kbFWpnyKn7hiHaZYYFwNHZSpmWqK: time lock 172800 s, 2 of 3 members, config authority none",
+     "programs": {
+      "knos_meter": {
+       "address": "FUMKkcE95x2kZUj1zZTCbgcYBmJ3WXPHL8pyA8J6anX",
+       "named": "10f2b6cbb4983527a82225b29491941b77961da32245b449c9c1b151a5e995e4",
+       "on_chain": "10f2b6cbb4983527a82225b29491941b77961da32245b449c9c1b151a5e995e4",
+       "proposal": 5,
+       "state": "executed",
+       "upgrade_authority": "CKCrTBN542pVhizxuSPVg8tvdnPooNxt9B7o97VuTjz2"
+      },
+      "knos_oidc": {
+       "address": "FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W",
+       "buffer": "2P9rzZc6kvHqpxFgctTUuKkAvxjnKSWUh3eDnSZFRzDR",
+       "buffer_hash": "a2df952d262c48edacf2f594a01321e805c28f1dc523cb6efa75f2c45f34e632",
+       "executes_at": 1791533683,
+       "named": "a2df952d262c48edacf2f594a01321e805c28f1dc523cb6efa75f2c45f34e632",
+       "on_chain": "3758348d1051feab739b4dc776ffb597fe9ecef7d50e93abd3c460fa5e9f7d4d",
+       "proposal": 7,
+       "state": "pending",
+       "status": "Approved",
+       "upgrade_authority": "CKCrTBN542pVhizxuSPVg8tvdnPooNxt9B7o97VuTjz2"
+      },
+      "knos_passkey": {
+       "address": "FQPX9i5kQxLYKZyyPgM2fVK9am3w1LSk1Cuoer1sSY85",
+       "named": "a9ce7a06fb99196ce6a9516b7c52951e48e4ce8cfde256646c6e50cfcac7cf81",
+       "on_chain": "a9ce7a06fb99196ce6a9516b7c52951e48e4ce8cfde256646c6e50cfcac7cf81",
+       "proposal": 6,
+       "state": "executed",
+       "upgrade_authority": "CKCrTBN542pVhizxuSPVg8tvdnPooNxt9B7o97VuTjz2"
+      },
+      "knos_pay": {
+       "address": "5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k",
+       "buffer": "2NdY5QE4aboDKtF6yMaS5tsEPEVHBVNsS1CG4KXAUstt",
+       "buffer_hash": "8b3c044024eac6e00cf10930c325465d5682c3fb7273fe2f0d59c6e01f99867c",
+       "executes_at": 1791533745,
+       "named": "8b3c044024eac6e00cf10930c325465d5682c3fb7273fe2f0d59c6e01f99867c",
+       "on_chain": "2ed301a2bc99fc6e58abc0dcb767cb35e640898a75f154b2d90c09171143d507",
+       "proposal": 8,
+       "state": "pending",
+       "status": "Approved",
+       "upgrade_authority": "CKCrTBN542pVhizxuSPVg8tvdnPooNxt9B7o97VuTjz2"
+      }
+     }
+    },
+    "id": "programs",
+    "result": "pass",
+    "seconds": 2.1,
+    "why": ""
+   },
+   {
+    "capabilities": [
+     "single_use_tokens",
+     "invariants_state_machine"
+    ],
+    "evidence": {},
+    "id": "simulator",
+    "result": "skipped",
+    "seconds": 0.0,
+    "why": "no source checkout: an installed wheel has no tests. Clone the repository and run `python -m knos reproduce --only simulator` in it."
+   },
+   {
+    "capabilities": [
+     "check"
+    ],
+    "evidence": {
+     "failed_checks": 2,
+     "head": "2ee3d2b1e1be9ccef2631c5c1fa071b73fc9899b",
+     "pr": "SciML/SciMLBase.jl#1574",
+     "recorded": "false",
+     "verdict": "false"
+    },
+    "id": "claim",
+    "result": "pass",
+    "seconds": 1.2,
+    "why": ""
+   },
+   {
+    "capabilities": [
+     "fund_by_comment",
+     "pay_on_merge"
+    ],
+    "evidence": {},
+    "id": "own_repo",
+    "result": "skipped",
+    "seconds": 0.0,
+    "why": "not asked for: --own-repo OWNER/NAME runs one funded round (test USDC) in a repository of yours that has Knos installed; it opens and merges a pull request there"
+   },
+   {
+    "capabilities": [
+     "provenance_chain"
+    ],
+    "evidence": {
+     "programs": {
+      "knos_meter": {
+       "address": "FUMKkcE95x2kZUj1zZTCbgcYBmJ3WXPHL8pyA8J6anX",
+       "next": null,
+       "on_chain": "10f2b6cbb4983527a82225b29491941b77961da32245b449c9c1b151a5e995e4",
+       "recorded": "10f2b6cbb4983527a82225b29491941b77961da32245b449c9c1b151a5e995e4",
+       "runs": "the build the record read there"
+      },
+      "knos_oidc": {
+       "address": "FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W",
+       "next": null,
+       "on_chain": "3758348d1051feab739b4dc776ffb597fe9ecef7d50e93abd3c460fa5e9f7d4d",
+       "recorded": "3758348d1051feab739b4dc776ffb597fe9ecef7d50e93abd3c460fa5e9f7d4d",
+       "runs": "the build the record read there"
+      },
+      "knos_passkey": {
+       "address": "FQPX9i5kQxLYKZyyPgM2fVK9am3w1LSk1Cuoer1sSY85",
+       "next": null,
+       "on_chain": "a9ce7a06fb99196ce6a9516b7c52951e48e4ce8cfde256646c6e50cfcac7cf81",
+       "recorded": "a9ce7a06fb99196ce6a9516b7c52951e48e4ce8cfde256646c6e50cfcac7cf81",
+       "runs": "the build the record read there"
+      },
+      "knos_pay": {
+       "address": "5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k",
+       "next": null,
+       "on_chain": "2ed301a2bc99fc6e58abc0dcb767cb35e640898a75f154b2d90c09171143d507",
+       "recorded": "2ed301a2bc99fc6e58abc0dcb767cb35e640898a75f154b2d90c09171143d507",
+       "runs": "the build the record read there"
+      }
+     },
+     "read": "2026-10-07T05:01:21Z"
+    },
+    "id": "provenance",
+    "result": "pass",
+    "seconds": 0.8,
+    "why": ""
+   },
+   {
+    "capabilities": [
+     "order_pay"
+    ],
+    "evidence": {
+     "program": "5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k",
+     "recorded": 2,
+     "verified": [
+      {
+       "capability": "order_pay",
+       "fee": 350000,
+       "key": "the chain's key account, and GitHub publishes the same key",
+       "kid": "38826b17-6a30-5f9b-b169-8beb8202f723",
+       "order": "6eyyJcCVuB5Af6ZU6St8haGxkqrtad7dcBdKMZeNGAaY",
+       "paid": 5000000,
+       "payees": [
+        142920951
+       ],
+       "signed_for": {
+        "iat": "1791345657",
+        "repository": "drexthealpha/knos-e2e",
+        "repository_id": "1401439243",
+        "run_id": "37569382885",
+        "sha": "647b9e6bc6901f71ef271aa640f6f19b3ded78ac",
+        "workflow_ref": "drexthealpha/knos-e2e/.github/workflows/knos.yml@refs/heads/main"
+       },
+       "token_sha256": "5f21857ec882405cbe529dfe9aa85c97a27746539e114dcd5059eea30c73753d",
+       "transaction": "59AfaYHTvWHhbAhiiNHCbCfEcGCxG1kCydJwfRNjZqry9bCnMF3ox6bd4P7favA9hjgzB5nk283g2Mdq3LruyNWV"
+      },
+      {
+       "capability": "x402_knos_order",
+       "fee": 350000,
+       "key": "the chain's key account, and GitHub publishes the same key",
+       "kid": "38826b17-6a30-5f9b-b169-8beb8202f723",
+       "order": "6UwN3AdPufMnchdbFwZAh9166uSa8Ad2sEBPw4CaBYEJ",
+       "paid": 5000000,
+       "payees": [
+        142920951
+       ],
+       "signed_for": {
+        "iat": "1791345866",
+        "repository": "drexthealpha/knos-e2e",
+        "repository_id": "1401439243",
+        "run_id": "37569660259",
+        "sha": "57e9dfdafe65beca84d110db89c7d1bd44ab37e9",
+        "workflow_ref": "drexthealpha/knos-e2e/.github/workflows/knos.yml@refs/heads/main"
+       },
+       "token_sha256": "395d6c0457dfc9603e95a49d8d7cc76222ada21257b80b6aa1a880cfc4042eae",
+       "transaction": "2noSVLKXsSDc9iL72m6H4geVenuoDvrH7YiQ4FUEwLUYgEbWpqxk9TZxf6GQegSXCsZUR33GT2gn6HEUbkKTpwsX"
+      }
+     ],
+     "verifier": "FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W"
+    },
+    "id": "payments",
+    "result": "pass",
+    "seconds": 12.9,
+    "why": ""
+   },
+   {
+    "capabilities": [
+     "statements"
+    ],
+    "evidence": {
+     "evidence_from": "the statement the repository keeps with its evidence inside (tests/data/statement/sept.json)",
+     "evidence_sha256": "c19d8125a899aa7647d144bfb93056b63544d9d30a708dccca3d052c933e73c2",
+     "invoice": "INV-2026-09",
+     "lines": 5,
+     "sha256": "5ac12d786d7ec1d006d78aa27681c133ebfce2782e11a9dc497fd237ab770bf7",
+     "source": "shadow",
+     "totals": {
+      "agreed": {
+       "amount": "160.00",
+       "lines": 2
+      },
+      "billed": {
+       "amount": "590.00",
+       "lines": 5
+      },
+      "disputed": {
+       "amount": "250.00",
+       "lines": 1
+      },
+      "duplicate": {
+       "amount": "100.00",
+       "lines": 1
+      },
+      "insufficient_evidence": {
+       "amount": "80.00",
+       "lines": 1
+      }
+     }
+    },
+    "id": "statement",
+    "result": "pass",
+    "seconds": 0.2,
+    "why": ""
+   }
+  ],
+  "cluster": "devnet",
+  "commit": "",
+  "fail": 0,
+  "format": "knos-reproduction/1",
+  "knos": "0.3.19",
+  "pass": 6,
+  "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "skipped": 2
+ },
+ "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjM4ODI2YjE3LTZhMzAtNWY5Yi1iMTY5LThiZWI4MjAyZjcyMyIsInR5cCI6IkpXVCIsIng1dCI6InlrTmFZNHFNX3RhNGsyVGdaT0NFWUxrY1lsQSJ9.eyJhY3RvciI6ImRyZXh0aGVhbHBoYSIsImFjdG9yX2lkIjoiMTQyOTIwOTUxIiwiYXVkIjoia25vcy1yZXBybzoxMTU3YmIyNzZhNjI4ZDY3ODM1ODI5MGYxZWY5MmQ4NmJkNWUwNGUxM2Y1MDkwMmVmMjIyNDBjZTllNTdkNTJjIiwiYmFzZV9yZWYiOiIiLCJjaGVja19ydW5faWQiOiIxMTI4MTU0ODE2NDkiLCJldmVudF9uYW1lIjoid29ya2Zsb3dfZGlzcGF0Y2giLCJleHAiOjE3OTEzNzk4MzUsImhlYWRfcmVmIjoiIiwiaWF0IjoxNzkxMzc5NTM1LCJpc3MiOiJodHRwczovL3Rva2VuLmFjdGlvbnMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwiam9iX3dvcmtmbG93X3JlZiI6ImRyZXh0aGVhbHBoYS9rbm9zLXJjLy5naXRodWIvd29ya2Zsb3dzL2tub3MtcmVwcm9kdWNlLnltbEByZWZzL2hlYWRzL2QwMzE5LW93bi1yZXBybyIsImpvYl93b3JrZmxvd19zaGEiOiI0MmYxMmQwYmJlOTkzODk4ZGJkMTJmODA2YmU2YWQ4MDU2OTU4MzU2IiwianRpIjoiMDQ1MWM2MDctNjFmOC00NWQ0LWEzNTEtMjdhZGVhZjJmMDBmIiwibmJmIjoxNzkxMzc5MjM1LCJyZWYiOiJyZWZzL2hlYWRzL2QwMzE5LW93bi1yZXBybyIsInJlZl9wcm90ZWN0ZWQiOiJmYWxzZSIsInJlZl90eXBlIjoiYnJhbmNoIiwicmVwb3NpdG9yeSI6ImRyZXh0aGVhbHBoYS9rbm9zLXJjIiwicmVwb3NpdG9yeV9pZCI6IjE0MDE0MzUwNDAiLCJyZXBvc2l0b3J5X293bmVyIjoiZHJleHRoZWFscGhhIiwicmVwb3NpdG9yeV9vd25lcl9pZCI6IjE0MjkyMDk1MSIsInJlcG9zaXRvcnlfdmlzaWJpbGl0eSI6InB1YmxpYyIsInJ1bl9hdHRlbXB0IjoiMSIsInJ1bl9pZCI6IjM3NjI4MDY3NDEyIiwicnVuX251bWJlciI6IjIiLCJydW5uZXJfZW52aXJvbm1lbnQiOiJnaXRodWItaG9zdGVkIiwic2hhIjoiNDJmMTJkMGJiZTk5Mzg5OGRiZDEyZjgwNmJlNmFkODA1Njk1ODM1NiIsInN1YiI6InJlcG86ZHJleHRoZWFscGhhQDE0MjkyMDk1MS9rbm9zLXJjQDE0MDE0MzUwNDA6cmVmOnJlZnMvaGVhZHMvZDAzMTktb3duLXJlcHJvIiwid29ya2Zsb3ciOiJrbm9zIHJlcHJvZHVjZSIsIndvcmtmbG93X3JlZiI6ImRyZXh0aGVhbHBoYS9rbm9zLXJjLy5naXRodWIvd29ya2Zsb3dzL2tub3MtcmVwcm9kdWNlLnltbEByZWZzL2hlYWRzL2QwMzE5LW93bi1yZXBybyIsIndvcmtmbG93X3NoYSI6IjQyZjEyZDBiYmU5OTM4OThkYmQxMmY4MDZiZTZhZDgwNTY5NTgzNTYifQ.AVDH6F6CTeWyQwuuNdFAvtXKVFuj1YvPd6LcHHBR2fWWBT5LjGKWgydnlBUa-A8ZK67r-Zm62chaIot2UyGvBAwH7cCW8gxdJviAE5PDjAzNezd7xk7mvRb9yRzzVPm764XDblwaD_cOITzPUvnKYfWaWrIZVX3l2k2OoWAgOot62B8mDgGYVWDLBBr3r0QycwdJQfdmS_AAoaAW91gaS8jWhFfc6-ngpDfOb7Q4kBDwf4yhEEfkcrXVkZRMS4SqnOMQFgSRJAPY9OMJ76Aa0mrTD0p5slTz6f2XuQH1HFZacrjnX6Jy5AmCrMFEKg_If0Ifyi07oubqEORl8_fDuw"
+}
