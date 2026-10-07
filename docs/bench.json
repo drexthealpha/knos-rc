@@ -1,5 +1,5 @@
 {
- "_about": "The measurements the docs quote; scripts/bench_docs.py writes them into README.md and docs/BENCH.md. market: the Agent PR Index scan (scripts/agent_pr_index.py). chain: compute units of the two deployments' committed test builds in LiteSVM, as tests/test_oidc2_chain.py, tests/test_pay2_chain.py, tests/test_oidc_chain.py, tests/test_pay_chain.py and tests/test_oidc_gate.py print them with `pytest -q -s`, and the escrows' last random walks. devnet: what was read from devnet; `stats` holds what the release takes from the site's stats.json. release: numbers the release run measured itself (scripts/bench_docs.py --set).",
+ "_about": "The measurements the docs quote; scripts/bench_docs.py writes them into README.md and docs/BENCH.md. market: the Agent PR Index scan (scripts/agent_pr_index.py). chain: compute units of the two deployments' committed test builds in LiteSVM, as tests/test_oidc2_chain.py, tests/test_pay2_chain.py, tests/test_oidc_chain.py, tests/test_pay_chain.py and tests/test_oidc_gate.py print them with `pytest -q -s`, and the escrows' last random walks. devnet: what was read from devnet; `stats` holds what the release takes from the site's stats.json. release: numbers the release run measured itself (scripts/bench_docs.py --set). stages: the six stages of a payment as scripts/latency_stages.py measured them on the relay log and devnet (`--separate --write` keeps them). decision: `knos decide` timed on one machine (`local`, scripts/decide_bench.py --write) and the last release run's sample on devnet (`devnet`, entered from that run's report).",
  "market": {
   "index": {
    "date": "2026-10-02",
@@ -874,6 +874,174 @@
   "shadow_counts_published": {
    "value": 0,
    "source": "docs/facts.json, by_hand.shadow_counts_published: a constant a person changes"
+  }
+ },
+ "stages": {
+  "source": "`python scripts/latency_stages.py --rpc https://api.devnet.solana.com --json`, run on 6 October 2026 from 14:58 to 15:06 UTC against the public relay log (drexthealpha/Knos) and devnet: 41 payments of 2 to 5 October 2026",
+  "whole": {
+   "n": 41,
+   "p50": 25,
+   "p95": 58
+  },
+  "six": [
+   {
+    "stage": "workflow scheduling",
+    "n": 5,
+    "p50": 2,
+    "p95": 1184,
+    "what": "the merge to the start of the workflow run"
+   },
+   {
+    "stage": "evaluation",
+    "n": 5,
+    "p50": 16,
+    "p95": 24,
+    "what": "the start of the run to the token's comment"
+   },
+   {
+    "stage": "relay pickup",
+    "n": 5,
+    "p50": 2,
+    "p95": 5,
+    "what": "the token's comment to a relay taking it up"
+   },
+   {
+    "stage": "submission",
+    "n": 5,
+    "p50": 2,
+    "p95": 5,
+    "what": "pickup to the block of the first transaction"
+   },
+   {
+    "stage": "confirmation",
+    "n": 5,
+    "p50": 3,
+    "p95": 8,
+    "what": "that block to the block of the paying transaction"
+   },
+   {
+    "stage": "finality",
+    "n": 0,
+    "p50": null,
+    "p95": null,
+    "what": "the last confirmation to the cluster finalizing it"
+   }
+  ]
+ },
+ "decision": {
+  "devnet": {
+   "when": "2026-10-07",
+   "source": "`KNOS_CLUSTER=devnet python -m knos.decide --token-file token.txt --out provisional.json` of 0.3.19, once on each of 24 real GitHub-signed tokens, a new process for each, on the operator's machine (WSL, 2 CPUs) over api.devnet.solana.com on 2026-10-07 between 13:19 and 14:07 UTC; the figures are the command's own, and in 0.3.19 its offline figure held the loading of the rules (the table of 24 below)",
+   "offline": {
+    "n": 24,
+    "fastest": 170,
+    "median": 356,
+    "slowest": 863,
+    "p95": null
+   },
+   "chain_check": {
+    "n": 23,
+    "not_answered": 1,
+    "fastest": 687,
+    "median": 854,
+    "slowest": 1801,
+    "p95": null
+   },
+   "full": {
+    "n": 24,
+    "fastest": 6020,
+    "median": 9100,
+    "slowest": 15626,
+    "p95": null
+   }
+  },
+  "local": {
+   "source": "`python scripts/decide_bench.py --write`, run on 2026-10-07: 40 decisions for each row, the chain simulated in the same process (LiteSVM, no network)",
+   "machine": "Intel(R) Xeon(R) Processor @ 2.80GHz, 2 CPUs, Linux x86_64, Python 3.11.15; load average 8.1 when it began (other work shared the machine when that is near or above its CPUs, and every figure is then slower than on an idle one)",
+   "target_ms_p95_warm": 100.0,
+   "rows": {
+    "fresh, accepted": {
+     "n": 40,
+     "p50": 1.351,
+     "p95": 6.269,
+     "max": 11.687
+    },
+    "fresh, rejected": {
+     "n": 40,
+     "p50": 1.222,
+     "p95": 7.268,
+     "max": 9.018
+    },
+    "cached, accepted": {
+     "n": 40,
+     "p50": 1.106,
+     "p95": 6.654,
+     "max": 15.915
+    },
+    "no chain": {
+     "n": 40,
+     "p50": 0.495,
+     "p95": 0.926,
+     "max": 5.201
+    },
+    "free check": {
+     "n": 40,
+     "p50": 0.066,
+     "p95": 0.131,
+     "max": 4.216
+    },
+    "offline, accepted": {
+     "n": 40,
+     "p50": 0.922,
+     "p95": 5.706,
+     "max": 9.393
+    },
+    "chain check": {
+     "n": 40,
+     "p50": 1.899,
+     "p95": 10.525,
+     "max": 13.718
+    },
+    "offline, warm": {
+     "n": 40,
+     "p50": 0.692,
+     "p95": 1.227,
+     "max": 4.952
+    }
+   },
+   "cold": {
+    "whole": {
+     "n": 10,
+     "p50": 524.683,
+     "p95": 681.258,
+     "max": 681.258
+    },
+    "inside": {
+     "n": 10,
+     "p50": 299.0,
+     "p95": 479.0,
+     "max": 479.0
+    },
+    "rules_loaded": {
+     "n": 10,
+     "p50": 288.5,
+     "p95": 468.0,
+     "max": 468.0
+    },
+    "decision": {
+     "n": 10,
+     "p50": 6.1,
+     "p95": 9.3,
+     "max": 9.3
+    }
+   },
+   "stream": {
+    "n": 40,
+    "p50": 0.658,
+    "p95": 0.932,
+    "max": 1.5,
+    "loaded": 153.0
+   }
   }
  }
 }

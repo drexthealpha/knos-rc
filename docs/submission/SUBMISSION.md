@@ -6,7 +6,7 @@ Of 241 merged agent pull requests that claimed passing tests, 30 had a failed ch
 
 Of first agent pull requests that claimed passing tests, 17.8% had a failed check (147 of 826 repositories).
 
-- Story: [../STORY.md](../STORY.md), the number, the demonstration in six beats, and what the project needs next
+- Story: [../STORY.md](../STORY.md), the number, one task in seven steps with its evidence, and what the project needs next
 - This release on one page: [../MANIFEST.md](../MANIFEST.md), the source, the build live at each public program id, every capability's stage, the limits
 - Site: [drexthealpha.github.io/Knos](https://drexthealpha.github.io/Knos/)
 - Code: [github.com/drexthealpha/Knos](https://github.com/drexthealpha/Knos) (MIT)
@@ -17,11 +17,11 @@ What is in this folder:
 | file | what it is |
 |---|---|
 | this file | the text for each field of the form, each under its limit of a thousand characters, and the checklist for the day of submission |
-| [../STORY.md](../STORY.md) | the one page: the number, the six beats with the evidence under each, and the ask |
+| [../STORY.md](../STORY.md) | the one page: the number, the seven steps with the evidence under each, and the ask |
 | [../MANIFEST.md](../MANIFEST.md) | the release manifest, written by a script: source, the build live at each public program id, pending proposals, every capability's stage with its evidence, the outstanding limits |
 | [NUMBERS.md](NUMBERS.md) | the nine numbers about outside use, each with today's value, zeros included |
 | [pitch_script.md](pitch_script.md) | the presentation, under three minutes: the buyer, the problem, the insight, the evidence, the team, the business, and the limits in one sentence |
-| [demo_script.md](demo_script.md) | the technical demonstration, three minutes in six steps, the refusal first, each captioned with the program ids it ran on |
+| [demo_script.md](demo_script.md) | the technical demonstration, three minutes in seven beats, the refusal first, each captioned with the program ids it ran on |
 | [CRITERIA.md](CRITERIA.md) | one paragraph for each factor Colosseum lists, founder and market fit included, and for each criterion in the rules; then six evidence targets, as targets |
 | [../PILOT.md](../PILOT.md) | the one offer for money: a 30-day pilot for one buyer and its suppliers, and what blocks it |
 | [../TEAM.md](../TEAM.md) | who builds Knos today, and the three roles the plan needs first, none hired |
@@ -142,9 +142,9 @@ free allowance per organisation, then a fraction of a cent an evaluation. Accept
 dollars released or reconciled against a signed acceptance, less by contract at volume, no cap; the funder pays
 it on top. On chain: 0.30%, minimum 0.05, from knos_pay 2.2 (before that upgrade: the 0.3.14 fee, minimum 0.40;
 earlier orders keep their rate). It replaces the earlier settle and verify fees; connecting a supplier costs
-nothing. Record: the public record is free; a hosted lookup is priced, not built. Control: Team 25,000 USD a
-year; larger plans are not deliverable yet. Pilot: one buyer, two suppliers, 30 days, one reconciled invoice,
-2,500 USD, credited against year one. Knos never charges the party being rated. Nothing has been sold, there is
+nothing. Record: the public record is free; a priced lookup is served by whoever runs it, not by Knos. Control:
+Team 25,000 USD a year; larger plans are not deliverable yet. Pilot: one buyer, two suppliers, 30 days, one
+reconciled invoice, 2,500 USD, credited against year one. Knos never charges the party being rated. Nothing has been sold, there is
 no legal entity to invoice from, and on devnet every fee is test money. No token.
 
 ## teamCommitment

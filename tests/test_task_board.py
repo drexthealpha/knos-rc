@@ -138,7 +138,9 @@ class Forge:
     def __init__(self, first: int = 4):
         self.issues: list[dict] = []
         self.comments: dict[int, list[dict]] = {}
-        self.files: dict[str, bytes] = {"words.py": b"print()\n"}
+        self.files: dict[str, bytes] = {"words.py": b"print()\n",        # and the two callers, as a rebuild of the playground writes them
+                                        ".github/workflows/knos.yml": (ROOT / "examples" / "knos-workflow.yml").read_bytes(),
+                                        ".github/workflows/knos-check.yml": (ROOT / "examples" / "knos-check.yml").read_bytes()}
         self.commits: list[str] = []
         self.pulls: list[dict] = []
         self.pull_files: dict[int, list[dict]] = {}
@@ -359,6 +361,64 @@ def test_status_lists_the_board_and_the_runs_that_wait_and_approves_nothing():
     asked = len(forge.asked)                                                 # a build with no network asks nobody and says it read nothing
     code, said, _ = run(forge, "status", "--json", "--empty")
     assert code == 0 and len(forge.asked) == asked and json.loads(said) == {"v": 1, "read": False, "repository": playground.REPO, "note": tb.FIRST, "tasks": []}
+
+
+def test_the_board_funds_only_through_the_public_pinned_workflows_and_says_so():
+    """An order names the workflows it was funded through, and the public worker's run is signed for the public ones
+    only: funded through a staging copy, a merged pull request is never paid. So `open` reads the callers first."""
+    pub = _script("pinned_workflows")
+    pin = pub.pin()
+    forge = Forge()
+    assert tb.unpinned(forge, playground.REPO) == [] and forge.wrote == []
+    code, said, _ = run(forge, "plan", "-n", "2")
+    assert code == 0 and "funds through the public pinned workflows: checked in the playground's own workflow files." in said
+    public = forge.files[".github/workflows/knos.yml"]
+    for staged, why in ((public.replace(b"drexthealpha/knos-workflows/", b"drexthealpha/knos-workflows-rc/"), "of drexthealpha/knos-workflows-rc, which is not the public drexthealpha/knos-workflows"),
+                        (public.replace(pin.encode(), b"5" * 40), f"at 555555555555, and the published commit is {pin[:12]}"),
+                        (b"on: push\njobs: {}\n", "calls no pinned workflow"), (None, "could not be read")):
+        forge = Forge()
+        if staged is None:
+            del forge.files[".github/workflows/knos.yml"]
+        else:
+            forge.files[".github/workflows/knos.yml"] = staged
+        assert staged != public and any(why in line for line in tb.unpinned(forge, playground.REPO)), why
+        code, said, slept = run(forge, "open", "--apply", "--faucet", "-n", "2")
+        assert code == 1 and forge.wrote == [] and slept == [] and "not public: " in said                 # no issue, no commit, no funding comment
+        assert said.splitlines()[-1] == ("task board: nothing was sent: an order funded now would name workflows the public worker's run is not signed for, "
+                                         "and no merge could pay it")
+        s = json.loads(run(forge, "status", "--json")[1])
+        assert s["workflows"]["public"] is False and why in " ".join(s["workflows"]["problems"])
+        assert "NOT FUNDED THROUGH THE PUBLIC WORKFLOWS: " in run(forge, "status")[1]
+    assert tb.unpinned(Forge(), playground.REPO, pin=pub.PLACEHOLDER, public=pub.REPO)[0].startswith("this checkout's examples name no published commit")
+
+
+def test_the_boards_document_is_what_an_agent_reads_and_why_is_one_sentence():
+    from knos import tasks
+    forge = Forge()
+    run(forge, "open", "--apply", "--faucet", "-n", "2")
+    forge.pulls = [{"number": 22, "title": "roman", "state": "closed", "user": STRANGER, "body": "Fixes #4", "head": {"sha": "ccc"}, "merged_at": "2026-10-07T10:00:00Z"}]
+    forge.comments[22] = [{"user": {"type": "Bot", "login": "github-actions[bot]"}, "body": "Knos: held for @stranger. 5.00 test USDC for issue #4 waits for them."}]
+    doc = json.loads(run(forge, "status", "--json")[1])
+    assert doc["workflows"] == {"public": True, "problems": []}
+    assert doc["held"] == [{"pull": 22, "for": "stranger", "state": "held", "instruction": "comment `/knos address <your Solana address>` on the pull request",
+                            "url": f"https://github.com/{playground.REPO}/pull/22",
+                            "said": "Held for @stranger: comment `/knos address <your Solana address>` on the pull request. Test USDC, no monetary value."}]
+    assert "HELD: #22 for @stranger: comment `/knos address <your Solana address>` on the pull request" in run(forge, "status")[1]
+    first, second = tasks.rows(doc)
+    assert (first["id"], first["file"], first["amount"], first["kind"]) == (f"{playground.REPO}#4", "tasks/roman.py", 5_000_000, "code")
+    assert first["accept"] == tasks.ACCEPT == doc["tasks"][0]["accept"] and first["pays"] == tasks.PAYS and "test USDC" in first["pays"]
+    took = tasks.take(doc, "rle", login="stranger", branch="rle")
+    assert took["pull_request"]["body"] == "Closes #5" and took["steps"][0].startswith(f"Edit tasks/rle.py in a fork of {playground.REPO}")
+    asked: list = []
+
+    def why(where, pull):
+        asked.append((where, pull))
+        return tasks.explain({"where": where, "pull": pull, "merged": True, "closes": True, "orders": [{"state": "open", "wf_public": False, "wf_sha": "5" * 40}]})
+    said: list[str] = []
+    assert tb.main(["why", "drexthealpha/knos-e2e#25", "--pull", "38"], gh=forge, say=said.append, why=why) == 0 and asked == [("drexthealpha/knos-e2e#25", 38)]
+    assert said == ["The order on drexthealpha/knos-e2e#25 was funded through a copy of the workflows that is not the public one (a staging copy), "
+                    "so the public worker's signed run cannot pay it.\nFix: A maintainer comments `/knos tip <amount>` on the merged pull request #38; the old order "
+                    "goes back to its funder at its deadline. Fund the next task only where the repository calls drexthealpha/knos-workflows at the published commit."]
 
 
 def test_the_sites_build_writes_the_empty_board_without_solders():

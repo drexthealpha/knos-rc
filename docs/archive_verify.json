@@ -1,0 +1,18 @@
+{
+ "says": "Stand-alone verifier on the sample archive: 3 checks hold, 2 notes.",
+ "link": "docs/RETENTION.md",
+ "sealed": "2026-10-07",
+ "evidence_root": "b01bc5120c6a2ccc33bdc571dd0fbff879c2d131c944f7452d53d7c312fc9580",
+ "made_from": [
+  "examples/meter/buyer.jsonl",
+  "web/statement_sample.json"
+ ],
+ "lines": [
+  "checked: every file is the one the manifest lists (4 files); evidence root b01bc5120c6a2ccc33bdc571dd0fbff879c2d131c944f7452d53d7c312fc9580.",
+  "checked: ledgers/buyer.jsonl recomputes: 2 batches, every evaluation id, root, count and value; running hash 202610: edb2b3579305b5f2121fb4b539f991603f802c1040b56b482384f70d82ddce0c.",
+  "checked: statements/statement_sample.json: its hash is its own and its totals are the totals of its 5 lines.",
+  "note: compare the running hash of ledgers/buyer.jsonl with the chain's Ledger account for that buyer, seller and month: this file asks no chain.",
+  "note: UNSIGNED: 2 batches carry no signed token in this archive, so their roots are checked by hash only and are the holder's word: 202610.0 of ledgers/buyer.jsonl, 202610.1 of ledgers/buyer.jsonl.",
+  "VERIFIED: 3 checks hold, 2 notes. No network, no Knos."
+ ]
+}

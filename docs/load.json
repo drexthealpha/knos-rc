@@ -336,7 +336,7 @@
    "own": {
     "command": {
      "word": "command (`/knos fund`)",
-     "reads": 10,
+     "reads": 11,
      "writes": 1,
      "comments": 1,
      "tokens_signed": 1,
@@ -374,7 +374,7 @@
    "public": {
     "command": {
      "word": "command (`/knos fund`)",
-     "reads": 10,
+     "reads": 11,
      "writes": 2,
      "comments": 2,
      "tokens_signed": 1,
@@ -438,7 +438,7 @@
   },
   "budget": {
    "own": {
-    "reads": 24,
+    "reads": 25,
     "writes": 6,
     "comments": 3,
     "tokens_signed": 2,
@@ -450,9 +450,9 @@
      "timeout": 0
     },
     "token_requests": {
-     "median": 30,
-     "p95": 30,
-     "timeout": 30
+     "median": 31,
+     "p95": 31,
+     "timeout": 31
     },
     "relay_log_comments": 0,
     "transactions": 12,
@@ -460,7 +460,7 @@
     "cu": 3546061
    },
    "public": {
-    "reads": 24,
+    "reads": 25,
     "writes": 8,
     "comments": 5,
     "tokens_signed": 2,
@@ -472,9 +472,9 @@
      "timeout": 404
     },
     "token_requests": {
-     "median": 52,
-     "p95": 74,
-     "timeout": 436
+     "median": 53,
+     "p95": 75,
+     "timeout": 437
     },
     "relay_log_comments": 2,
     "transactions": 12,
@@ -502,17 +502,17 @@
     "per_day": 10,
     "way": "own",
     "first": "GITHUB_TOKEN requests an hour",
-    "at": 800,
+    "at": 774,
     "fits": true,
     "binding": [],
     "bounds": [
      {
       "limit": "GITHUB_TOKEN requests an hour",
       "scope": "each repository",
-      "at": 800,
-      "from": "30 requests a deliverable (24 reads and 6 writes counted); 1,000 an hour for a repository (GitHub)",
+      "at": 774,
+      "from": "31 requests a deliverable (25 reads and 6 writes counted); 1,000 an hour for a repository (GitHub)",
       "lift": "more repositories; GitHub Enterprise Cloud (15,000 an hour)",
-      "load": 0.0125,
+      "load": 0.0129,
       "binds": false
      },
      {
@@ -577,17 +577,17 @@
     "per_day": 10,
     "way": "public",
     "first": "GITHUB_TOKEN requests an hour",
-    "at": 324,
+    "at": 320,
     "fits": true,
     "binding": [],
     "bounds": [
      {
       "limit": "GITHUB_TOKEN requests an hour",
       "scope": "each repository",
-      "at": 324,
-      "from": "74 requests a deliverable (24 reads and 8 writes counted, 42 polls of the relay log at the p95 wait); 1,000 an hour for a repository (GitHub)",
+      "at": 320,
+      "from": "75 requests a deliverable (25 reads and 8 writes counted, 42 polls of the relay log at the p95 wait); 1,000 an hour for a repository (GitHub)",
       "lift": "the job's own relay (no polling); more repositories; GitHub Enterprise Cloud (15,000 an hour)",
-      "load": 0.0309,
+      "load": 0.0312,
       "binds": false
      },
      {
@@ -661,7 +661,7 @@
     "per_day": 1000,
     "way": "own",
     "first": "GITHUB_TOKEN requests an hour",
-    "at": 8000,
+    "at": 7741,
     "fits": true,
     "binding": [],
     "bounds": [
@@ -678,10 +678,10 @@
      {
       "limit": "GITHUB_TOKEN requests an hour",
       "scope": "each repository",
-      "at": 8000,
-      "from": "30 requests a deliverable (24 reads and 6 writes counted); 1,000 an hour for a repository (GitHub)",
+      "at": 7741,
+      "from": "31 requests a deliverable (25 reads and 6 writes counted); 1,000 an hour for a repository (GitHub)",
       "lift": "more repositories; GitHub Enterprise Cloud (15,000 an hour)",
-      "load": 0.125,
+      "load": 0.1292,
       "binds": false
      },
      {
@@ -752,10 +752,10 @@
      {
       "limit": "GITHUB_TOKEN requests an hour",
       "scope": "each repository",
-      "at": 3243,
-      "from": "74 requests a deliverable (24 reads and 8 writes counted, 42 polls of the relay log at the p95 wait); 1,000 an hour for a repository (GitHub)",
+      "at": 3200,
+      "from": "75 requests a deliverable (25 reads and 8 writes counted, 42 polls of the relay log at the p95 wait); 1,000 an hour for a repository (GitHub)",
       "lift": "the job's own relay (no polling); more repositories; GitHub Enterprise Cloud (15,000 an hour)",
-      "load": 0.3084,
+      "load": 0.3125,
       "binds": false
      },
      {
@@ -850,10 +850,10 @@
      {
       "limit": "GITHUB_TOKEN requests an hour",
       "scope": "each repository",
-      "at": 80000,
-      "from": "30 requests a deliverable (24 reads and 6 writes counted); 1,000 an hour for a repository (GitHub)",
+      "at": 77419,
+      "from": "31 requests a deliverable (25 reads and 6 writes counted); 1,000 an hour for a repository (GitHub)",
       "lift": "more repositories; GitHub Enterprise Cloud (15,000 an hour)",
-      "load": 1.25,
+      "load": 1.2917,
       "binds": true
      },
      {
@@ -949,10 +949,10 @@
      {
       "limit": "GITHUB_TOKEN requests an hour",
       "scope": "each repository",
-      "at": 32432,
-      "from": "74 requests a deliverable (24 reads and 8 writes counted, 42 polls of the relay log at the p95 wait); 1,000 an hour for a repository (GitHub)",
+      "at": 32000,
+      "from": "75 requests a deliverable (25 reads and 8 writes counted, 42 polls of the relay log at the p95 wait); 1,000 an hour for a repository (GitHub)",
       "lift": "the job's own relay (no polling); more repositories; GitHub Enterprise Cloud (15,000 an hour)",
-      "load": 3.0834,
+      "load": 3.125,
       "binds": true
      },
      {
@@ -1090,25 +1090,25 @@
   },
   "decision": {
    "source": "`python scripts/decide_bench.py --write`, run on 2026-10-07: 40 decisions for each row, the chain simulated in the same process (LiteSVM, no network)",
-   "machine": "Intel(R) Xeon(R) Processor @ 2.80GHz, 2 CPUs, Linux x86_64, Python 3.11.15",
+   "machine": "Intel(R) Xeon(R) Processor @ 2.80GHz, 2 CPUs, Linux x86_64, Python 3.11.15; load average 8.1 when it began (other work shared the machine when that is near or above its CPUs, and every figure is then slower than on an idle one)",
    "round_trips": {
     "before": 4,
     "after": 1
    },
    "cold": {
-    "p50": 176.6,
-    "p95": 198.5,
-    "max": 198.5
+    "p50": 524.7,
+    "p95": 681.3,
+    "max": 681.3
    },
    "cold_imports": {
     "token": {
-     "ms": 140.7,
+     "ms": 307.2,
      "modules": 236,
      "typer": false,
      "relay": true
     },
     "checks": {
-     "ms": 54.9,
+     "ms": 53.0,
      "modules": 91,
      "typer": false,
      "relay": false
@@ -1117,45 +1117,51 @@
    "rows": {
     "fresh, accepted": {
      "n": 40,
-     "p50": 1.154,
-     "p95": 1.93,
-     "max": 2.12
+     "p50": 1.351,
+     "p95": 6.269,
+     "max": 11.687
     },
     "fresh, rejected": {
      "n": 40,
-     "p50": 0.721,
-     "p95": 1.027,
-     "max": 1.192
+     "p50": 1.222,
+     "p95": 7.268,
+     "max": 9.018
     },
     "cached, accepted": {
      "n": 40,
-     "p50": 0.905,
-     "p95": 1.408,
-     "max": 6.05
+     "p50": 1.106,
+     "p95": 6.654,
+     "max": 15.915
     },
     "no chain": {
      "n": 40,
-     "p50": 0.43,
-     "p95": 0.635,
-     "max": 0.698
+     "p50": 0.495,
+     "p95": 0.926,
+     "max": 5.201
     },
     "free check": {
      "n": 40,
-     "p50": 0.058,
-     "p95": 0.084,
-     "max": 0.087
+     "p50": 0.066,
+     "p95": 0.131,
+     "max": 4.216
     },
     "offline, accepted": {
      "n": 40,
-     "p50": 0.648,
-     "p95": 0.889,
-     "max": 4.647
+     "p50": 0.922,
+     "p95": 5.706,
+     "max": 9.393
     },
     "chain check": {
      "n": 40,
-     "p50": 0.672,
-     "p95": 0.932,
-     "max": 1.297
+     "p50": 1.899,
+     "p95": 10.525,
+     "max": 13.718
+    },
+    "offline, warm": {
+     "n": 40,
+     "p50": 0.692,
+     "p95": 1.227,
+     "max": 4.952
     }
    }
   }

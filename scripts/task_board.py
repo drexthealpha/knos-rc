@@ -4,6 +4,7 @@
     python scripts/task_board.py open [--apply]        do it; without --apply nothing leaves this machine
     python scripts/task_board.py status [--json]       the board, and the pull requests whose runs wait for approval
     python scripts/task_board.py status --json --empty the same document with nothing read: what a build with no network writes
+    python scripts/task_board.py why OWNER/REPO#N [--pull M]   one sentence: why a merged pull request was not paid, and what fixes it
 
 The tasks are tasks/<slug>/ in this repository (tasks/README.md has the schema). Every one pays test USDC on Solana
 devnet, which has no monetary value, and says so in its first line.
@@ -27,6 +28,16 @@ What bounds it, all printed by `plan`:
               everything this run would fund, or the run funds fewer and says so. Without it the board reads no
               Balance and funds only what the devnet faucet mints (`--faucet`), one a minute, which is the program's
               own limit (FUND_PERIOD): it never spends an amount it did not read.
+
+ONLY THROUGH THE PUBLIC PINNED WORKFLOWS. An order names, when it is funded, the commit of the workflows whose signed
+run may pay it. `open` reads the playground's own workflow files first (`unpinned`) and funds nothing unless every
+reusable workflow they call is drexthealpha/knos-workflows at the commit this checkout's examples name: an order funded
+through a staging copy is one the public worker cannot pay (that is why one merged pull request was not paid in
+0.3.19). `plan` and `status` say the same check's result; `why` reads one order back from the chain (knos.tasks.why).
+
+A HELD PAYMENT IS A STATE OF THE BOARD. `status` lists, under `held`, each merged pull request on a board task whose
+payment waits for its author to say where it goes, with the one instruction for the payee: comment
+`/knos address <your Solana address>` on the pull request.
 
 `status` reads and prints. It lists each pull request whose workflow runs wait for a maintainer's approval (GitHub
 holds the runs of a first-time contributor: https://docs.github.com/en/actions/how-tos/manage-workflow-runs/approve-runs-from-forks)
@@ -69,6 +80,10 @@ CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#(\d+)\
 KEYS = ("v", "slug", "title", "statement", "file", "run", "amount", "deadline_days", "labels", "public", "seed", "starting_files", "reference",
         "hidden", "wrong")
 Forge = Callable[..., Any]
+USES = re.compile(r"(?m)^\s*(?:-\s*)?uses:\s*['\"]?([\w.-]+/[\w.-]+)/\.github/workflows/([\w.-]+)@([^\s'\"#]+)")
+CALLERS = (".github/workflows/knos.yml", ".github/workflows/knos-check.yml")      # the playground's two callers (scripts/small_repos.py)
+HELD_SAYS = re.compile(r"^Knos: held for @([A-Za-z0-9-]{1,39})\.")                  # knos.ghwords: the reply to a merge that could pay nobody yet
+INSTRUCTION = "comment `/knos address <your Solana address>` on the pull request"
 
 
 class Stop(Exception):
@@ -84,6 +99,16 @@ def _src():
     finally:
         sys.path.remove(str(ROOT / "src"))
     return playground, accept, judge, pay
+
+
+def _tasks():
+    """knos.tasks from this checkout (standard library only): the words a task row carries, and `why`."""
+    sys.path.insert(0, str(ROOT / "src"))
+    try:
+        from knos import tasks
+    finally:
+        sys.path.remove(str(ROOT / "src"))
+    return tasks
 
 
 def _playground():
@@ -359,6 +384,70 @@ def held(balance: str, ask: Callable = rpc) -> int:
         raise Stop(f"devnet did not say what the Balance {balance} holds (its token account {token}): nothing is funded from it") from None
 
 
+def _pinned():
+    """scripts/pinned_workflows.py: the public workflow repository and the commit this checkout's examples name."""
+    spec = importlib.util.spec_from_file_location("pinned_workflows", Path(__file__).with_name("pinned_workflows.py"))
+    if spec is None or spec.loader is None:
+        raise Stop("scripts/pinned_workflows.py is not there")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.ROOT = ROOT
+    return mod
+
+
+def unpinned(gh: Forge, repo: str, pin: str | None = None, public: str | None = None) -> list[str]:
+    """Why funding in `repo` now would make an order the public worker cannot pay, one line each; [] when every reusable
+    workflow its two callers call is the public repository's at the published commit. Reads two files; writes nothing."""
+    pub = _pinned() if pin is None or public is None else None
+    pin, public = pin or pub.pin(), public or pub.REPO
+    said = []
+    if not re.fullmatch(r"[0-9a-f]{40}", pin):
+        return [f"this checkout's examples name no published commit ({pin}): stamp it first (python scripts/pinned_workflows.py stamp <sha>)"]
+    for rel in CALLERS:
+        got = gh("GET", f"repos/{repo}/contents/{rel}")
+        try:
+            text = base64.b64decode(got["content"]).decode("utf-8") if got else None
+        except (KeyError, TypeError, ValueError):
+            text = None
+        if text is None:
+            said.append(f"{rel} could not be read in {repo}")
+            continue
+        calls = USES.findall(text)
+        if rel == CALLERS[0] and not calls:
+            said.append(f"{rel} in {repo} calls no pinned workflow")
+        for where, workflow, ref in calls:
+            if where.lower() != public.lower():
+                said.append(f"{rel} calls {workflow} of {where}, which is not the public {public}")
+            elif ref != pin:
+                said.append(f"{rel} calls {workflow} at {ref[:12]}, and the published commit is {pin[:12]}: rebuild the playground first "
+                            "(python scripts/small_repos.py build knos-playground DIR)")
+    return said
+
+
+def held_rows(gh: Forge, repo: str, pulls: list[dict]) -> list[dict]:
+    """Merged pull requests whose payment is held for the author: the workflow's own reply on the pull request says so,
+    and no later reply of Knos says it was paid. Each with the one thing its payee does."""
+    out = []
+    for p in pulls:
+        if not p.get("merged_at"):
+            continue
+        said = gh("GET", f"repos/{repo}/issues/{int(p['number'])}/comments?per_page=100")
+        state, who = "", ""
+        for c in said if isinstance(said, list) else []:
+            body = str((c or {}).get("body") or "")
+            if (c.get("user") or {}).get("type") != "Bot":
+                continue
+            m = HELD_SAYS.match(body)
+            if m:
+                state, who = "held", m.group(1)
+            elif re.match(r"^Knos: paid\b", body, re.I):
+                state = "paid"
+        if state == "held":
+            out.append({"pull": int(p["number"]), "for": who, "state": "held", "instruction": INSTRUCTION, "url": f"https://github.com/{repo}/pull/{int(p['number'])}",
+                        "said": f"Held for @{who}: {INSTRUCTION}. Test USDC, no monetary value."})
+    return sorted(out, key=lambda r: r["pull"])
+
+
 # ---- what is there ------------------------------------------------------------------------------------------------------------
 def _stamp(text) -> float:
     return datetime.datetime.strptime(str(text)[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=datetime.timezone.utc).timestamp()
@@ -546,6 +635,9 @@ def waiting(gh: Forge, repo: str) -> list[dict]:
 
 def status(gh: Forge, repo: str, owner_id: int, now: float, target: int = TARGET, budget: int = BUDGET) -> dict:
     """The board as one JSON document: what the site's playground page draws (web/playground.js) and what a person reads."""
+    tasks = _tasks()
+    files = {t["slug"]: t["file"] for t in catalogue()}
+    wrong = unpinned(gh, repo)
     state = read(gh, repo, owner_id)
     pulls = [p for p in _pages(gh, f"repos/{repo}/pulls?state=all") if (p.get("user") or {}).get("id") != owner_id]
     board = {r["number"] for r in state["rows"]}
@@ -553,6 +645,7 @@ def status(gh: Forge, repo: str, owner_id: int, now: float, target: int = TARGET
     rows = []
     for r in sorted((r for r in state["rows"] if r["state"] == "open"), key=lambda r: r["number"]):
         rows.append({"issue": r["number"], "slug": r["slug"], "title": r["title"], "amount": r["amount"], "decimals": 6, "currency": "test USDC",
+                     "kind": "code", "file": files.get(r["slug"], ""), "accept": tasks.ACCEPT, "pays": tasks.PAYS,
                      "opened": _iso(r["created"]), "deadline": _iso(r["created"] + r["days"] * 86_400), "url": f"https://github.com/{repo}/issues/{r['number']}",
                      "state": "funding asked" if r["funded"] and r["number"] in state["listed"] else "being opened",
                      "pulls": sorted(int(p["number"]) for p in on_board if p.get("state") == "open" and r["number"] in {int(n) for n in CLOSES.findall(str(p.get("body") or ""))})})
@@ -563,7 +656,8 @@ def status(gh: Forge, repo: str, owner_id: int, now: float, target: int = TARGET
             "outside_pulls": {"received": len(on_board), "merged": sum(1 for p in on_board if p.get("merged_at")), "accounts": len({(p.get("user") or {}).get("id") for p in on_board}),
                               "paid": None, "definition": "pull requests from accounts that are not the repository owner's that name a board task; "
                                                           "paid is read from the chain by scripts/outsiders.py, never here"},
-            "awaiting_approval": waiting(gh, repo)}
+            "workflows": {"public": not wrong, "problems": wrong},
+            "held": held_rows(gh, repo, on_board), "awaiting_approval": waiting(gh, repo)}
 
 
 def status_words(s: dict) -> list[str]:
@@ -574,6 +668,9 @@ def status_words(s: dict) -> list[str]:
     out.append(f"Opened today (UTC {s['budget']['day']}): {_usdc(s['budget']['opened'])} of {_usdc(s['budget']['limit'])}.")
     o = s["outside_pulls"]
     out.append(f"Outside pull requests on board tasks: {o['received']} received from {o['accounts']} accounts, {o['merged']} merged; paid is not read here.")
+    out.append("The playground calls the public pinned workflows: an order funded now is one the public worker can pay." if s["workflows"]["public"] else
+               "NOT FUNDED THROUGH THE PUBLIC WORKFLOWS: " + "; ".join(s["workflows"]["problems"]) + ".")
+    out += [f"HELD: #{h['pull']} for @{h['for']}: {h['instruction']} ({h['url']})." for h in s["held"]]
     if not s["awaiting_approval"]:
         out.append("No pull request has a run waiting for approval.")
     for w in s["awaiting_approval"]:
@@ -585,7 +682,7 @@ def status_words(s: dict) -> list[str]:
 
 
 def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc, now: Callable[[], float] = time.time, say: Callable[[str], None] = print,
-         sleep: Callable[[float], None] = time.sleep) -> int:
+         sleep: Callable[[float], None] = time.sleep, why: Callable | None = None) -> int:
     playground = _playground()
     ap =argparse.ArgumentParser(description="Keep funded test tasks open in the playground. Test USDC, no monetary value.")
     sub = ap.add_subparsers(dest="command", required=True)
@@ -604,7 +701,20 @@ def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc,
         if name == "status":
             one.add_argument("--json", action="store_true")
             one.add_argument("--empty", action="store_true", help="ask nobody: the document a build writes when it reads no board (scripts/build_site.sh)")
+    one = sub.add_parser("why", help="why a merged pull request was not paid, and what fixes it")
+    one.add_argument("where", help="the funded issue, as owner/repo#number")
+    one.add_argument("--pull", type=int, default=0, help="the merged pull request's number")
+    one.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
+    if a.command == "why":
+        tasks = _tasks()
+        try:
+            got = why(a.where, a.pull or None) if why is not None else tasks.why(a.where, a.pull or None)
+        except tasks.Stop as no:
+            say(f"task board: {no}")
+            return 1
+        say(json.dumps(got, indent=1, ensure_ascii=False) if a.json else f"{got['said']}\nFix: {got['fix']}")
+        return 0
     budget = int(round(a.budget * 1_000_000))
     try:
         if a.repo.lower() != playground.REPO.lower():
@@ -627,6 +737,13 @@ def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc,
         p["listed"] = state["listed"]
         for line in words(p, a.repo):
             say(line)
+        wrong = unpinned(gh, a.repo)
+        for line in wrong:
+            say(f"  not public: {line}")
+        if a.command == "open" and a.apply and wrong:
+            raise Stop("nothing was sent: an order funded now would name workflows the public worker's run is not signed for, and no merge could pay it")
+        if not wrong:
+            say("  funds through the public pinned workflows: checked in the playground's own workflow files.")
         if a.command == "open":
             open_tasks(gh, a.repo, p, state, a.apply, say, sleep, a.pace)
     except Stop as why:
