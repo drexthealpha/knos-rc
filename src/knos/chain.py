@@ -310,6 +310,13 @@ class Ledger:
                                                             "maxSupportedTransactionVersion": 1}], timeout=20)
         return list(((got or {}).get("meta") or {}).get("logMessages") or [])
 
+    def payer_of(self, signature: str) -> str | None:
+        """The fee payer of one transaction (its first account); None when the cluster no longer has it."""
+        got = call(self.url, "getTransaction", [signature, {"encoding": "json", "commitment": self.commitment,
+                                                            "maxSupportedTransactionVersion": 1}], timeout=20)
+        keys = (((got or {}).get("transaction") or {}).get("message") or {}).get("accountKeys") or []
+        return str(keys[0]) if keys else None
+
     def history(self, address: Pubkey, most: int = 500):
         """The successful transactions that touched `address`, newest first: a hundred of the cluster's rows a
         request (failed ones are among the rows and left out here), and at most `most` rows in all."""
