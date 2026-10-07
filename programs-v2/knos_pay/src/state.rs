@@ -168,16 +168,16 @@ pub const RATE_LEN: usize = 16;
 // Pause ["pause"]: new funding is refused until this time (i64)
 pub const PAUSE_LEN: usize = 8;
 
-/// THE INCARNATION of an order, as every marker made for it carries it (Q, Done, As). An order's address is its
-/// scope, its source and its seq, so the same address is funded again once the order there was paid or refunded, and
-/// a marker is an account of its own that is still there. The stamp differs for every funding of one address:
+/// THE INCARNATION of an order (`d`: the data of its account), as every marker made for it carries it (Q, Done, As).
+/// An order's address is its scope, its source and its seq, so the same address is funded again once the order there
+/// was paid or refunded, and a marker is an account of its own that is still there. The stamp differs for every
+/// funding of one address:
 ///   - an order funded by this build stores the slot of its funding plus one (O_INC), and its stamp is that number
 ///     negated: never a time, so never the stamp of an order funded under 2.1;
 ///   - nothing writes or counts a stamped marker in the slot its order was funded in (`settled`). So a marker that
 ///     carries slot S was written in a later slot, while its order was there; the address was free again only after
 ///     that, and whatever is funded there next is funded in a slot after S.
 ///   - an order funded under 2.1 (O_INC 0) keeps the stamp its markers were written with: its `not_before`.
-/// `d`: the data of an order account.
 pub fn stamp(d: &[u8]) -> i64 { stamp_of(u64_at(d, O_INC), i64_at(d, O_NOT_BEFORE)) }
 pub fn stamp_of(inc: u64, not_before: i64) -> i64 { if inc == 0 { not_before } else { (inc as i64).wrapping_neg() } }
 

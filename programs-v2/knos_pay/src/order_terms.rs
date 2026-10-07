@@ -527,7 +527,7 @@ fn said(program_id: &Pubkey, q: &AccountInfo, order: &Pubkey, o: &Order, kind: u
 pub fn distinct(order_owner: u64, who: &[Option<(u64, u64)>; 3]) -> u8 {
     let [own, neutral, named] = *who;
     let neutral = neutral.filter(|n| {
-        (order_owner != 0 || own.is_some()) && n.0 != order_owner && own.map_or(true, |a| n.0 != a.0 && n.1 != a.1)
+        (order_owner != 0 || own.is_some()) && n.0 != order_owner && own.is_none_or(|a| n.0 != a.0 && n.1 != a.1)
     });
     let counted = [own, neutral, named];
     let mut have = 0u8;
