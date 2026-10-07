@@ -3294,7 +3294,7 @@
      "names": "test_it_verifies_in_an_empty_directory_with_knos_unimportable"
     }
    },
-   "note": "`knos archive make|verify`. It checks RS256 and ES256 signatures against the archived keys, the log's chain, every root and every total. One run on this repository's samples is recorded (docs/archive_verify.json): they carry no signed token, and the verifier says so. No archive has been made from the public programs' records, and no outside party holds one."
+   "note": "`knos archive make|verify`. It checks RS256 and ES256 signatures against the archived keys, the log's chain, every root and every total. One run on this repository's samples is recorded (docs/archive_verify.json): they carry no signed token, and the verifier says so. One archive of a real period is recorded there too (`real`): month 202610 of one pair, whose three batches are anchored at the public knos_meter on devnet, with the six tokens GitHub signed for them; its verifier, run with no Knos, says 11 checks hold and 6 notes (the log of events starts at number 1 and nobody else acknowledged it). That pair is the founder's own account on both sides, and no outside party holds an archive."
   },
   {
    "id": "events_gaps",
@@ -3438,7 +3438,7 @@
      "names": "test_relays_with_their_own_fee_payers_fund_apart_and_through_one_shared_account_and_leave_nothing"
     }
    },
-   "note": "`python scripts/load.py measure`. Run on the simulator only: docs/LOAD.md says nothing is measured on devnet yet and prints the derived bound as derived. The release run measures on devnet with one command."
+   "note": "`python scripts/load.py measure`. Measured once on devnet on 7 October 2026 (4 relays, 40 orders each way, funded by a wallet in a mint made for the run, at the public knos_pay): 0.46 confirmed transactions a second apart and 0.52 through one shared account, 0 retries, 0 failures; docs/LOAD.md prints it apart from the derived bound. One run through one public endpoint, each relay waiting for a confirmation before it sends again: a reading of that day, not a capacity."
   },
   {
    "id": "site_seven_beats",
