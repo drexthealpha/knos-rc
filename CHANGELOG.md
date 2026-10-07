@@ -104,8 +104,8 @@ nothing under `programs-v2/knos_*`, `programs/` or `idl/` moved by a byte.
 
 - No outside funder, no buyer conversation, no letter of intent, no outside key holder, no outside reproduction,
   and no outside program that reads the verifier.
-- Nothing this release adds has run at the public program ids but the throughput measurement, which funded and
-  refunded Knos's own orders. The reserve, GitLab, the private path and a hosted
+- Nothing this release adds has run at the public program ids but the throughput measurement, which funded
+  Knos's own orders in a mint made for the run and left none open. The reserve, GitLab, the private path and a hosted
   judge are commands of the release run (`python scripts/exercise_public.py run --only <round>`): GitLab needs a
   token and a project, a hosted judge needs a repository of another owner, and the private path needs someone with
   a private repository.
