@@ -273,6 +273,50 @@ def test_the_chain_half_is_one_request_with_a_timeout_and_a_silent_chain_changes
     assert decide.after_chain({**d, "decision": "rejected", "why": "x"}, done, fund)["decision"] == "rejected"
 
 
+def test_a_meter_batch_the_chain_took_is_not_called_unused_by_the_chain_half():
+    # Found on devnet (0.3.19): knos_meter keeps no marker of a batch or claim token, so the chain half read only
+    # knos_pay's marker and said "the chain shows the token is unused" for batch 1 of 202610 an hour after RecordBatch
+    # had taken it. It now reads the pair's Ledger account in the same one request.
+    import base64
+    from knos import chain
+    from knos.settle.v2 import meter, pay
+
+    def b64(raw: bytes) -> str:
+        return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+    now, aud = 1_791_378_000, "knosm:batch:142920951:142920951:202610:1:20:20:6400000:" + "2f" * 32
+    jwt = ".".join((b64(b'{"alg":"RS256"}'), b64(json.dumps({"aud": aud, "exp": now + 300}).encode()), b64(b"s" * 256)))
+    where = meter.ledger_pda(142920951, 142920951, 202610, False)
+
+    def account(next_seq: int) -> bytes:
+        return (bytes([1, 0, 0, 0]) + (202610).to_bytes(4, "little") + (142920951).to_bytes(8, "little") * 2 + next_seq.to_bytes(8, "little")
+                + bytes(meter.LEDGER_LEN - 32))
+
+    class Rpc:
+        def __init__(self, held):
+            self.held, self.asked = held, []
+
+        def infos(self, addresses):
+            self.asked.append(list(addresses))
+            clock = bytes(32) + now.to_bytes(8, "little")
+            return [(chain.CLOCK, clock) if a == chain.CLOCK else (meter.METER_ID, self.held) if a == where and self.held else None for a in addresses]
+    d = {"decision": "accepted", "why": decide.OFFLINE, "kind": "batch", "chain_read": False, "already": False}
+    for next_seq, decision, already, said in ((2, "accepted", True, "the chain shows batch 1 of this pair's month taken already (it takes 2 next)"),
+                                              (1, "accepted", False, "the chain shows batch 1 is the one the pair's Ledger account takes next"),
+                                              (0, "insufficient_evidence", False, "the chain takes batch 0 of this pair's month next, and this token names batch 1")):
+        rpc = Rpc(account(next_seq))
+        seen = decide.chain_check(jwt, ledger=rpc)
+        assert len(rpc.asked) == 1 and where in rpc.asked[0] and pay.used_pda(jwt) in rpc.asked[0]          # still one request
+        assert seen["token_used"] is False and seen["batch"] == {"address": str(where), "claim": False, "seq": 1, "next_seq": next_seq}
+        got = decide.after_chain(d, seen, jwt)
+        assert (got["decision"], got.get("already", False)) == (decision, already) and said in got["why"], got
+        assert "the token is unused" not in got["why"]
+    # a pair with no batch yet takes batch 0 next; a token that is not a batch's asks nothing of knos_meter
+    assert decide.chain_check(jwt, ledger=Rpc(None))["batch"]["next_seq"] == 0
+    other = ".".join((b64(b'{"alg":"RS256"}'), b64(json.dumps({"aud": "knos3:fund:1", "exp": now}).encode()), b64(b"t" * 256)))
+    assert "batch" not in decide.chain_check(other, ledger=Rpc(None))
+
+
 def test_the_two_targets_hold_here_a_cached_decision_under_200_ms_and_evidence_to_decision_under_2_s():
     """Generous bounds on purpose: the measured figures are a few milliseconds (docs/BENCH.md, "Decision time"). The
     chain is LiteSVM in this process, so this is Knos's own time; a cluster's round trips are not in it."""

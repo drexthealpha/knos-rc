@@ -13,7 +13,8 @@ for:
                   and the terms that travel with it, by the relay's own rules for a token alone. No network, no chain.
                   Accepted here means exactly: "decided from the signed evidence; chain state not yet read".
     chain check   `chain_check`: only what the chain can answer (the token unused, funding not paused, the chain's
-                  clock, and the order or job when its address is given: open, before its deadline), in ONE request
+                  clock, the order or job when its address is given: open, before its deadline, and for a knos_meter
+                  batch or claim, which keeps no marker, the batch the pair's Ledger account takes next), in ONE request
                   (getMultipleAccounts) with a timeout. `after_chain` writes the answer into a second provisional
                   receipt that names the first. A chain that does not answer in time changes nothing and stops nothing.
 
@@ -285,7 +286,8 @@ def chain_check(jwt: str, *, ledger: Any, order: Any = None, timeout: float = CH
     """What the chain alone can answer about this token, read in ONE request (`ledger.infos`: getMultipleAccounts)
     and left behind after `timeout` seconds. `order`: the address of the order or job the token is for, when the
     caller knows it. Returns {read, round_trips, why, now, token_used, paused_until, order}: `order` is None (not
-    asked), or {address, found, state, deadline}. It decides nothing: `after_chain` does."""
+    asked), or {address, found, state, deadline}; for a knos_meter batch or claim token also `batch`: {address, claim,
+    seq, next_seq} of the pair's Ledger account, read in the same request. It decides nothing: `after_chain` does."""
     from solders.pubkey import Pubkey
 
     from . import chain
@@ -293,7 +295,15 @@ def chain_check(jwt: str, *, ledger: Any, order: Any = None, timeout: float = CH
     asked = [chain.CLOCK, pay.used_pda(jwt.strip()), pay.pause_pda()]
     if order is not None:
         asked.append(order if isinstance(order, Pubkey) else Pubkey.from_string(str(order)))
+    # knos_meter keeps no marker of a batch or claim token: the pair's Ledger account says which batch it takes next
+    batch = _batch_of(jwt)
+    if batch is not None:
+        from .settle.v2 import meter
+        claim, b = batch
+        asked.append(meter.ledger_pda(b.buyer, b.seller, b.month, claim))
     out: dict[str, Any] = {"read": False, "round_trips": 1, "why": "", "now": None, "token_used": None, "paused_until": None, "order": None}
+    if batch is not None:
+        out["batch"] = None
     ok, got = _within(lambda: ledger.infos(asked), timeout)
     data = [g[1] if g else None for g in got] if ok and isinstance(got, list) and len(got) == len(asked) else None
     if data is None or data[0] is None or len(data[0]) < 40:
@@ -303,7 +313,24 @@ def chain_check(jwt: str, *, ledger: Any, order: Any = None, timeout: float = CH
     if order is not None:
         found = pay.read_order(data[3]) or pay.read_job(data[3])
         out["order"] = {"address": str(asked[3]), "found": found is not None, "state": found.state if found else None, "deadline": found.deadline if found else None}
+    if batch is not None:
+        from .settle.v2 import meter
+        held = meter.read_ledger(data[-1])
+        nxt = held.next_seq if held is not None else 0
+        out["batch"] = {"address": str(asked[-1]), "claim": batch[0], "seq": batch[1].seq, "next_seq": nxt}
     return out
+
+
+def _batch_of(jwt: str) -> tuple[bool, Any] | None:
+    """(whether it is the seller's claim, the batch it names) for a knos_meter batch or claim token; None for any
+    other token, or one whose audience cannot be read."""
+    try:
+        from . import ledger as meter_ledger
+        from .settle.v2 import relay
+        aud = str(relay.claims_of(jwt.strip()).get("aud") or "")
+        return meter_ledger.parse_batch_audience(aud) if aud.startswith(("knosm:batch:", "knosm:claim:")) else None
+    except Exception:  # noqa: BLE001 - not a token this half can read: the offline half has said why
+        return None
 
 
 def after_chain(d: Mapping[str, Any], seen: Mapping[str, Any], jwt: str | None = None) -> dict[str, Any]:
@@ -318,6 +345,10 @@ def after_chain(d: Mapping[str, Any], seen: Mapping[str, Any], jwt: str | None =
     now, o = int(seen["now"]), seen.get("order")
     if seen.get("token_used"):
         return {**out, "already": True, "why": "the chain shows this token used already: what it asks for is done or held"}
+    b = seen.get("batch")
+    if b is not None and b["next_seq"] > b["seq"]:
+        return {**out, "already": True, "why": f"the chain shows batch {b['seq']} of this pair's month taken already (it takes {b['next_seq']} next): what this "
+                                               "token asks for is done, unless another root took that number (`--full` reads which)"}
     if jwt is not None:
         from .settle.v2 import relay
         if int(relay.claims_of(jwt.strip()).get("exp", 0)) + relay.oidc.LATE <= now:
@@ -330,7 +361,11 @@ def after_chain(d: Mapping[str, Any], seen: Mapping[str, Any], jwt: str | None =
         return {**out, "decision": "insufficient_evidence", "why": f"the order at {o['address']} is {o['state']}, not open"}
     if o is not None and now > int(o["deadline"]):
         return {**out, "decision": "rejected", "why": "the deadline has passed: the money goes back to its funder"}
-    shown = "the token is unused" + ("" if o is None else ", the order is open and before its deadline")
+    if b is not None and b["next_seq"] < b["seq"]:
+        return {**out, "decision": "insufficient_evidence", "why": f"not decided yet, and it may clear: the chain takes batch {b['next_seq']} of this pair's "
+                                                                   f"month next, and this token names batch {b['seq']}"}
+    shown = ("the token is unused" if b is None else f"batch {b['seq']} is the one the pair's Ledger account takes next") + \
+        ("" if o is None else ", the order is open and before its deadline")
     return {**out, "why": f"decided from the signed evidence; the chain shows {shown}" + ("" if o is not None else "; the order's own state was not asked (no address given)")}
 
 
