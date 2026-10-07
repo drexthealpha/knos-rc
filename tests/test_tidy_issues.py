@@ -119,6 +119,16 @@ def test_another_services_bot_is_not_this_repositorys_word(tidy):
     assert (tidy.classify(dependabot, {}, NOW, False, [])["category"], tidy.classify(dependabot, {}, NOW, False, [])["comment"]) == ("bot", "")
 
 
+@pytest.mark.parametrize("title,rehearsal", [
+    ("C-b: initials.py: initials(name) (an auto order, judged black box)", True),
+    ("C-d: an order funded from a passkey wallet on the Buy page", True), ("C-b2: a second try", True),
+    ("C12b: order with a holdback", True), ("C2: titles.py: title_case", True),
+    ("initials.py: initials(name)", False), ("C-section: notes", False), ("Make C-b: faster", False)])
+def test_a_rehearsal_title_is_known_by_its_track_name(tidy, title, rehearsal):
+    row = tidy.classify(_item(139, title, OWNER, "OWNER"), {}, NOW, False, [])
+    assert (row["category"], row["close"]) == (("rehearsal", True) if rehearsal else ("own", False))
+
+
 def test_the_chain_decides_whether_a_rehearsal_is_finished(tidy):
     rows = _rows(tidy, lambda repo_id, n: n == 41)
     assert (rows["Knos#41"]["action"], rows["Knos#41"]["note"], rows["Knos#41"]["close"]) == ("leave open", "its order still holds money on chain", False)

@@ -11,7 +11,7 @@ item is one of:
 
     machine     an issue a workflow writes its log in (the relay log, "knos tokens", the judge's memory): it must stay
                 open, because the workflow finds it by being open. Nothing is posted.
-    rehearsal   the owner's own finished rehearsal (a title "C12: ...", "Track ...", or the words rehearsal, drill,
+    rehearsal   the owner's own finished rehearsal (a title "C12: ...", "C-b: ...", "Track ...", or the words rehearsal, drill,
                 canary, smoke, e2e, staging, test task). Closed with one line. With --rpc, one whose order still holds
                 money is left open and said so; without --rpc nothing is closed by --apply, since that was not read.
     claim       an outside issue or pull request that claims a payment (knos.claim_guard reads it) and has no answer:
@@ -46,7 +46,7 @@ MARK = "<!-- knos-tidy 1 -->"
 REHEARSAL_DONE = "This was a devnet rehearsal, and it is finished. Closing it; nothing is owed on it."
 THANKS = (MARK + "\nThank you for this. A maintainer reads it and answers here. Contributions are welcome and unpaid unless the issue "
           "shows a funded order, and this one shows none.")
-_REHEARSAL = re.compile(r"^\s*(?:C\d*[a-z]?\s*:|Track\b)|\b(?:rehears\w*|drill|canary|smoke|e2e|staging|test task)\b", re.I)
+_REHEARSAL = re.compile(r"^\s*(?:C(?:\d*[a-z]?|-[a-z]\d*)\s*:|Track\b)|\b(?:rehears\w*|drill|canary|smoke|e2e|staging|test task)\b", re.I)
 
 
 def gh(args: list[str]) -> str:
