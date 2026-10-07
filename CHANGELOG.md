@@ -71,6 +71,13 @@ moved by a byte, and `scripts/deploy_v2.sh --propose` refuses in this tree.
   100,000.00 and every rate from 10 to 30 basis points; the exact 0.30% at the rate 30 is proved by cvc5 with
   bit-vectors solved as integers, and that one result rests on that translation too
   ([`docs/kani.json`](docs/kani.json)).
+- **The one Kani harness over every amount is verified.**
+  `an_orders_fee_is_between_its_floor_and_the_one_rate_for_every_amount`, every u64 amount and every rate from 10
+  to 30 at once, timed out at 180 seconds in the earlier record. Its job of
+  its own in `program.yml` (`kani-fee-bounds`) verified it in run 37575047633 (8,296 s) and again in the nightly run
+  37608154723 (8,360 s), Kani 0.68.0 and CBMC 6.11.0 with Kani's default solver, on this tree's `knos_pay` source.
+  It bounds the fee by the program's own `bps_of(amount, 30)`; that this is at most 0.30% of the amount is the cvc5
+  result above. `scripts/kani_fee_record.py --program-ci <run>` records such a run from GitHub's log of it.
 - **A first proof of what a judge executed, as an experiment.** One judge for one task runs inside a zkVM, and its
   run is proved and then verified in a separate process: 54 s to prove an honest submission as a composite
   receipt, 217 s as a succinct one, under 0.05 s to verify. It is in no package and no workflow, nothing on any chain

@@ -1155,7 +1155,7 @@
      "names": "test_the_conservation_harness_is_among_the_proved_ones"
     }
    },
-   "note": "One recorded run (docs/kani.json; Kani 0.68.0, each harness alone, 180-second limit) verified 4 of 5 harnesses, fee conservation among them; the fee-bounds harness over every amount timed out and is NOT proved (the bounds are proved tier by tier apart: fee_bounds_proofs). The test holds the record to the harness names and to the file's hash: no test of this repository runs Kani itself."
+   "note": "docs/kani.json (Kani 0.68.0, CBMC 6.11.0) records all 5 harnesses as verified, fee conservation among them: 4 in one run, each alone within 180 seconds, and the fee-bounds harness over every amount in program.yml's job of its own, kani-fee-bounds (run 37575047633 in 8,296 s and nightly run 37608154723 in 8,360 s, Kani's default solver, not cvc5). It bounds the fee by the program's own bps_of(amount, 30); that this is at most 0.30% of the amount rests on cvc5's translation (fee_bounds_proofs). The test holds the record to the harness names and to the file's hash: no test of this repository runs Kani itself."
   },
   {
    "id": "receipt",

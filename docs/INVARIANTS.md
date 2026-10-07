@@ -60,10 +60,10 @@ account is closed with the order.
   `test_a_random_walk_over_every_promise_conserves_every_orders_money` in `tests/test_order_terms.py`; the machine
   above. The arithmetic
   alone is model-checked by the Kani harnesses in [`proofs.rs`](../programs-v2/knos_pay/src/proofs.rs), which also
-  say what they assume and do not cover. The one recorded run ([`kani.json`](kani.json)) verified four of the five,
-  the ones about shares, payments and conservation; the fee-bounds harness timed out and is not proved there
-  (invariant 8 says what is proved of the fee's bounds, rate by rate, by the harnesses of
-  [`fee_proofs`](../programs-v2/fee_proofs/src/lib.rs)).
+  say what they assume and do not cover. [`kani.json`](kani.json) records all five as verified: the ones about
+  shares, payments and conservation in one run here within 180 seconds each, and the fee-bounds harness over every
+  amount in `program.yml`'s job of its own for it, runs 37575047633 and 37608154723 (invariant 8 says what is proved
+  of the fee's bounds, there and rate by rate by the harnesses of [`fee_proofs`](../programs-v2/fee_proofs/src/lib.rs)).
 - **A 0.3.12 bounty** shares one vault per mint with the other bounties, so for it the guarantee is arithmetic, not
   a separate account: `Pay`, `Settle` and `Refund` move exactly the job's amount and close the job
   (`test_a_random_walk_keeps_every_vault_equal_to_its_open_jobs` in `tests/test_pay2_chain.py`).
@@ -264,10 +264,16 @@ its amount and is never more than it (`fee_of`). 5.00 pays 0.05; 100.00 pays 0.3
     fixed seed (`cargo test --release` in `programs-v2/fee_proofs`, not run by pytest);
   - a job's fee, at every u64 amount: never more than the amount: **verified**.
 
-  So the statement over every amount an order may hold is **verified**, in parts: by rate, never in one harness.
-  The one harness over every u64 amount and every rate at once,
-  `an_orders_fee_is_between_its_floor_and_the_one_rate_for_every_amount` in `proofs.rs`, is recorded at the top of
-  [`kani.json`](kani.json) with what it got.
+  So the statement over every amount an order may hold is **verified**, in parts by rate. The one harness over every
+  u64 amount and every rate from 10 to 30 at once, `an_orders_fee_is_between_its_floor_and_the_one_rate_for_every_amount`
+  in `proofs.rs`, is verified too: it states that the fee is at least 0.05 and at most the larger of 0.05 and
+  `bps_of(amount, 30)`, the program's own 0.30% rounded down; that amount plus fee fits a u64 for every amount the
+  program takes; and that a job's fee is never more than its amount. It does not finish in 180 seconds, so
+  `program.yml` runs it in a job of its own (`kani-fee-bounds`, 350 minutes), which verified it with Kani 0.68.0
+  (CBMC 6.11.0) and Kani's default solver, CaDiCaL, not cvc5: run 37575047633 in 8,296 seconds and the nightly run
+  37608154723 in 8,360 seconds, at commits whose `knos_pay` source is this tree's (the top of
+  [`kani.json`](kani.json)). That `bps_of(amount, 30)` is itself at most 0.30% of the amount is the result above that
+  rests on cvc5's translation.
 - **The meter:** the fee of a month is the count beyond the free allowance times the rate, taken from prepaid
   Credits, and a batch that Credits cannot pay is refused whole
   (`test_the_first_ten_thousand_evaluations_of_a_month_are_free_and_credits_never_go_below_zero` in

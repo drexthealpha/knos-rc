@@ -22,6 +22,11 @@ over every amount is proved, or every part is), `verified but for one bound at o
 "the fee is within its bounds for every amount an order may hold"; `parts` says which statement holds over which range.
 
     python scripts/kani_fee_record.py --program         # the harnesses of programs-v2/knos_pay/src/proofs.rs (180 seconds each): the top of the record
+    python scripts/kani_fee_record.py --program-ci RUN [--program-ci RUN] [--repo OWNER/NAME]
+                                                        # the one harness over every amount, from runs of program.yml's job
+                                                        # kani-fee-bounds (GitHub's log of each, read with gh); refused unless
+                                                        # the job finished at a commit whose knos_pay, knos_oidc and workspace
+                                                        # files are this tree's
 """
 from __future__ import annotations
 
@@ -339,10 +344,24 @@ def run_program() -> None:
             print(name, records[-1]["result"], records[-1]["seconds"])
     finally:
         CRATE = fee
-    doc["harnesses"] = records
+    sha = hashlib.sha256((PROGRAM / "src" / "proofs.rs").read_bytes()).hexdigest()
+    before = {h["name"]: h for h in doc["harnesses"]} if doc["source"]["sha256"] == sha else {}
+    doc["harnesses"] = [kept(before.get(r["name"]), r) for r in records]
     doc["limit_seconds"], doc["command"], doc["date"] = PROGRAM_LIMIT, f"timeout {PROGRAM_LIMIT} cargo kani --harness <name>", datetime.date.today().isoformat()
     doc["machine"] = f"x86_64 Linux, {os.cpu_count()} CPUs shared with other work"
-    doc["source"] = {**doc["source"], "sha256": hashlib.sha256((PROGRAM / "src" / "proofs.rs").read_bytes()).hexdigest()}
+    doc["source"] = {**doc["source"], "sha256": sha}
+    write_program(doc)
+
+
+def kept(before: dict | None, now: dict) -> dict:
+    """What the record says of a harness after a run here: this run's result, except that a harness this machine did not
+    answer in its limit keeps the runs of program.yml's own job for it (`runs`), recorded about the same proofs.rs."""
+    return before if now["result"] == "timed out" and before is not None and "runs" in before else now
+
+
+def write_program(doc: dict) -> None:
+    """Writes the top of docs/kani.json, and the summary of `fee_proofs` and invariant 8, which read it."""
+    doc["_about"] = PROGRAM_ABOUT
     RECORD.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     if "fee_proofs" in doc:         # its summary reads the one harness over every amount, above
         doc["fee_proofs"]["summary"] = summary(doc["fee_proofs"]["harnesses"], whole(doc))
@@ -352,6 +371,124 @@ def run_program() -> None:
         INVARIANTS.write_text(json.dumps(listed, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+# The one harness over every amount does not finish in PROGRAM_LIMIT seconds; program.yml gives it a job of its own with
+# the hosted runner's whole limit. --program-ci records what runs of that job said, from GitHub's own log of each.
+LONG = "kani-fee-bounds"
+WORKFLOW = ROOT / ".github" / "workflows" / "program.yml"
+SAME = ("programs-v2/knos_pay", "programs-v2/knos_oidc", "programs-v2/Cargo.toml", "programs-v2/Cargo.lock")   # what the job builds
+PROGRAM_ABOUT = (
+    "One recorded run of the Kani harnesses of programs-v2/knos_pay/src/proofs.rs, each run alone with a limit of 180 seconds (scripts/kani_fee_record.py "
+    "--program). `verified`: Kani reported VERIFICATION SUCCESSFUL with no failed check. `timed out`: the limit passed before Kani answered, so "
+    "nothing is proved by this record. `failed`: Kani found a failing check. tests/test_provenance.py holds the harness names here to the names in "
+    "proofs.rs and the file's hash to the file. A harness is proved only for what its own text assumes (proofs.rs says what each assumes); a proof "
+    "about the model is a proof about the program only as far as the test `the_model_is_the_arithmetic_of_the_source` ties the two. A harness whose "
+    "entry has `runs` did not finish within that limit here and is recorded instead from program.yml's job of its own for it "
+    f"(`{LONG}`; scripts/kani_fee_record.py --program-ci <run>): each run's id, commit, Kani, CBMC and solver as its log gives them, and its "
+    "times; `limit_seconds` is that job's step limit. It counts as proved only when every run named reported VERIFICATION SUCCESSFUL with no "
+    "failed check, at a commit where " + ", ".join(SAME) + " are byte for byte this tree's.")
+
+
+def long_job() -> dict:
+    """program.yml's job for the harness over every amount: its name on GitHub, its Kani arguments and its step's limit."""
+    block = WORKFLOW.read_text(encoding="utf-8").split(f"\n  {LONG}:\n", 1)[1].split("\n\n", 1)[0]
+    return {"name": re.search(r"^    name: (.+)$", block, re.M).group(1), "args": re.search(r"^          args: (.+)$", block, re.M).group(1),
+            "kani": re.search(r'kani-version: "([\d.]+)"', block).group(1), "limit_seconds": 60 * int(re.findall(r"timeout-minutes: (\d+)", block)[-1])}
+
+
+def program_solver(name: str) -> str | None:
+    """The solver a harness of proofs.rs names (`#[kani::solver(..)]`), or None: Kani's default."""
+    source = (PROGRAM / "src" / "proofs.rs").read_text(encoding="utf-8")
+    found = re.search(r"#\[kani::solver\((\w+)\)\]", source.split(f"fn {name}()", 1)[0].rsplit("#[kani::proof]", 1)[1])
+    return found.group(1) if found else None
+
+
+_LOGGED = re.compile(r"^(?:[^\t]*\t){2}﻿?(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?)Z ?(.*)$")
+
+
+def read_long_log(log: str) -> dict:
+    """What one log of the long job says (`gh run view --log --job`: job, step, time, text on each line): the versions
+    it ran, which harness, what Kani reported and the seconds from Kani's start to its last line."""
+    lines = [(datetime.datetime.fromisoformat(m.group(1)[:26]), m.group(2).strip()) for m in map(_LOGGED.match, log.splitlines()) if m]
+
+    def first(pattern: str) -> tuple[datetime.datetime | None, re.Match[str] | None]:
+        for at, text in lines:
+            if found := re.search(pattern, text):
+                return at, found
+        return None, None
+    began, kani = first(r"^Kani Rust Verifier (\d+\.\d+\.\d+) \(cargo plugin\)$")
+    _, cbmc = first(r"^CBMC (\d+\.\d+\.\d+)$")
+    _, rust = first(r"Installing rust toolchain version: (nightly-\d{4}-\d\d-\d\d)")
+    _, cvc5 = first(r"cvc5 version (\d+\.\d+\.\d+)")
+    _, harness = first(r"^Checking harness proofs::harness::(\w+)\.\.\.$")
+    _, counted = first(r"^\*\* (\d+) of (\d+) failed(?: \((\d+) (?:unreachable|undetermined)\))?$")
+    _, took = first(r"^Verification Time: ([\d.]+)s$")
+    ended, done = first(r"^Complete - (\d+) successfully verified harnesses, (\d+) failures, (\d+) total\.$")
+    if began is None or ended is None or kani is None or cbmc is None or harness is None or counted is None or took is None or done is None:
+        sys.exit("the log does not show a finished Kani verification of one harness")
+    if harness.group(1) != WHOLE or done.group(3) != "1":
+        sys.exit(f"the log is of {harness.group(1)}, not of {WHOLE} alone")
+    ok = ("VERIFICATION:- SUCCESSFUL" in (text for _, text in lines)) and counted.group(1) == "0" and done.group(1, 2) == ("1", "0")
+    return {"result": "verified" if ok else "failed", "proved": ok, "checks": int(counted.group(2)), "failed_checks": int(counted.group(1)),
+            "unreachable_checks": int(counted.group(3) or 0), "verification_seconds": float(took.group(1)),
+            "seconds": max(round((ended - began).total_seconds(), 1), float(took.group(1))), "kani": kani.group(1), "cbmc": cbmc.group(1),
+            "rust_toolchain": rust.group(1) if rust else None, "cvc5": cvc5.group(1) if cvc5 else None}
+
+
+def _git(*args: str) -> str:
+    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True).stdout.strip()
+
+
+def from_github(repo: str, run: int) -> dict:
+    """One run of the long job, read from GitHub: refused unless the job finished and what it built is this tree's."""
+    job = long_job()
+    said = json.loads(subprocess.run(["gh", "run", "view", str(run), "-R", repo, "--json", "headSha,event,url,workflowName,jobs"], capture_output=True,
+                                     text=True, encoding="utf-8", check=True).stdout)
+    found = [j for j in said["jobs"] if j["name"] == job["name"]]
+    if said["workflowName"] != "program" or len(found) != 1 or found[0]["conclusion"] not in ("success", "failure"):
+        sys.exit(f"run {run}: no finished job '{job['name']}' of program.yml")
+    commit = said["headSha"]
+    if _git("cat-file", "-t", commit) != "commit":
+        sys.exit(f"run {run}: commit {commit} is not here: git fetch it first")
+    differ = [p for p in SAME if _git("rev-parse", f"{commit}:{p}") != _git("rev-parse", f"HEAD:{p}")] + ([", ".join(SAME) + " (not committed)"]
+                                                                                                    if _git("status", "--porcelain", "--", *SAME) else [])
+    if differ:
+        sys.exit(f"run {run} proved {commit}, whose {differ[0]} is not this tree's: run the job again")
+    log = subprocess.run(["gh", "run", "view", str(run), "-R", repo, "--job", str(found[0]["databaseId"]), "--log"], capture_output=True, text=True,
+                         encoding="utf-8", check=True).stdout
+    read = read_long_log(log)
+    if read["kani"] != job["kani"]:
+        sys.exit(f"run {run} ran Kani {read['kani']}; program.yml names {job['kani']}")
+    return {"id": run, "url": said["url"], "job": found[0]["databaseId"], "commit": commit, "event": said["event"],
+            "date": found[0]["completedAt"][:10], **read}
+
+
+def program_ci(repo: str, runs: list[int]) -> None:
+    """Records the harness over every amount from runs of program.yml's long job (the first run gives the times)."""
+    doc = json.loads(RECORD.read_text(encoding="utf-8"))
+    if doc["source"]["sha256"] != hashlib.sha256((PROGRAM / "src" / "proofs.rs").read_bytes()).hexdigest():
+        sys.exit("proofs.rs changed since the record: python scripts/kani_fee_record.py --program first")
+    job, read = long_job(), [from_github(repo, run) for run in runs]
+    named = program_solver(WHOLE)
+    if named is None and any(r["cvc5"] for r in read):
+        sys.exit("a log names cvc5 for a harness that names no solver")
+    solver = f"{named}, named by the harness" if named else "CaDiCaL, Kani's default: the harness names no solver and the job installs no other"
+    ok = all(r["proved"] for r in read)
+    head = read[0]
+    note = (f"Not answered within {PROGRAM_LIMIT} seconds here; verified in program.yml's job `{LONG}` on GitHub's hosted runner, "
+            f"{len(read)} run{'s' if len(read) > 1 else ''}, each alone within {job['limit_seconds'] // 60} minutes: "
+            + "; ".join(f"run {r['id']} ({r['event']}, commit {r['commit'][:8]}): {r['result']} in {r['verification_seconds']:.0f} s" for r in read)
+            + f". Kani {head['kani']}, CBMC {head['cbmc']}, solver {solver}." if ok else
+            "Not proved: a run of program.yml's job for it reported a failed check (`runs`).")
+    entry = {"name": WHOLE, "result": "verified" if ok else "failed", "proved": ok,
+             **{k: head[k] for k in ("checks", "failed_checks", "unreachable_checks", "verification_seconds", "seconds")},
+             "attempts": len(read), "limit_seconds": job["limit_seconds"], "command": f"cargo-kani {job['args']}", "solver": solver,
+             "runs": [{k: r[k] for k in ("id", "url", "job", "commit", "event", "date", "kani", "cbmc", "rust_toolchain", "result",
+                                         "verification_seconds", "seconds")} for r in read], "note": note}
+    doc["harnesses"] = [entry if h["name"] == WHOLE else h for h in doc["harnesses"]]
+    write_program(doc)
+    print(WHOLE, entry["result"], ", ".join(str(r["id"]) for r in read))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--harness", action="append", default=[])
@@ -359,7 +496,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--program", action="store_true")
     ap.add_argument("--ci", action="store_true")
+    ap.add_argument("--program-ci", type=int, action="append", default=[], metavar="RUN")
+    ap.add_argument("--repo", default="drexthealpha/knos-rc")
     args = ap.parse_args(argv)
+    if args.program_ci:
+        program_ci(args.repo, args.program_ci)
+        return 0
     if args.program:
         run_program()
         return 0
