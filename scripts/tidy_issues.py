@@ -19,6 +19,8 @@ item is one of:
     outside     any other outside contribution whose last word is not this repository's: one line of thanks that says
                 who reads it and that it is unpaid. Never closed. An outside item already answered needs nothing.
     own         the owner's other open work: left alone.
+    bot         an item another service's bot opened (dependabot and the like): left alone. Such a bot's comment is not
+                this repository's word either: an outside item it spoke on last is still answered.
 
 No comment quotes a word of the item it answers. Reading uses `gh api`; nothing is written without --apply.
 """
@@ -99,6 +101,8 @@ def classify(item: dict, listed: dict[int, dict], now: float, funded: bool | Non
                 "note": "" if funded is False else "the chain was not read (--rpc): --apply leaves it"}
     if ours:
         return {**row, "category": "own", "action": "leave"}
+    if claim_guard.bot(item.get("user")):
+        return {**row, "category": "bot", "action": "leave", "note": "another service's bot: nothing is said to it"}
     if comments is None:
         return {**row, "category": "outside", "action": "read again", "note": "its comments could not be read"}
     claim = claim_guard.claims(title) or claim_guard.claims(body)

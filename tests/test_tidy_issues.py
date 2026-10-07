@@ -104,6 +104,21 @@ def test_each_open_item_gets_its_category_its_action_and_its_exact_comment(tidy)
         assert "someone-outside" not in r["comment"] and "0x00" not in r["comment"] and "RelayStats" not in r["comment"]
 
 
+def test_another_services_bot_is_not_this_repositorys_word(tidy):
+    """A review service's comment spoken last is not an answer: the outside item is still answered. Knos's own
+    workflow account and the owner still are; an item a bot opened is left alone."""
+    review = {"user": {"login": "coderabbitai[bot]", "type": "Bot"}, "author_association": "NONE", "body": "Review finished."}
+    asked = [{"user": STRANGER, "author_association": "NONE", "body": "Could a maintainer approve the workflows?"}]
+    pull = _item(38, "test: cover digits in slugs", STRANGER, "FIRST_TIME_CONTRIBUTOR", pull_request={})
+    assert tidy.classify(pull, {}, NOW, False, asked + [review])["action"] == "answer"
+    assert not claim_guard._ours(review["user"], "NONE") and claim_guard._ours(BOT, "NONE") and claim_guard._ours(OWNER, "OWNER")
+    marked = {**review, "body": tidy.THANKS}
+    assert tidy.classify(pull, {}, NOW, False, asked + [marked])["action"] == "answer"
+    assert tidy.classify(pull, {}, NOW, False, asked + [{"user": BOT, "author_association": "NONE", "body": "Knos: noted."}])["action"] == "nothing"
+    dependabot = _item(39, "Bump pytest", {"login": "dependabot[bot]", "type": "Bot"}, "NONE", pull_request={})
+    assert (tidy.classify(dependabot, {}, NOW, False, [])["category"], tidy.classify(dependabot, {}, NOW, False, [])["comment"]) == ("bot", "")
+
+
 def test_the_chain_decides_whether_a_rehearsal_is_finished(tidy):
     rows = _rows(tidy, lambda repo_id, n: n == 41)
     assert (rows["Knos#41"]["action"], rows["Knos#41"]["note"], rows["Knos#41"]["close"]) == ("leave open", "its order still holds money on chain", False)

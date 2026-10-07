@@ -119,8 +119,16 @@ def funded(run, repo_id: int, issue: int) -> bool:
 
 
 def _ours(who: dict | None, association) -> bool:
+    """Whether this repository wrote it: its own people (OURS) or Knos's own workflow account. Another bot (a review
+    service, dependabot) is not this repository: its comment is not an answer."""
     who = who if isinstance(who, dict) else {}
-    return str(association or "").upper() in OURS or who.get("type") == "Bot" or str(who.get("login") or "").endswith("[bot]")
+    return str(association or "").upper() in OURS or str(who.get("login") or "") == BOT
+
+
+def bot(who: dict | None) -> bool:
+    """Whether an account is any bot: nothing is said to one."""
+    who = who if isinstance(who, dict) else {}
+    return who.get("type") == "Bot" or str(who.get("login") or "").endswith("[bot]")
 
 
 def answered(comments: list) -> bool:
@@ -195,7 +203,7 @@ def on_event(run, name: str, event: dict) -> dict:
     if not isinstance(item, dict) or not repo_id:
         return {"did": "nothing", "why": "not an event about an issue or a pull request"}
     said = comment if isinstance(comment, dict) else item
-    if _ours(said.get("user"), said.get("author_association")):
+    if _ours(said.get("user"), said.get("author_association")) or bot(said.get("user")):
         return {"did": "nothing", "why": "written by this repository's own people or a bot"}
     pull = "pull_request" in item or "head" in item
     texts = [str(said.get("body") or "")] if comment else [str(item.get("title") or ""), str(item.get("body") or "")]
@@ -213,7 +221,7 @@ def sweep(run, repo: str) -> list[dict]:
     rows = terms.pages(f"repos/{repo}/issues?state=open&sort=updated&direction=desc", run.github, cap=3) or []
     out = []
     for item in rows:
-        if not isinstance(item, dict) or _ours(item.get("user"), item.get("author_association")):
+        if not isinstance(item, dict) or _ours(item.get("user"), item.get("author_association")) or bot(item.get("user")):
             continue
         texts = [str(item.get("title") or ""), str(item.get("body") or "")]
         if not any(claims(t) for t in texts):
