@@ -655,9 +655,6 @@ html.k-printing .k-statement td{overflow-wrap:anywhere}
   box-shadow: var(--depth-3); font-size: var(--s0); max-height: min(60vh, 520px); overflow-y: auto; overscroll-behavior: contain; }
 .hero-upgrades-body p { margin: 6px 0; overflow-wrap: anywhere; }
 @media (max-width: 899px) { .hero { padding-top: 48px; } }
-/* From 900 px the hero's top margin is 28 px (the first screen's own style in web/index.html), and a line 26 px tall
-   10 px down ran 8 px into the sentence: there it sits 2 px down and is 24 px tall, inside the margin. */
-@media (min-width: 900px) { .hero-upgrades { top: 2px; } .hero-upgrades > summary { padding-block: 2px; } }
 /* The bar's search button (#search, [data-palette]) opens the command palette (web/motion.js); its keys, Ctrl K, are in
    its title: the first screen has 40 words and no more. */
 
