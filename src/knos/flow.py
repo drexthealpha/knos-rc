@@ -3333,8 +3333,13 @@ def _environment(env) -> dict:
 def _rerun_plan(run: Run, address, o, pull: dict, c: Case) -> dict | None:
     """What the re-execution job fetches and runs for a merged pull request of an order paid by its acceptance checks:
     {"order", "repository", "pull", "issue", "head" (the commit that was merged), "base" (the commit it was merged
-    onto: the merge commit's first parent), "accept" (the bundle's hash, from the terms), "image" (the terms', or "")}.
-    None for an order paid on the merge: there is no suite to run. Raises OSError when GitHub does not name the base."""
+    onto: the merge commit's first parent), "accept" (the bundle's hash, from the terms), "image" (the terms', or ""),
+    "changed" (the paths the pull request changed, as GitHub lists its files: a rename under both its names)}.
+    The judge is told those paths and not the difference of the two trees: when the default branch moved after the pull
+    request left it, the first parent holds files the pull request never touched, and a tree difference would charge
+    them to it (a workflow the buyer changed after it, say, read as a pull request that changes a protected path).
+    None for an order paid on the merge: there is no suite to run. Raises OSError when GitHub does not name the base,
+    or does not list the pull request's files whole."""
     if not c.terms or c.terms["mode"] != "tests" or o.mode != pay.TESTS:
         return None
     merge = str(pull.get("merge_commit_sha") or "")
@@ -3344,8 +3349,12 @@ def _rerun_plan(run: Run, address, o, pull: dict, c: Case) -> dict | None:
     head = str((pull.get("head") or {}).get("sha") or "")
     if not re.fullmatch(_HEX40, base) or not re.fullmatch(_HEX40, head):
         raise OSError("GitHub did not name the commit the pull request was merged onto")
+    files = _changes(run, int(pull["number"]))
+    if files is None:
+        raise OSError("GitHub did not list the files the pull request changed")
+    changed = sorted({str(f.get(k)) for f in files if isinstance(f, dict) for k in ("filename", "previous_filename") if f.get(k)})
     return {"order": str(address), "repository": run.repo, "pull": int(pull["number"]), "issue": int(o.issue), "head": head, "base": base,
-            "accept": str(c.terms["accept"]), "image": str(c.terms.get("image") or "")}
+            "accept": str(c.terms["accept"]), "image": str(c.terms.get("image") or ""), "changed": changed}
 
 
 def _rerun_verdict(plan: dict | None, env, judged: dict | None = None, why: str = "") -> dict:
@@ -3455,7 +3464,9 @@ def _rerun_judge(plan: dict, folder: Path, env, judge_fn=None, sandbox: str = "r
     if plan["image"]:
         cfg["image"] = plan["image"]            # the image that was funded, whatever proof.toml says at this commit
     try:
-        judged = (judge_fn or judge.judge)(base, pr, cfg, sandbox=sandbox)
+        # the paths GitHub lists for the pull request (the plan's), never the difference of the two trees: see _rerun_plan
+        changed = plan.get("changed")
+        judged = (judge_fn or judge.judge)(base, pr, cfg, [str(n) for n in changed] if isinstance(changed, list) else None, sandbox=sandbox)
     except Exception as why:  # noqa: BLE001 - a judge that could not run is a suite that did not pass here
         return _rerun_verdict(plan, env, why=f"the judge could not run here ({type(why).__name__}: {_short(why)})"[:200])
     return _rerun_verdict(plan, env, judged)
