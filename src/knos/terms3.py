@@ -585,7 +585,7 @@ def diff_text(a: dict, b: dict, name_a: str = "the first", name_b: str = "the se
 
 WORKFLOWS = "/".join(("drexthealpha", "knos-workflows", ".github", "workflows", ""))     # (joined here: tests/test_workflows2.py lets no file of the package, compiled or not, spell the published path whole)
 PROVE, ATTEST = WORKFLOWS + "prove.yml", WORKFLOWS + "attest.yml"
-SAMPLE_REPO, SAMPLE_OWNER = "acme/widgets", "acme"
+SAMPLE_REPO = "acme/widgets"
 ACTIONS = 15368                 # the GitHub App id of GitHub Actions
 DATASET_ACCEPT = "8445799b6b70bde0dcf4a73465d9a34b0e180a9c88daa305acf4926c5d62acc5"     # examples/outcomes/data-labelling's suite
 

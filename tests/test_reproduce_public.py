@@ -36,7 +36,7 @@ def record(**over) -> dict:
 
 def test_the_new_checks_are_rows_of_the_same_report_after_the_five_and_name_capabilities_the_manifest_lists():
     listed = {c["id"] for c in json.loads((ROOT / "docs" / "capabilities.json").read_text(encoding="utf-8"))["capabilities"]}
-    assert rp.PUBLIC_ORDER == ("provenance", "payments", "statement") and list(rp.EVERY) == [*rp.ORDER, *rp.PUBLIC_ORDER]
+    assert tuple(rp.PUBLIC) == ("provenance", "payments", "statement") and list(rp.EVERY) == [*rp.ORDER, *rp.PUBLIC]
     assert all(set(caps) <= listed for caps in rp.PUBLIC.values()) and not set(rp.PUBLIC) & set(rp.SUPPORTS)
     assert set(rp.live(env={})) == set(rp.EVERY)
     report = rp.build({"statement": dict, "payment": dict, "provenance": dict}, version="x", now=lambda: 1, clock=lambda: 0.0)

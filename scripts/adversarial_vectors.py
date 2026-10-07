@@ -33,7 +33,7 @@ from solders.pubkey import Pubkey  # noqa: E402
 
 from knos.settle.v2 import meter, order_auto, pay  # noqa: E402
 
-E_STATE, E_TOKEN, E_CLAIMS, E_AUD, E_REPLAY, E_ORDER = 83, 84, 85, 87, 91, 101
+E_STATE, E_TOKEN, E_AUD, E_REPLAY, E_ORDER = 83, 84, 87, 91, 101
 HOUR = 3600
 Q2 = pay.opts(pay.F_NEUTRAL | order_auto.quorum_flags(2))
 JUDGE_REPO = 31_313_131

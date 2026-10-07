@@ -80,7 +80,6 @@ SUPPORTS = {"payment": ("order_pay",), "programs": ("upgrade_delay", "upgrade_fe
 ORDER = tuple(SUPPORTS)
 # The checks of the public round, after the five: read-only, against the PUBLIC program ids and the published pages.
 PUBLIC = {"provenance": ("provenance_chain",), "payments": ("order_pay",), "statement": ("statements",)}
-PUBLIC_ORDER = tuple(PUBLIC)
 EVERY = {**SUPPORTS, **PUBLIC}                  # a report's rows: these checks, in this order, each with these capabilities
 RAW = "https://raw.githubusercontent.com/drexthealpha/Knos/main/"       # the public record, for an install that has no checkout
 STATEMENT = "https://drexthealpha.github.io/Knos/statement_sample.json"  # the statement the site publishes
