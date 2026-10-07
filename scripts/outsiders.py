@@ -13,7 +13,9 @@
                    to the funder's own account or back to the wallet whose money it was is not counted.
 
 "Knos's" is scripts/own_github_ids.json: account ids, wallets and, under "repositories", repository ids. A repository
-is Knos's when its id is listed or the Balance the job spent belongs to one of Knos's accounts (a comment spends the
+is Knos's when its id is listed, when GitHub names one of Knos's account ids as its owner (scripts/network_stats.py
+own_repositories: the chain gives a repository's id only, so a wallet that funds there carries no owner on record), or
+when the Balance the job spent belongs to one of Knos's accounts (a comment spends the
 repository owner's Balance, and the faucet's Balance is the repository owner's too: its address is derived from the
 owner's id, so it is known even when the line that opened it was not read). An account is counted by its
 GitHub id, a wallet by its address; an id of 0 is "no account".

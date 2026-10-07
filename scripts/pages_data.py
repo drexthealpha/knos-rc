@@ -938,7 +938,7 @@ def build(events: list[dict], comments: list[dict] | None, get, index: dict | No
 
     # outside funders, outside repositories, outside payees: three numbers with their definitions, never added
     import outsiders as outside_rules
-    counted = ns.outsiders(jobs, own, own_wallets) if ns else outside_rules.count([], own, own_wallets, measured=False)
+    counted = ns.outsiders(jobs, own, own_wallets, owner_of=None if get is None else ns.repo_owner(get)) if ns else outside_rules.count([], own, own_wallets, measured=False)
     # and, apart from those three: outside pull requests on the playground's funded tasks (the task board, tasks/README.md)
     counted["pulls"] = playground_pulls(get, jobs if ns else None, own)
     dump("outsiders.json", stamp(counted))
