@@ -46,6 +46,18 @@ def test_the_constants_are_the_price_book():
         assert "| " + " | ".join(row) + " |" in market, row[0]
 
 
+def test_no_price_book_names_a_0_10_percent_tier():
+    """The withdrawn tier is not printed beside the rate: not in the book, the document's row, nor the site's book (web/
+    index.html's row without scripts, web/price.js's with them). The program's own Plan bound is another fact."""
+    site = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
+    book = site[site.index('id="price-book"'):]
+    book = book[:book.index("</table>")]
+    js = (ROOT / "web" / "price.js").read_text(encoding="utf-8")
+    js = js[js.index('["Acceptance", '):]
+    for where, text in (("BOOK", " ".join(" ".join(row) for row in b.BOOK)), ("web/index.html", book), ("web/price.js", js.splitlines()[0])):
+        assert "0.10%" not in text and "tier" not in text, where
+
+
 def test_the_lines_that_were_removed_are_gone():
     names = [row[0] for row in b.BOOK]
     assert names == ["Check", "Meter", "Acceptance", "Record", "Control", "Pilot"] and not set(names) & set(VECTORS["removed"])

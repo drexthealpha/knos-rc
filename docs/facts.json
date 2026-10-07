@@ -160,13 +160,12 @@
    "say": [
     "0.30%",
     "0.20%",
-    "0.10%",
     "0.05"
    ],
    "doc": "docs/MARKET.md",
-   "what": "the price book, Acceptance: 0.30% of a dollar released or reconciled against a signed acceptance, paid by the funder on top; by contract 0.20% of a month's value above 1M, marginal, and never lower (the 0.10% tier is withdrawn); outcomes under 20 USD netted into one release per payee per period with the 0.05 floor once; no cap. It replaces the Settle and Verify lines of the last price book; the row every document and the pricing page repeat (src/knos/billing.py BOOK, tests/data/billing_vectors.json)",
+   "what": "the price book, Acceptance: 0.30% of a dollar released or reconciled against a signed acceptance, paid by the funder on top; by contract 0.20% of a month's value above 1M, marginal, and never lower; outcomes under 20 USD netted into one release per payee per period with the 0.05 floor once; no cap. It replaces the Settle and Verify lines of the last price book; the row every document and the pricing page repeat (src/knos/billing.py BOOK, tests/data/billing_vectors.json)",
    "file": "docs/MARKET.md",
-   "has": "| Acceptance | dollar released or reconciled against a signed acceptance | 0.30%; by contract 0.20% on monthly value above 1M (the rate never goes below 0.20%: the earlier 0.10% tier is withdrawn); small tickets are netted: outcomes under 20 USD accumulate and settle as one release per payee per period, charged 0.30% of the netted amount with the 0.05 floor once per release; no cap | funder, on top of the amount | knos_pay at release (on chain: 0.30% and the floor; volume rates are a rebate by contract, off chain) |"
+   "has": "| Acceptance | dollar released or reconciled against a signed acceptance | 0.30%; by contract 0.20% on monthly value above 1M (the rate never goes below 0.20%); small tickets are netted: outcomes under 20 USD accumulate and settle as one release per payee per period, charged 0.30% of the netted amount with the 0.05 floor once per release; no cap | funder, on top of the amount | knos_pay at release (on chain: 0.30% and the floor; volume rates are a rebate by contract, off chain) |"
   },
   {
    "say": [

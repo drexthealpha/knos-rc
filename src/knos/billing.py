@@ -73,7 +73,7 @@ BOOK = (
     ("Check", "pull request or artifact checked", "free, forever", "nobody", "nowhere"),
     ("Meter", "evaluation", "100,000 a month free per organisation, then 0.002 USD", "buyer", "prepaid credits"),
     ("Acceptance", "dollar released or reconciled against a signed acceptance",
-     "0.30%; by contract 0.20% on monthly value above 1M (the rate never goes below 0.20%: the earlier 0.10% tier is withdrawn); small tickets "
+     "0.30%; by contract 0.20% on monthly value above 1M (the rate never goes below 0.20%); small tickets "
      "are netted: outcomes under 20 USD accumulate and settle as one release per payee per period, charged 0.30% of the netted amount with the "
      "0.05 floor once per release; no cap", "funder, on top of the amount",
      "knos_pay at release (on chain: 0.30% and the floor; volume rates are a rebate by contract, off chain)"),

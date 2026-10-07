@@ -144,7 +144,7 @@ export function priceBook() {
   return [
     ["Check", "pull request or artifact checked", "free, forever", "nobody", "nowhere"],
     ["Meter", "evaluation", `${thousands(BILL.meterFree)} a month free per organisation, then ${BILL.meterPerThousandCents / 100_000} USD`, "buyer", "prepaid credits"],
-    ["Acceptance", "dollar released or reconciled against a signed acceptance", `${rate(r0)}; by contract ${rate(r1)} on monthly value above ${short(a1)} (the rate never goes below ${rate(r1)}: the earlier 0.10% tier is withdrawn); small tickets are netted: outcomes under ${BILL.netBelowCents / 100} USD accumulate and settle as one release per payee per period, charged ${rate(r0)} of the netted amount with the ${floor} floor once per release; no cap`,
+    ["Acceptance", "dollar released or reconciled against a signed acceptance", `${rate(r0)}; by contract ${rate(r1)} on monthly value above ${short(a1)} (the rate never goes below ${rate(r1)}); small tickets are netted: outcomes under ${BILL.netBelowCents / 100} USD accumulate and settle as one release per payee per period, charged ${rate(r0)} of the netted amount with the ${floor} floor once per release; no cap`,
       "funder, on top of the amount", `knos_pay at release (on chain: ${rate(r0)} and the floor; volume rates are a rebate by contract, off chain)`],
     ["Record", "lookup of a supplier's delivery record through the machine-priced API", `${record} USD a lookup, paid per call by the caller (an agent, a marketplace, an underwriter) through the knos-order/x402 flow; the public record page and its file stay free`,
       "the buyer, marketplace or insurer reading it", "API (not built: a static file today)"],
