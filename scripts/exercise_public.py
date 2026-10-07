@@ -1387,6 +1387,8 @@ def round_passkey(book: Book, st: dict) -> None:
     st["fund"] = {"signature": got["fund"]}
     book.tx(st, "a passkey's signature funds an order: the relay carried the comment", got["fund"], "knos_passkey")
     said = ["the transaction the Buy page showed succeeded and names knos_passkey and knos_pay at their public ids"]
+    if got.get("how"):          # how the passkey and the page were had, as the note says it (a virtual authenticator is said so)
+        said.append(str(got["how"]))
     for cap in ("passkey_funder", "passkey_fund_relay", "buyer_page"):
         book.done(st, cap, "knos_passkey", got["fund"], said)
 

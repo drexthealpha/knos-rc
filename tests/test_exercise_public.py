@@ -404,6 +404,11 @@ def test_a_step_done_outside_is_held_to_the_chain_and_what_it_cannot_show_is_not
         w.fake["passkey"] = {"fund": real}
         got = ex.run(w, new(), only="passkey", say=said.append)
         assert {got["exercises"][c]["signature"] for c in ("passkey_funder", "passkey_fund_relay", "buyer_page")} == {real}
+        assert len(got["exercises"]["passkey_funder"]["asserted"]) == 1
+        # how the passkey was had is written beside it when the note says (devnet's round used a virtual authenticator)
+        w.fake["passkey"] = {"fund": real, "how": "the passkey was a Chromium virtual authenticator"}
+        got = ex.run(w, new(), only="passkey", say=said.append)
+        assert got["exercises"]["buyer_page"]["asserted"][-1] == "the passkey was a Chromium virtual authenticator"
         w.landed = seen
         # an appeal: its comment must be on the pull request and answered; upheld moves no stage, overturned needs its payment
         pull = "drexthealpha/knos-playground#7"
