@@ -22,7 +22,10 @@ publishing with provenance).
   fee owner holds, so the relay now pays each order's fee into one of K such accounts, picked by the order, with no
   program change. `knos relay fee-accounts --k N` prints the plan and sends nothing; `--execute` makes the missing
   accounts. The fees stay the fee owner's in every account; moving them into one is a transfer the Squads vault
-  signs ([`docs/RELAY.md`](docs/RELAY.md)). No seeded fee account exists on devnet yet.
+  signs ([`docs/RELAY.md`](docs/RELAY.md)). Six seeded fee accounts exist on devnet since 8 October 2026: K = 4 for
+  Circle's devnet USDC and for the faucet's test USDC, owned by the fee owner, made by the project's own relayer key
+  (addresses and transactions in [`docs/RELAY.md`](docs/RELAY.md)). The public worker still runs with K = 1, so no
+  payment has used them.
 - **Pay work by order, not by owner.** A token that pays, rules on, cancels or reverts an order travels in that
   order's lane, so one owner's orders spread over several relays; a funding from a Balance keeps its owner's lane.
   `tests/test_fee_shards.py` pays into a seeded account on the 2.1 and 2.2 builds and spreads one owner's 40 orders

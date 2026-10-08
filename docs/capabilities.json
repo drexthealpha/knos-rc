@@ -3854,7 +3854,7 @@
      "names": "test_pay_order_and_settle_order_take_a_seeded_token_account_of_the_fee_owner_and_nothing_else"
     }
    },
-   "note": "knos_pay takes any token account the fee owner holds for the mint; `knos relay fee-accounts --k N` plans the accounts. Tested in the simulator against the compiled programs; no seeded fee account exists on devnet yet, and the one-relay rate measured on 8 Oct (0.097 a second) is the only measured rate."
+   "note": "knos_pay takes any token account the fee owner holds for the mint; `knos relay fee-accounts --k N` plans the accounts and `--execute` makes them. Tested in the simulator against the compiled programs. On devnet six seeded fee accounts exist since 8 Oct 2026 (K = 4 for devnet USDC and the faucet's test USDC, owned by the fee owner, made by the project's own relayer key; docs/RELAY.md lists them); the public worker runs with K = 1, so no payment has used them, and the one-relay rate measured on 8 Oct (0.097 a second) is the only measured rate."
   },
   {
    "id": "memory_changes_decisions",

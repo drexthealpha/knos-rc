@@ -183,6 +183,21 @@ relay, because all 40 tokens came from one owner and a lane was then the owner.
 - *The sweep.* The fees are FEE_OWNER's in whichever account they sit. Revenue reads all K (`pay.fee_accounts`).
   Moving them into the associated account is one TransferChecked per account signed by FEE_OWNER (the Squads vault),
   proposed like any movement of its money; no relay can sign it and no payment waits for it.
+- *On devnet (8 October 2026).* `knos relay fee-accounts --k 4 --execute`, with the project's own relayer key
+  `9ig9AXfoNrd5uPhdSFGujPoVsrxze5CGVFM6uusgQydG` as base and payer, made accounts 1 to 3 of two mints; each reads back as
+  an SPL token account of the mint whose owner is the fee owner `4G3cznCnwCUPBCZwzKiLupjdgB5pSoCcGWNGuFv4TYFo`, which
+  signed nothing. The public worker runs with K = 1 (no `fee_shards` or `fee_base` in the pinned ids), so no payment
+  has used them.
+  | mint | i | fee account | made by |
+  | --- | --- | --- | --- |
+  | Circle's devnet USDC `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` | 0 | [`dVfvA5xkpMhMJEm74E2Nom3yrfoFnuKjzQBZN2NsANe`](https://explorer.solana.com/address/dVfvA5xkpMhMJEm74E2Nom3yrfoFnuKjzQBZN2NsANe?cluster=devnet) | the fee owner's associated account (it existed) |
+  | Circle's devnet USDC `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` | 1 | [`3PkbyaAdKaVzcWQ85S9Gh1a27ecfroRrjqTbbGioH6eP`](https://explorer.solana.com/address/3PkbyaAdKaVzcWQ85S9Gh1a27ecfroRrjqTbbGioH6eP?cluster=devnet) | [transaction](https://explorer.solana.com/tx/nm5VBqdWJEjj9sQA5ewF93zgQ6YJJEUnm6YRB4M17dhEq1WJsHwebsZKTT6kSCwGGdnKYMZRDaSNraTNgGtVDd4?cluster=devnet) |
+  | Circle's devnet USDC `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` | 2 | [`A3bC624cMcZAWi1UGT9g2brM18RBxQd5P78JX9PFrDns`](https://explorer.solana.com/address/A3bC624cMcZAWi1UGT9g2brM18RBxQd5P78JX9PFrDns?cluster=devnet) | [transaction](https://explorer.solana.com/tx/3mRuAzcGFTANeoiC8w8jrkVpcpULMpW2P5rJaZGM6JXMpjzNP5vccSEgt12HciJLinNdPAaxkmjWUn5Ued7NJJR2?cluster=devnet) |
+  | Circle's devnet USDC `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` | 3 | [`HnNR62DUuGteWRKZX7ts6jH14gDCkrw8iPBCpYVA5JNz`](https://explorer.solana.com/address/HnNR62DUuGteWRKZX7ts6jH14gDCkrw8iPBCpYVA5JNz?cluster=devnet) | [transaction](https://explorer.solana.com/tx/5Jtnrhyh4N8LZjSv46GyLPM3ou1AeLcjzKGLqcsscJ232LCPkCrVkLFdFyWZLQPuAB19HbLiRy1NYBTVhAxBLYVa?cluster=devnet) |
+  | the faucet's test USDC `Hvf6ay7Mp8xpvizcX41kCwdubvDUckR1P2p92wuSP246` | 0 | [`HGAzJ3fzkBSuFwWR88HjALd86vnAt1oJVu9d59UCqAvX`](https://explorer.solana.com/address/HGAzJ3fzkBSuFwWR88HjALd86vnAt1oJVu9d59UCqAvX?cluster=devnet) | the fee owner's associated account (it existed) |
+  | the faucet's test USDC `Hvf6ay7Mp8xpvizcX41kCwdubvDUckR1P2p92wuSP246` | 1 | [`HsUASKdUqKCXrkHMagy4NAHXY83vJtjYcXoZtUrfrbX7`](https://explorer.solana.com/address/HsUASKdUqKCXrkHMagy4NAHXY83vJtjYcXoZtUrfrbX7?cluster=devnet) | [transaction](https://explorer.solana.com/tx/9LdR5DM8xgHmm48iJLJpgeAUahWCBYGVkUgdSiNmNXGMLeMUKsC86R6w3xGna7c3cZTANFFfmADCYeJzajAF7GG?cluster=devnet) |
+  | the faucet's test USDC `Hvf6ay7Mp8xpvizcX41kCwdubvDUckR1P2p92wuSP246` | 2 | [`9D7xQM41RaEYWEMvPgh2w8P73JBgeUd558keRLD7jx8T`](https://explorer.solana.com/address/9D7xQM41RaEYWEMvPgh2w8P73JBgeUd558keRLD7jx8T?cluster=devnet) | [transaction](https://explorer.solana.com/tx/5XbnndmMKM27KBVrhavFton5WWoBjt4xvEGaTVsQuchnUkVa9cNSafs5vCNMdLBR81ui5vJgE6babMLwnsrVrWT8?cluster=devnet) |
+  | the faucet's test USDC `Hvf6ay7Mp8xpvizcX41kCwdubvDUckR1P2p92wuSP246` | 3 | [`3L2GtWzNrgpi2pJ8kCXni7sAZWAj2G1r2MdtC8qu5ysw`](https://explorer.solana.com/address/3L2GtWzNrgpi2pJ8kCXni7sAZWAj2G1r2MdtC8qu5ysw?cluster=devnet) | [transaction](https://explorer.solana.com/tx/6tANCqgHoqn9M7FaP27udzMJL79jdxTW9yzyBdHLJeQomXU5HFnrtfxx94xh2quNUSYA1FCA5e2tvki9sqEPCWr?cluster=devnet) |
 - *Shown, not measured.* `tests/test_fee_shards.py` pays an order into a seeded account on the 2.1 build (live at the
   public ids today) and the 2.2 build, settles a held one there, and has a stranger's account and FEE_OWNER's account
   of another mint refused (error 88); 40 orders of one owner spread over 4 relays' parts with none taken twice.
