@@ -69,14 +69,15 @@ function owedHtml(rows) {
 }
 
 /** What `knos preflight` (and its MCP tool) recommends from memory, beside the protections: a report's `recommend` rows as
- *  "Recommended from memory: ..." lines (knos.preflight.recommended). Empty with no report, or with no memory. */
+ *  "Recommended from memory: ..." lines (knos.preflight.recommended). Empty with no report, or with no memory. They are
+ *  the answer to what was pasted, so the site never folds them (data-keep: web/front.js foldProse). */
 export function recommended(report) {
   return (Array.isArray(report?.recommend) ? report.recommend : []).filter((r) => r && r.title && r.said)
     .map((r) => `Recommended from memory: ${r.title}. ${r.said}${r.held ? " These terms hold it." : ""}`);
 }
 export const recommendHtml = (report) => {
   const lines = recommended(report);
-  return lines.length ? `<ul class="fine sp-recommend" data-not-prose>${lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
+  return lines.length ? `<ul class="fine sp-recommend" data-not-prose data-keep>${lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
 };
 
 /** A terms glob as knos.terms.matches reads it. */
