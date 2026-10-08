@@ -3294,7 +3294,7 @@
      "names": "test_it_verifies_in_an_empty_directory_with_knos_unimportable"
     }
    },
-   "note": "`knos archive make|verify`. It checks RS256 and ES256 signatures against the archived keys, the log's chain, every root and every total. One run on this repository's samples is recorded (docs/archive_verify.json): they carry no signed token, and the verifier says so. One archive of a real period is recorded there too (`real`): month 202610 of one pair, whose three batches are anchored at the public knos_meter on devnet, with the six tokens GitHub signed for them; its verifier, run with no Knos, says 11 checks hold and 6 notes (the log of events starts at number 1 and nobody else acknowledged it). That pair is the founder's own account on both sides, and no outside party holds an archive."
+   "note": "`knos archive make|verify`. It checks RS256 and ES256 signatures against the archived keys, the log's chain, every root and every total. One run on this repository's samples is recorded (docs/archive_verify.json): they carry no signed token, and the verifier says so. One archive of a real period is recorded there too (`real`): month 202610 of one pair, whose three batches are anchored at the public knos_meter on devnet, with the six tokens GitHub signed for them; its verifier, run with no Knos, says 13 checks hold and 5 notes (the log of events starts at number 1; both acknowledgements of the month are signed by keys the founder holds). That pair is the founder's own account on both sides, and no outside party holds an archive."
   },
   {
    "id": "events_gaps",

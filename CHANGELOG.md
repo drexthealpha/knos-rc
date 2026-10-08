@@ -146,7 +146,8 @@ nothing under `programs-v2/knos_*`, `programs/` or `idl/` moved by a byte.
   gave that never arrived is named, and a month is not closed over it. One run on this repository's samples is
   recorded; they carry no signed token, and the verifier says so. One run on a real period is recorded too: the
   founder's own account on both sides, its batches anchored at the public knos_meter; its log of events starts at
-  number 1 and nobody else acknowledged it, so the strict check fails on it. No outside party holds an archive
+  number 1, so the strict check fails on it, and both acknowledgements that close its month are signed by keys the
+  founder holds. No outside party holds an archive
   ([`docs/RETENTION.md`](docs/RETENTION.md), [`docs/EVENTS.md`](docs/EVENTS.md)).
 - **The paid record answer is worth more than the free file.** The server signs each answer with an expiry, adds a
   summary, and gives the history a supplier granted to one reader. Its revenue is budgeted at zero and Knos hosts

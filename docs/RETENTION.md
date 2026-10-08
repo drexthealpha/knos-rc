@@ -159,12 +159,13 @@ An archive past its years is `held`, with the reason, while any of these is true
 ## What has not happened
 
 No outside party holds an archive, and no outside party has signed a month: every acknowledgement of a month was made
-in tests, with fixed test keys. Every archive but one was made in tests, from test keys, or from this
+in tests, with fixed test keys, but the two of the real period below, signed by two keys the founder holds. Every archive but one was made in tests, from test keys, or from this
 repository's samples. The one other is of a real period: month 202610 of the pair 142920951/142920951 (the founder's
 own account on both sides), whose three batches are anchored at the public knos_meter on devnet, with the six
-tokens GitHub signed for them. Its run is in [`archive_verify.json`](archive_verify.json) under `real`: 11 checks
-hold, 6 notes, among them `INCOMPLETE` (the log of events it holds starts at number 1) and `UNSIGNED` (nobody
-else acknowledged the log), so `--strict` fails on it. `python scripts/archive_verify.py --real ARCHIVE --source
+tokens GitHub signed for them. Its run is in [`archive_verify.json`](archive_verify.json) under `real`: 13 checks
+hold, 5 notes. The month is closed by both acknowledgements its terms name (`knos events sign`, 8 October 2026), and
+both keys are the founder's, so it is one person's word on both sides. Among the notes is `INCOMPLETE` (the log of
+events it holds starts at number 1), so `--strict` fails on it. `python scripts/archive_verify.py --real ARCHIVE --source
 TEXT` records such a run; the archive is not in this repository, so later runs and `--check` keep that part as
 written.
 
