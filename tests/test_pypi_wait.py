@@ -65,6 +65,28 @@ def test_it_gives_up_after_most_seconds_and_says_what_it_last_saw():
     assert said[-1] == "PyPI did not list knos 0.3.22 with the pinned hash within 200 s; last seen: no file of knos 0.3.22 with the pinned hash"
 
 
+
+def test_each_line_reaches_the_log_before_the_pause_it_announces(monkeypatch):
+    """A job's output is a pipe, which keeps what Python prints until the process ends unless it is flushed: every
+    line is out before the wait it announces (in staging on 8 Oct the twelve lines of a ten-minute wait came at once,
+    in its last second)."""
+    seen = []
+
+    class Pipe:
+        def write(self, text):
+            seen.append(("write", text))
+            return len(text)
+
+        def flush(self):
+            seen.append(("flush", None))
+    monkeypatch.setattr(PW.sys, "stdout", Pipe())
+    assert PW.wait("knos", "0.3.22", {H}, 20, get=lambda _p: index(), sleep=lambda s: seen.append(("sleep", s))) is False
+    sleeps = [i for i, (what, _) in enumerate(seen) if what == "sleep"]
+    assert [seen[i][1] for i in sleeps] == [5, 10] and seen[-1][0] == "flush"
+    for i in sleeps:
+        said = max(j for j in range(i) if seen[j][0] == "write" and seen[j][1].startswith("waiting"))
+        assert any(seen[j][0] == "flush" for j in range(said, i))
+
 def test_main_reads_the_file_and_exits_by_the_answer(tmp_path, monkeypatch):
     req = tmp_path / "sign.txt"
     req.write_text(f"knos=={VER} --hash=sha256:{H}\n", encoding="utf-8")

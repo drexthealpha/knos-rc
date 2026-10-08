@@ -55,10 +55,17 @@ def fetch(package: str) -> dict:
         return json.loads(r.read().decode("utf-8"))
 
 
+def tell(line: str) -> None:
+    """One line of the log, written out at once: a job's output is a pipe, and a pipe holds what Python prints until
+    the process ends (staging, 8 Oct: all twelve "waiting" lines of a ten-minute wait reached the log in its last
+    second). A wait that says nothing while it waits looks like a hang."""
+    print(line, flush=True)
+
+
 def wait(package: str, version: str, hashes: set[str], most: float, get: Callable[[str], dict] | None = None,
-         sleep: Callable[[float], None] | None = None, say: Callable[[str], None] = print) -> bool:
+         sleep: Callable[[float], None] | None = None, say: Callable[[str], None] | None = None) -> bool:
     """True once the file is listed; False after `most` seconds of pauses."""
-    get, sleep = get or fetch, sleep or time.sleep
+    get, sleep, say = get or fetch, sleep or time.sleep, say or tell
     waited, n, seen = 0.0, 0, "nothing yet"
     while True:
         try:
