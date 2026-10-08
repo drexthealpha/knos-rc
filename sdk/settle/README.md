@@ -2,7 +2,7 @@
 
 The JavaScript client for Knos: work paid for on signed acceptance. It derives the addresses, builds the audiences,
 instructions and transactions, and reads the accounts of three Solana programs: `knos-pay`, the escrow that holds a
-work order's money until a GitHub-signed run attests its terms were met; `knos-oidc`, which verifies GitHub Actions
+work order's money until GitHub signs the run that found its terms were met; `knos-oidc`, which verifies GitHub Actions
 and GitLab CI tokens on chain; and `knos-meter`, prepaid credits for evaluations. One file, no dependencies: it
 runs as is in a browser and in Node 20+. Every address, audience, instruction, account reader and transaction is
 checked byte for byte against the Python client (`fixtures.json`, `npm test` in the repository).
@@ -12,16 +12,24 @@ It speaks to the second deployment (`knos.v2`), whose programs are upgradeable o
 
 ## Install
 
-No registry account is needed. From the release:
+```bash
+npm install knos-settle
+```
+
+From [npm](https://www.npmjs.com/package/knos-settle). Version 0.3.21 was published there by this repository's release
+workflow through npm's trusted publishing, with a provenance statement that names the workflow run which built it
+(`npm audit signatures` checks it after an install).
+
+If the registry cannot be reached, the same file is attached to the GitHub release:
 
 ```bash
-npm i https://github.com/drexthealpha/Knos/releases/download/v0.3.21/knos-settle-0.3.21.tgz
+npm install https://github.com/drexthealpha/Knos/releases/download/v0.3.22/knos-settle-0.3.22.tgz
 ```
 
 Or import it in a browser:
 
 ```js
-import * as knos from "https://cdn.jsdelivr.net/gh/drexthealpha/Knos@v0.3.21/sdk/settle/index.js";
+import * as knos from "https://cdn.jsdelivr.net/gh/drexthealpha/Knos@v0.3.22/sdk/settle/index.js";
 ```
 
 ## Fund an order from a wallet in the browser

@@ -1035,6 +1035,15 @@
    "json": "docs/bench.json",
    "path": "release.tests_passing.value",
    "equals": 3746
+  },
+  {
+   "say": [
+    "92",
+    "126.9"
+   ],
+   "what": "Sibyl Labs hackathon: first of 92 teams, 126.9 points",
+   "source": "https://hack.sibyllabs.org/leaderboard",
+   "read": "2026-10-08"
   }
  ]
 }

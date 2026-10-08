@@ -1,49 +1,49 @@
 {
  "what": "tests/web/perf.mjs on a build of web/ in headless Chromium. Input to next paint (the new state, or its pending state), in milliseconds, 20 runs, each the best of three presses; bytes as served, unminified and uncompressed.",
- "machine": "4 CPUs (Intel(R) Core(TM) i3-10110U CPU @ 2.10GHz), shared",
+ "machine": "2 CPUs (Intel(R) Xeon(R) Processor @ 2.10GHz), shared",
  "limit_ms": 300,
  "interactions": {
   "open a view": {
    "runs": 20,
-   "p50_ms": 63,
-   "p95_ms": 79,
-   "max_ms": 258.5
+   "p50_ms": 10.1,
+   "p95_ms": 31.1,
+   "max_ms": 32.9
   },
   "open a view: the new page drawn": {
    "runs": 20,
-   "p50_ms": 54.2,
-   "p95_ms": 70.3,
-   "max_ms": 84.9
+   "p50_ms": 94.2,
+   "p95_ms": 115.7,
+   "max_ms": 119.6
   },
   "open a page for the first time": {
    "runs": 20,
-   "p50_ms": 53.6,
-   "p95_ms": 103.2,
-   "max_ms": 197.7,
+   "p50_ms": 18.7,
+   "p95_ms": 23.7,
+   "max_ms": 26,
    "limit_ms": 200
   },
   "run the sample invoice": {
    "runs": 20,
-   "p50_ms": 72.3,
-   "p95_ms": 178.3,
-   "max_ms": 338.6
+   "p50_ms": 20.2,
+   "p95_ms": 24.8,
+   "max_ms": 33.7
   },
   "open the palette": {
    "runs": 20,
-   "p50_ms": 52.2,
-   "p95_ms": 93.5,
-   "max_ms": 104.7
+   "p50_ms": 16.3,
+   "p95_ms": 27.1,
+   "max_ms": 27.5
   },
   "switch light and dark": {
    "runs": 20,
-   "p50_ms": 71.1,
-   "p95_ms": 88.3,
-   "max_ms": 133.1
+   "p50_ms": 21.3,
+   "p95_ms": 27.7,
+   "max_ms": 29.7
   }
  },
  "first_screen_bytes": {
   "js": 169497,
-  "css": 59938,
+  "css": 59984,
   "budget": {
    "js": 183000,
    "css": 60000

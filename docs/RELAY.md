@@ -150,8 +150,8 @@ dies after that line loses nothing: the sweep's polling is the backstop, not the
 an event named was written only in the event runner's own folder, which the sweep never sees. Only lines the log
 repository's own workflow account wrote count.
 
-**Workers partitioned by order (0.3.21).** A token's lane is the owner of the repository it was signed for, so an
-order's tokens all have one lane. `relayq.part_of(lane, n)` (sha256, modulo n) gives a lane one part, the same in
+**Workers partitioned by order (0.3.21).** A token's lane was then the owner of the repository it was signed for, so an
+order's tokens all had one lane (since 0.3.22 a token that names an order has that order as its lane: below). `relayq.part_of(lane, n)` (sha256, modulo n) gives a lane one part, the same in
 every process. The event run's workers each take one part, so an order's tokens always go to the same worker. A runner
 can take one part only (`KNOS_RELAY_PARTITION=i/n`), so runners that share no file never take the same order; the
 sweep takes every part and is the backstop for a part whose runner is gone. Tested in `tests/test_relayq.py`.
@@ -160,7 +160,35 @@ sweep takes every part and is the backstop for a part whose runner is gone. Test
 its own, each payment to the relay of its part: the token written, verified, then PayOrder. In the simulator it
 checks every order paid once, each relay paid only its part and with its own key, and counts transactions and compute
 units per payment; it gives no rate. On devnet it takes pay tokens GitHub signed (the release run collects them) and
-records attempts, paid, refused, never completed, p50/p95/p99 seconds and payments a second. Not yet run on devnet.
+records attempts, paid, refused, never completed, p50/p95/p99 seconds and payments a second. Run once on devnet at
+the public program ids (8 Oct 2026, [LOAD.md](LOAD.md)): 40 of 40 paid in 412.74 s, 0.097 a second, through ONE
+relay, because all 40 tokens came from one owner and a lane was then the owner.
+
+**Pay work by order, and K fee accounts (0.3.22).** Two changes, no program change.
+
+- *Lanes.* A token that pays, rules on, reserves, cancels or reverts a work order (`knos3:pay`, `auto`, `rule`,
+  `take`, `cancel`, `revert`) has the order as its lane (`order:<address>`, `relay.lane`). It writes that order and
+  accounts of its payees, fee or refund, never a Balance's own account. So one owner's orders go to N relays
+  (`part_of` of each order) and one order's tokens still leave one at a time on one relay. A funding from a Balance
+  keeps the owner's lane: the Balance takes its fundings in the order GitHub issued them.
+- *Fee accounts.* PayOrder, SettleOrder and Release take any token account of the order's mint that FEE_OWNER owns
+  (`is_owned(fee_tok, token, mint, FEE_OWNER)` in `order_pay.rs` and `order_terms.rs`; `pay.rs` asks the same of a
+  job). `pay.fee_account_for(order, mint)` picks one of K by sha256 of the order: account 0 is FEE_OWNER's associated
+  token account, accounts 1..K-1 are token accounts at `create_with_seed(base, pay.fee_seed(mint, i), Token)`.
+  `knos relay fee-accounts --k K` prints the plan (addresses, rent of 2,039,280 lamports each, the two settings) and
+  sends nothing; `--execute` makes the missing ones with the relay key as base and payer (InitializeAccount3 names
+  FEE_OWNER as owner; FEE_OWNER does not sign, and only FEE_OWNER can move what they hold). Every relay then sets
+  `KNOS_FEE_SHARDS=K` and `KNOS_FEE_BASE=<base>`; a relay that finds the chosen account missing names the associated
+  one. SPL Token mints only; a Token-2022 mint keeps the associated account.
+- *The sweep.* The fees are FEE_OWNER's in whichever account they sit. Revenue reads all K (`pay.fee_accounts`).
+  Moving them into the associated account is one TransferChecked per account signed by FEE_OWNER (the Squads vault),
+  proposed like any movement of its money; no relay can sign it and no payment waits for it.
+- *Shown, not measured.* `tests/test_fee_shards.py` pays an order into a seeded account on the 2.1 build (live at the
+  public ids today) and the 2.2 build, settles a held one there, and has a stranger's account and FEE_OWNER's account
+  of another mint refused (error 88); 40 orders of one owner spread over 4 relays' parts with none taken twice.
+  `scripts/load_pay.py --simulate --fee-accounts K` pays one owner's orders through N relays and K accounts. No
+  cluster run of it exists; `python scripts/load.py measure --pay --relays 4 --fee-accounts 4 --tokens ... --wallet
+  ... --write` records one.
 
 | Trigger | Who can fire it | What the run reads | GitHub's limits |
 | --- | --- | --- | --- |
