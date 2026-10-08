@@ -82,3 +82,5 @@ def test_the_site_page_draws_one_vendor_with_its_reply_and_dispute_links():
     assert f"{row['failed_at_merge']} of {row['merged']}" in html and "95% interval" in html
     assert 'id="vp-reply"' in html and "vendor-reply.yml" in html and 'id="vp-dispute"' in html and "Earn the supplier badge" in html
     assert "not a rating of defect-free work" in html and 'id="vp-none"' in none and slug == "copilot"
+    # each badge step is two sentences, the second one capitalised: "... pull requests.</strong> Gives a check receipt ..."
+    assert html.count('<span class="fine">Gives ') == len(doc["badge"]) == 2 and '<span class="fine">a check receipt' not in html

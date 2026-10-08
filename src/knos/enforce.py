@@ -402,7 +402,7 @@ NOTES = (
 )
 
 
-ENTERPRISE = ("vault", "vault_balance")       # the routes of enterprise-controlled funds: money in a Squads v4 vault
+ENTERPRISE = ("vault", "vault_balance", "allowance")   # the routes of enterprise-controlled funds: money in a Squads v4 vault (NOTES names all three)
 
 
 def as_json() -> dict:

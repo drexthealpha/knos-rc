@@ -207,6 +207,7 @@ async function page() {
     await dropFiles(p, [["approval.json", JSON.stringify({ ...record, amount: "1000.00" })]]);
     await p.waitForFunction(() => document.querySelector("[data-ap=check]").textContent.includes("changed"));
     ok("an edited record is caught", (await p.innerText("[data-ap=check]")) === "This approval record was changed after it was made.");
+    ok("a record read alone: the line above says it was read, not \"Reading.\"", (await said(p)) === "Read 1 approval record.", await said(p));
     ok("no error on the page", seen.errors.length === 0, seen.errors);
     await ctx.close();
   }
@@ -215,6 +216,11 @@ async function page() {
   for (const width of [1280, 768, 390, 320]) {
     const { ctx, p, seen } = await open(width);
     ok(`${width}px: the empty screen does not scroll sideways`, (await measure(p)).over <= 0, await measure(p));
+    // Read and "Try the sample" in one line: same top and bottom (the form's submit margin once set Read 8 px lower), or, wrapped, the same left edge
+    const line = await p.evaluate(() => { const [r, s] = ["read", "sample"].map((k) => document.querySelector(`[data-ap=${k}]`).getBoundingClientRect());
+      return { read: [r.left, r.top, r.bottom], sample: [s.left, s.top, s.bottom], wrapped: s.top >= r.bottom }; });
+    ok(`${width}px: Read and Try the sample sit in line`, line.wrapped ? Math.abs(line.read[0] - line.sample[0]) <= 1
+      : Math.abs(line.read[1] - line.sample[1]) <= 1 && Math.abs(line.read[2] - line.sample[2]) <= 1, line);
     // the answer within 300 ms, or a pending state at once: the press itself writes "Reading the sample." before anything is worked out
     const pending = await p.evaluate(() => { document.querySelector("[data-ap=sample]").click(); return document.querySelector("[data-ap=said]").textContent; });
     await p.waitForSelector("tr.ap-row[data-line='7']");

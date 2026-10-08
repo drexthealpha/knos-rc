@@ -181,6 +181,8 @@ async function page() {
     await p.waitForFunction(() => document.querySelector("[data-sf=said]").textContent === "Read from devnet. Test money.");
     ok(`${width}px: a pasted order is read with one call, a pending state at once, its payment day shown`, pending === "Reading the order." && JSON.stringify(rpc) === JSON.stringify(["getAccountInfo"])
       && (await p.innerText("[data-row=payment] [data-sf-value]")) === "2026-10-21" && (await p.getAttribute("[data-row=funded] a", "href")) === `https://explorer.solana.com/tx/${"3".repeat(87)}?cluster=devnet`, rpc);
+    const gap = await p.evaluate(() => { const f = document.querySelector("[data-sf=in]").getBoundingClientRect(), s = document.querySelector("[data-sf=said]").getBoundingClientRect(); return Math.round((s.top - f.bottom) * 10) / 10; });
+    ok(`${width}px: the line that says what was read stands clear of the buttons above it (8 px or more)`, gap >= 8, gap);
     ok(`${width}px: the finance view never says wallet, hash or token account`, !/\b(hash|token account)\b/i.test(await p.innerText("[data-sp=finance]")) && !/\bwallet\b/i.test((await p.innerText("[data-sp=finance]"))));
     await p.fill("#sp-in", "not terms"); await p.click("[data-sp=run]");
     ok(`${width}px: what is not terms is said`, (await p.innerText("[data-sp=said]")) === "That is not JSON.");

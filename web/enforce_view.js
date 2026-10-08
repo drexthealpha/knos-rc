@@ -24,7 +24,8 @@ body[data-page="enforcement"] .mount { max-width: 1080px; }
 .ke tbody th, .ke thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--paper-2); }
 .ke thead th:first-child { z-index: 2; }
 .ke tbody tr.ke-group th { position: static; padding-top: 14px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); background: transparent; }
-.ke tbody tr.ke-group th > span { position: sticky; left: 8px; }
+.ke .k-table { container-type: inline-size; }
+.ke tbody tr.ke-group th > span { position: sticky; left: 8px; display: inline-block; max-width: calc(100cqw - 16px); }   /* the set's name wraps inside what a phone shows */
 @media (max-width: 520px) { .ke tbody th { min-width: 7.5em; max-width: 7.5em; } .ke th, .ke td { padding: 6px 5px; } }
 .ke .ke-cell { all: unset; box-sizing: border-box; cursor: pointer; display: inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: 12px; font-weight: 700; white-space: nowrap;
   transition: opacity var(--dur-1, 120ms) var(--ease, ease); }

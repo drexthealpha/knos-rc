@@ -62,7 +62,7 @@ export function vendorHtml(doc, slug) {
     <p class="fine" id="vp-disputes"><span class="k-num">${esc(open.length)}</span> open, <span class="k-num">${esc(closed.length)}</span> closed.</p>
     ${open.length || closed.length ? `<ul class="fine">${open.map((d) => `<li>Open since ${esc(d.opened)}: <a href="${esc(safe(d.issue))}" target="_blank" rel="noopener">issue</a></li>`).join("")}${closed.map((d) => `<li>${esc(d.status)} ${esc(d.resolved)}: ${esc(d.outcome)} <a href="${esc(safe(d.issue))}" target="_blank" rel="noopener">issue</a></li>`).join("")}</ul>` : ""}
     <h3>Earn the supplier badge</h3>
-    <ol id="vp-badge">${(doc.badge || []).map((s) => `<li><strong>${esc(s.step)}.</strong> <span class="fine">${esc(s.gives)}.</span></li>`).join("")}</ol>
+    <ol id="vp-badge">${(doc.badge || []).map((s) => `<li><strong>${esc(s.step)}.</strong> <span class="fine">Gives ${esc(s.gives)}.</span></li>`).join("")}</ol>
     <h3>Each week</h3>
     <div class="k-table table-wrap"><table id="vp-weeks"><thead><tr><th scope="col">Week</th><th scope="col">Claimed passing</th><th scope="col">Failed check, of merged</th></tr></thead><tbody>${weeks}</tbody></table></div>
     <details class="k-more" id="vp-not"><summary>What this index is not</summary><ul class="fine">${(doc.not || []).map((n) => `<li>${esc(n)}</li>`).join("")}</ul></details>

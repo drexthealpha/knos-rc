@@ -422,7 +422,7 @@ export function renderApprover(el, ctx = {}) {
     $("out").removeAttribute("aria-busy");
     refresh();
     if (unread.length) said(`Not read: ${unread.join(", ")}.`);
-    else if (!state.rows.length && !state.checks.length) said("Nothing to show yet. Add an invoice or a statement.");
+    else if (!state.rows.length) said(state.checks.length ? `Read ${plural(state.checks.length, "approval record")}.` : "Nothing to show yet. Add an invoice or a statement.");
     await checkRecords();
     drawRecall();
     return state;

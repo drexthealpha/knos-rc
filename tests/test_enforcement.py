@@ -82,6 +82,10 @@ def test_the_table_is_whole_and_every_cell_is_one_class():
     assert {"wallet", "comment", "offer", "topup", "private", "balance", "netted", "advance", "passkey", "direct"} <= set(enforce.CELLS)
     # the enterprise route set: money in a Squads vault, its Balance, and an allowance
     assert {"vault", "vault_balance", "allowance"} <= set(enforce.CELLS)
+    # and the page draws those three under the group's row, as the note "Enterprise-controlled funds" names them
+    grouped = [r["name"] for r in enforce.as_json()["routes"] if r.get("group") == "enterprise"]
+    assert grouped == ["Enterprise vault, by vote", "Enterprise vault's Balance", "A Squads allowance"]
+    assert all(f"{name}" in next(n for n in enforce.NOTES if n.startswith("Enterprise-controlled funds.")) for name in grouped)
 
 
 def test_every_test_a_cell_names_exists():

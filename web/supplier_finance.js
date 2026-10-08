@@ -79,7 +79,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const STYLE = `.sf-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:12px;margin:12px 0}
 .sf-rows>div{border:1px solid var(--line);border-radius:var(--radius,12px);padding:12px 14px;background:var(--paper-2);min-width:0;overflow-wrap:anywhere}
 .sf-rows .k-kicker{margin:0}.sf-rows .k-num{display:block;white-space:normal;overflow-wrap:anywhere;font-size:clamp(18px,4vw,24px);font-weight:700;line-height:1.2}.sf-rows p{margin:6px 0 0}
-.sf-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sf-row .k-btn{margin:0}.sf-row input{flex:1 1 220px;min-width:0;box-sizing:border-box}
+.sf-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sf-row .k-btn{margin:0}.sf-row input{flex:1 1 220px;min-width:0;box-sizing:border-box}.sf-row+[data-sf=said]{margin-top:10px}
 .sf-rows>div[data-row]{animation:sf-in var(--dur-2,240ms) var(--ease,ease)}@keyframes sf-in{from{opacity:0;translate:0 4px}}
 @media (prefers-reduced-motion:reduce){.sf-rows>div[data-row]{animation:none}}`;
 

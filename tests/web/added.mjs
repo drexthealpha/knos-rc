@@ -171,6 +171,12 @@ if (enforcement) {
   const seen = await page.evaluate(() => { const s = document.querySelector("#enforcement .ke-said"), r = s.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: innerHeight, text: s.textContent.trim().slice(0, 60),
     breaks: [...s.querySelectorAll(".mono")].map((m) => getComputedStyle(m).wordBreak) }; });
   check("phone: the answer under the table is in view once a cell is pressed, its lines broken between words", seen.top >= 0 && seen.bottom <= seen.height + 1 && !seen.text.startsWith("No cell pressed") && seen.breaks.every((b) => b !== "break-all"), seen);
+  // the name of the set ("Enterprise-controlled funds (Squads vault)") is read whole: wrapped inside the visible part, not cut at its edge, scrolled or not
+  const label = await page.evaluate(async () => { const w = document.querySelector("#enforcement .k-table"), s = w.querySelector("tr.ke-group th > span"); if (!s) return [];
+    const at = async (x) => { w.scrollLeft = x; await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); const r = s.getBoundingClientRect(), wr = w.getBoundingClientRect();
+      return { x, left: r.left, right: r.right, from: wr.left + w.clientLeft, to: wr.left + w.clientLeft + w.clientWidth }; };
+    return [await at(0), await at(w.scrollWidth)]; });
+  check("phone: the set's name is wholly inside the table's visible part, at the start and scrolled to the end", label.length === 2 && label.every((g) => g.left >= g.from - 0.5 && g.right <= g.to + 0.5), label);
 }
 if (judges) {
   for (const width of [390, 1280]) {
