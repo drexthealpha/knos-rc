@@ -143,6 +143,34 @@ if (judges) {
   check("judges: the hash opens it: the file's rows, word for word, one link each", got.rows.length === data.rows.length && data.rows.every((r, i) => got.rows[i][0] === r.thing && got.rows[i][1] === r.sentence && got.rows[i][2] === (r.link || "") && got.rows[i][3] === (r.link ? 1 : 0)), got.rows);
   check("judges: then what is not real yet, as the file lists it, and the document itself", got.zeros.join("|") === (data.not_real || []).join("|") && got.doc === "https://github.com/drexthealpha/Knos/blob/main/docs/JUDGES.md" && got.title === "For judges: one page", got);
 }
+// ON A PHONE (390 x 640): the matrix scrolls sideways under a sticky first column. A cell reached with Tab is wholly in
+// the visible part, clear of that column and of the edge, row after row; the answer, drawn under the table, is in view
+// once a cell is pressed. For judges draws a row as a block: the sentence has the table's width, not a third of it.
+if (enforcement) {
+  await page.setViewportSize({ width: 390, height: 640 });
+  await page.goto(`${base}#enforcement`, { waitUntil: "load" }); await ready("enforcement");
+  await page.focus("#enforcement .ke-cell");
+  const hidden = [];
+  for (let i = 0; i < 14; i++) {
+    const g = await page.evaluate(() => { const a = document.activeElement, w = a.closest(".k-table"), r = a.getBoundingClientRect(), wr = w.getBoundingClientRect(), lead = w.querySelector("tbody th").getBoundingClientRect().right;
+      return { cell: a.getAttribute("aria-label"), inside: r.left >= lead - 0.5 && r.right <= wr.left + w.clientLeft + w.clientWidth + 0.5 }; });
+    if (!g.inside) hidden.push(g.cell);
+    if (i < 13) await page.keyboard.press("Tab");
+  }
+  check("phone: every cell reached with Tab is wholly in view, clear of the sticky column and the edge", hidden.length === 0, hidden);
+  await page.keyboard.press("Enter");
+  const seen = await page.evaluate(() => { const s = document.querySelector("#enforcement .ke-said"), r = s.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: innerHeight, text: s.textContent.trim().slice(0, 60),
+    breaks: [...s.querySelectorAll(".mono")].map((m) => getComputedStyle(m).wordBreak) }; });
+  check("phone: the answer under the table is in view once a cell is pressed, its lines broken between words", seen.top >= 0 && seen.bottom <= seen.height + 1 && !seen.text.startsWith("No cell pressed") && seen.breaks.every((b) => b !== "break-all"), seen);
+}
+if (judges) {
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto(`${base}#judges`, { waitUntil: "load" }); await ready("judges");
+    const g = await page.evaluate(() => { const t = document.querySelector("#judges table"), c = t.querySelector("tbody td"); return { cell: c.getBoundingClientRect().width, table: t.getBoundingClientRect().width, head: t.tHead.getBoundingClientRect().height }; });
+    check(`judges at ${width}: ${width < 560 ? "each row a block, the sentence as wide as the table" : "three columns under their heads"}`, width < 560 ? g.cell >= g.table * 0.9 && g.head <= 1 : g.cell < g.table * 0.7 && g.head > 10, g);
+  }
+}
 for (const width of [320, 390, 768, 1280]) {
   await page.setViewportSize({ width, height: 800 });
   const wide = [];

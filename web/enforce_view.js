@@ -4,7 +4,9 @@
 // --json`: { routes, restrictions, cells[route][restriction] = { class, by, test } }. A route or a restriction is a
 // name, or an object with an id and a name. Nothing here is typed in: a cell the file does not hold is drawn empty.
 // A cell is a button: pressed (or reached with Tab and Enter), the line under the table says what holds it and names
-// the test that tries to get round it. The four classes filter the table; nothing is sent anywhere.
+// the test that tries to get round it. The four classes filter the table; nothing is sent anywhere. On a phone the table
+// scrolls sideways: a cell reached with Tab is scrolled clear of the sticky first column and of the edge, and the answer,
+// which is under the table, is brought into view when it is pressed.
 const CLASSES = ["program", "workflow", "advisory", "outside"];
 const SAID = { program: "The program refuses it.", workflow: "The pinned workflow refuses it.", advisory: "A file says so. Nothing stops it.", outside: "Outside the boundary, by intent." };
 const STYLE = `
@@ -30,6 +32,7 @@ body[data-page="enforcement"] .mount { max-width: 1080px; }
 .ke[data-show] .ke-cell:not([data-on]) { opacity: .22; }
 .ke-said { margin: 12px 0 0; min-height: 3.2em; display: grid; gap: 2px; }
 .ke-said > * { margin: 0; overflow-wrap: anywhere; }
+.ke-said .mono { word-break: normal; }          /* what holds a cell is often a sentence: broken between words, not inside one */
 @media (prefers-reduced-motion: reduce) { .ke .ke-cell { transition: none; } }`;
 
 const named = (x) => (x && typeof x === "object" ? { id: String(x.id ?? x.key ?? x.name), name: String(x.name ?? x.label ?? x.title ?? x.id) } : { id: String(x), name: String(x).replace(/_/g, " ") });
@@ -55,7 +58,15 @@ export function renderEnforcement(el, { esc, data } = {}) {
       <div class="ke-said" role="status" aria-live="polite"><p class="fine">No cell pressed yet.</p></div>
     </div>
     <p class="fine" data-keep><a href="https://github.com/drexthealpha/Knos/blob/main/docs/ENFORCEMENT.md">The same matrix as a document</a></p>`;
-  const box = el.querySelector(".ke"), said = el.querySelector(".ke-said");
+  const box = el.querySelector(".ke"), said = el.querySelector(".ke-said"), wrap = el.querySelector(".k-table");
+  box.addEventListener("focusin", (ev) => {
+    const b = ev.target.closest?.(".ke-cell");
+    if (!b) return;
+    const w = wrap.getBoundingClientRect(), r = b.getBoundingClientRect(), pad = 6;
+    const left = w.left + wrap.clientLeft + (wrap.querySelector("tbody th")?.getBoundingClientRect().width || 0), right = w.left + wrap.clientLeft + wrap.clientWidth;
+    if (r.right + pad > right) wrap.scrollLeft += r.right + pad - right;
+    else if (r.left - pad < left) wrap.scrollLeft -= left - (r.left - pad);
+  });
   box.addEventListener("click", (ev) => {
     const key = ev.target.closest("[data-only]"), b = ev.target.closest(".ke-cell");
     if (key) {
@@ -71,5 +82,7 @@ export function renderEnforcement(el, { esc, data } = {}) {
     b.setAttribute("aria-pressed", "true");
     said.innerHTML = `<p><strong>${esc(r.name)}: ${esc(c.name)}</strong></p><p>${esc(SAID[x.class] || x.class)}</p>
       ${x.by ? `<p class="fine"><span class="mono">${esc(x.by)}</span></p>` : ""}${x.test ? `<p class="fine">Bypass test: <span class="mono">${esc(x.test)}</span></p>` : ""}`;
+    const s = said.getBoundingClientRect();
+    if (s.bottom > innerHeight || s.top < 0) said.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
 }

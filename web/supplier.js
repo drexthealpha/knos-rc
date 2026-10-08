@@ -264,7 +264,8 @@ export function renderSupplier(el, ctx = {}) {
   };
   const table = () => {
     const rows = search(refusals, q.value);
-    $("rows").innerHTML = rows.map((r) => `<tr><td><code>${esc(r.code)}</code></td><td>${esc(r.happened)}</td><td>${esc(r.do)}</td></tr>`).join("");
+    const ticked = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");          // the sentences name files and commands in backticks
+    $("rows").innerHTML = rows.map((r) => `<tr><td><code>${esc(r.code)}</code></td><td>${ticked(r.happened)}</td><td>${ticked(r.do)}</td></tr>`).join("");
     $("count").textContent = refusals.length ? `${rows.length} of ${refusals.length} refusals.` : "The table could not be read.";
   };
 

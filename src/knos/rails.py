@@ -120,7 +120,7 @@ def transfers(st: dict, status: dict | None = None) -> list[dict]:
         if ln["state"] == "agreed" and ln["payment"] == "payable" and ln["approved_by"] and ln["amount"] and ln["invoice_line"] not in sent:
             by.setdefault(ln["supplier"], []).append(ln)
     if by and not re.fullmatch(r"[A-Z]{3}", cur):
-        raise Refused(f"A bank moves a currency with a three-letter code; this statement is in {cur or 'no stated currency'!r}. "
+        raise Refused(f"A bank moves a currency with a three-letter code; {f'this statement is in {cur!r}' if cur else 'this statement states no currency'}. "
                       "Test money is paid on devnet (--rail usdc), never by bank.")
     out = []
     for supplier, mine in by.items():

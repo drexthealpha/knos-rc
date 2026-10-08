@@ -104,6 +104,9 @@ def test_what_cannot_be_instructed_is_refused_in_words():
     test = statement.from_shadow({"invoice": T.SEPT, "answers": T.BOOK}, {**T.META, "currency": "test USDC"})
     with pytest.raises(rails.Refused, match="Test money is paid on devnet"):                # a bank never moves test money
         rails.pain001(test, approved(test), PAYER)
+    plain = statement.from_shadow({"invoice": T.SEPT, "answers": T.BOOK}, {**T.META, "currency": ""})
+    with pytest.raises(rails.Refused, match="this statement states no currency. Test money"):      # said, not a quoted placeholder (web/rails.js the same)
+        rails.pain001(plain, approved(plain), PAYER)
     assert rails.iban_ok("GB82WEST12345698765432") and rails.iban_ok("FR1420041010050500013M02606") and not rails.iban_ok("GB83WEST12345698765432")
     assert rails.text("  Ünïcode & <tags>\n", 140) == ".n.code . .tags." and rails.text("x" * 200, 35) == "x" * 35
 

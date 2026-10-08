@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url)), root = join(here, "../../web");
 const load = (f) => import(pathToFileURL(join(root, f)).href);
 const { LINE_STATES, LINE_WORDS, COLUMNS, FEEDBACK, REPO_LINES, stateOf, answers, reading, repoInvoice, invoiceLineId } = await load("front_door.js");
-const { SAMPLE_INVOICE, SAMPLE_BOOK } = await load("front_door_sample.js");
+const { SAMPLE_INVOICE, SAMPLE_BOOK, SAMPLE_META } = await load("front_door_sample.js");
 const { parse, gather, statement, recorded } = await load("shadow.js");
 const { book } = JSON.parse(readFileSync(join(here, "../data/shadow_cases.json"), "utf8"));
 const proposal = JSON.parse(readFileSync(join(here, "../data/propose_terms.json"), "utf8"));
@@ -36,7 +36,8 @@ same("the sample's seven lines fall into the four groups", st.lines.map(stateOf)
 // THE STATEMENT the front door makes (web/statement_make.js) is the one `knos statement make` writes from the same invoice
 // and the same answers: tests/data/statement/front_door.* are the Python's (tests/test_site_front_door.py holds them to it)
 const make = await load("statement_make.js"), finance = await load("finance_data.js"), fixture = (name) => readFileSync(join(here, "../data/statement", name), "utf8");
-const made = await make.fromShadow({ invoice: SAMPLE_INVOICE, answers: SAMPLE_BOOK }, {});
+const made = await make.fromShadow({ invoice: SAMPLE_INVOICE, answers: SAMPLE_BOOK }, SAMPLE_META);
+same("the sample's statement names a currency, so a bank file can be made from it", made.currency, "USD");
 same("the sample's statement is the Python's, byte for byte", finance.canonicalText(made), fixture("front_door.json"));
 same("  its CSV too, before an approval and after one", [await finance.statementCsv(made), await finance.statementCsv(made, make.approve(made, null, "you", "approver", "2026-10-06"))], [fixture("front_door.plain.csv"), fixture("front_door.csv")]);
 same("  every line has its deliverable and invoice line ids, an evaluation where one ran, and one of the four states", [made.lines.every((l) => /^dlv_[0-9a-f]{24}$/.test(l.deliverable) && /^inv_[0-9a-f]{24}$/.test(l.invoice_line) && l.evaluations.every((e) => /^evl_[0-9a-f]{24}$/.test(e))),
@@ -223,7 +224,7 @@ async function page() {
       await p.click('[data-fd="approve"]'); await p.click('[data-fd="statement"]');
       await p.waitForSelector("#aps-statement", { state: "visible" });
       same("320px, on the site: Open the statement shows the same statement on the Statement page, with the approval", await p.$eval("#aps-statement", (e) => [e.dataset.sha256, e.dataset.whole, document.body.dataset.page]).then(async (l) => [...l,
-        (await p.textContent("#aps-answers")).includes("2 agreed lines, 650.00 by you (approver) on"), await p.$$eval("#aps-lines .k-state", (x) => x.map((e) => e.dataset.state))]), [made.sha256, "1", "invoice-statement", true, WANT]);
+        (await p.textContent("#aps-answers")).includes("2 agreed lines, 650.00 USD by you (approver) on"), await p.$$eval("#aps-lines .k-state", (x) => x.map((e) => e.dataset.state))]), [made.sha256, "1", "invoice-statement", true, WANT]);
       ok("320px, on the site: the statement does not scroll sideways", (await measure(p)).over <= 0, await measure(p));
     }
     await ctx.close();

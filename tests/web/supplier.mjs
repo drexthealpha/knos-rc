@@ -106,6 +106,8 @@ async function page() {
     await p.goto(`${base}supplier_page.html`);
     await p.waitForFunction(() => window.drawn === true);
     ok(`${width}px: the refusal table is there before anything is pasted, a supplier's rows only`, (await p.locator("[data-sp=rows] tr").count()) === search(refusals, "").length);
+    ok(`${width}px: a file or a command in a refusal's sentence is drawn as code, never as backticks`, !(await p.innerText("[data-sp=rows]")).includes("`")
+      && (await p.locator("[data-sp=rows] td:not(:first-child) code").count()) > 0);
     ok(`${width}px: the published samples are offered`, (await p.locator("[data-sp=samples] button").allInnerTexts()).includes("Sample: feature-blackbox"), await p.locator("[data-sp=samples] button").allInnerTexts());
     ok(`${width}px: the empty page does not scroll sideways`, (await measure(p)).over <= 0, await measure(p));
     const t0 = Date.now();

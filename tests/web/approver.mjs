@@ -14,7 +14,7 @@ const mod = (name) => import(pathToFileURL(join(web, name)).href);
 const { readOrders, rowsOf, uncheckedRows, partsOf, readReceipts, messageOf, EXCEPTIONS, WORDS, COLUMNS, PARTS, SAMPLE_ORDERS } = await mod("approver.js");
 const { fromShadow, approve } = await mod("statement_make.js");
 const { parse } = await mod("shadow.js");
-const { SAMPLE_INVOICE, SAMPLE_BOOK } = await mod("front_door_sample.js");
+const { SAMPLE_INVOICE, SAMPLE_BOOK, SAMPLE_META } = await mod("front_door_sample.js");
 const read = (name) => readFileSync(join(data, name), "utf8"), json = (name) => JSON.parse(read(name));
 const sept = json("sept.json"), septStatus = json("sept.status.json"), october = json("october.json"), front = json("front_door.json");
 const TIME = join(web, "approver_time.json");
@@ -42,7 +42,7 @@ same("the held line says the limit and what was reached, and nothing is authoris
 same("a line billed on an earlier statement is replayed", [kinds(rowsOf(october)), rowsOf(october)[0].reason], [["replayed", null], "Already billed: invoice INV-2026-09 line 1 agreed this deliverable on 2026-09-30."]);
 same("with its status file a line says who approved and how it was paid", rowsOf(sept, septStatus).map((r) => r.payment),
   ["approved, paid outside Knos", "held", "held", "held", "approved, devnet demonstration"]);
-const sample = await fromShadow({ invoice: SAMPLE_INVOICE, answers: SAMPLE_BOOK }, {});
+const sample = await fromShadow({ invoice: SAMPLE_INVOICE, answers: SAMPLE_BOOK }, SAMPLE_META);
 same("the sample is the front door's statement", sample.sha256, front.sha256);
 same("the sample: two agreed lines inside their purchase orders, five exceptions", kinds(rowsOf(sample, null, readOrders(SAMPLE_ORDERS))), [null, "disputed", "disputed", "duplicate", null, "duplicate", "insufficient_evidence"]);
 same("an invoice with no statement: nothing is checked, every line is an exception", uncheckedRows(parse(INVOICE), readOrders(INVOICE)).map((r) => [r.kind, r.reason, r.authorised])[0],
@@ -286,8 +286,23 @@ async function page() {
       // web/rails.js draws the form itself (a payment file needs each supplier's account): the page hands it the statement and the approval
       // web/rails.js draws the form itself (a payment file needs each supplier's account): the page hands it the statement and the approval
       await p.waitForSelector("[data-ap=pay] [data-rails-said]");
-      ok("web/rails.js is in this tree: it is shown after approval, and the sample, which states no currency, gets its reason and no file",
-        /^A bank moves a currency with a three-letter code/.test(await p.innerText("[data-ap=pay] [data-rails-said]")) && !(await p.isVisible("[data-ap=pay] [data-rails-files]")) && !(await p.$("[data-ap=pay] [data-rails-form]")));
+      // the sample states its currency (USD): approved, its two agreed lines make one transfer, and the bank file is saved
+      await p.waitForSelector("[data-ap=pay] [data-rails-form]");
+      ok("web/rails.js is in this tree: it is shown after approval, and the sample, in USD, gets one transfer of its two agreed lines",
+        (await p.innerText("[data-ap=pay] [data-rails-said]")) === "1 transfer ready." && !(await p.isVisible("[data-ap=pay] [data-rails-files]")) && (await p.innerText("[data-ap=pay] [data-rails-form] td.k-num")).startsWith("650.00 USD"));
+      await p.fill("[data-ap=pay] input[name=name]", "Example Buyer (made up)"); await p.fill("[data-ap=pay] input[name=account]", "GB33BUKB20201555555555");
+      for (const box of await p.$$("[data-ap=pay] input[name^=payee]")) await box.fill("DE89370400440532013000");
+      const sampled = await downloaded(p, () => p.click("[data-ap=pay] [data-rails-form] button[type=submit]"));
+      ok("  the sample's bank file: a pain.001 of 650.00 USD to the made-up supplier", /\.pain001\.xml$/.test(sampled.name) && sampled.text.includes('<InstdAmt Ccy="USD">650.00</InstdAmt>')
+        && sampled.text.includes("<Nm>Example Agents Ltd (made up)</Nm>") && (await p.innerText("[data-ap=pay] [data-rails-said]")) === "Saved. Upload it to your bank.", [sampled.name, sampled.text.slice(0, 300)]);
+      // a statement that states no currency gets its reason and no form: the sample's own, made with no currency
+      const plain = await fromShadow({ invoice: SAMPLE_INVOICE, answers: SAMPLE_BOOK }, {});
+      await p.reload(); await p.waitForFunction(() => window.drawn);
+      await dropFiles(p, [["invoice.csv", SAMPLE_INVOICE], ["front_door.json", JSON.stringify(plain)]]); await p.waitForSelector("tr.ap-row[data-line='7']");
+      await p.fill("#ap-by", "Dana Reyes"); await p.fill("#ap-role", "controller"); await p.click("[data-ap=approve]");
+      await p.waitForSelector("[data-ap=pay] [data-rails-said]:not(:empty)");
+      ok("  a statement with no currency: its reason, and no file", (await p.innerText("[data-ap=pay] [data-rails-said]")) === "A bank moves a currency with a three-letter code; this statement states no currency. Test money is paid on devnet (--rail usdc), never by bank."
+        && !(await p.$("[data-ap=pay] [data-rails-form]")), await p.innerText("[data-ap=pay] [data-rails-said]"));
       await p.reload(); await p.waitForFunction(() => window.drawn);
       await dropFiles(p, [["invoice.csv", INVOICE], ["sept.json", read("sept.json")]]); await p.waitForSelector("tr.ap-row[data-line='5']");
       await p.fill("#ap-by", "Dana Reyes"); await p.fill("#ap-role", "controller"); await p.click("[data-ap=approve]");

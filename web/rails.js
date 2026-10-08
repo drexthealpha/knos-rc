@@ -103,7 +103,7 @@ export function transfers(st, status) {
     if (ln.state === "agreed" && payment === "payable" && approved && ln.amount && !sent.has(ln.invoice_line)) by.set(ln.supplier, [...(by.get(ln.supplier) || []), ln]);
   }
   const cur = String(st.currency);
-  if (by.size && !/^[A-Z]{3}$/.test(cur)) throw new Refused(`A bank moves a currency with a three-letter code; this statement is in ${cur ? `'${cur}'` : "'no stated currency'"}. Test money is paid on devnet (--rail usdc), never by bank.`);
+  if (by.size && !/^[A-Z]{3}$/.test(cur)) throw new Refused(`A bank moves a currency with a three-letter code; ${cur ? `this statement is in '${cur}'` : "this statement states no currency"}. Test money is paid on devnet (--rail usdc), never by bank.`);
   const out = [];
   for (const [supplier, mine] of by) {
     const total = mine.reduce((n, ln) => n + units(ln.amount, st.scale), 0), per = st.scale > 2 ? 10 ** (st.scale - 2) : 1;

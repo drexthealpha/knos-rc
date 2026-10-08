@@ -41,7 +41,7 @@ import { parse, pullOf, cents, money } from "./shadow.js";
 import { csvRows, statementLines, statementDigest, statementCsv, statementExport, statementUnits as units, statementAmount as amountOf, canonicalText,
   STATEMENT_KIND, STATUS_KIND, PAY_WORDS, HANDED } from "./finance_data.js";
 import { fromShadow, approve as approveLines } from "./statement_make.js";
-import { SAMPLE_INVOICE, SAMPLE_BOOK } from "./front_door_sample.js";
+import { SAMPLE_INVOICE, SAMPLE_BOOK, SAMPLE_META } from "./front_door_sample.js";
 
 export const EXCEPTIONS = ["disputed", "duplicate", "insufficient_evidence", "over_po", "replayed"];
 export const WORDS = { disputed: "disputed", duplicate: "duplicate", insufficient_evidence: "insufficient evidence", over_po: "over the purchase order", replayed: "replayed" };
@@ -366,7 +366,7 @@ export function renderApprover(el, ctx = {}) {
   function reset() { Object.assign(state, { st: null, status: null, pending: null, invoice: null, orders: {}, receipts: [], sample: false, whole: true, rows: [], open: null, recall: null }); }
   async function sample() {
     reset(); said("Reading the sample.");
-    state.st = await fromShadow({ invoice: SAMPLE_INVOICE, answers: SAMPLE_BOOK }, {});
+    state.st = await fromShadow({ invoice: SAMPLE_INVOICE, answers: SAMPLE_BOOK }, SAMPLE_META);
     state.invoice = parse(SAMPLE_INVOICE); state.orders = readOrders(SAMPLE_ORDERS); state.sample = true;
     refresh();
     return state;
