@@ -387,6 +387,39 @@ def test_a_task_whose_order_no_merge_can_pay_is_closed_with_the_chains_sentence_
     assert code == 1 and len(forge.wrote) == wrote and "could not be read (devnet did not answer): nothing was sent" in said
 
 
+def test_after_a_rebuild_new_kinds_open_first_and_a_task_a_person_works_on_is_not_closed(monkeypatch):
+    """0.3.21: the release rebuilds the playground at the next commit, so every open order strands, and five new kinds
+    wait. Within one day's budget the kinds never offered go first; a stranded issue that a stranger's open pull request
+    names stays open, said, and is not opened again."""
+    from knos import tasks
+    every = tb.kinds()
+    old, new = every[:5], every[5:]
+    assert [k["kind"] for k in new] == ["compose", "gate", "keyholder", "tamper", "witness"]
+    forge = Forge()
+    monkeypatch.setattr(tb, "kinds", lambda: old)
+    assert run(forge, "open", "--apply", "--faucet", "--kinds", "-n", "3", "--budget", "60")[0] == 0
+    monkeypatch.setattr(tb, "kinds", lambda: every)
+    assert [tb.MARK.search(i["body"]).group(1) for i in forge.issues] == [k["slug"] for k in old] + SLUGS[:3]       # #4-#8 kinds, #9-#11 code
+    forge.pulls = [{"number": 40, "user": STRANGER, "state": "open", "body": "Closes #5"},                          # a person works on #5
+                   {"number": 41, "user": OWNER, "state": "open", "body": "Closes #6"}]                             # the owner's own is no person's work
+
+    def pin(where, pull):
+        return tasks.explain({"where": where, "orders": [{"state": "open", "wf_public": True, "wf_sha": "b" * 40, "called": False}]})
+    forge.day = "2026-10-08"
+    code, said, _ = run(forge, "plan", "--kinds", "-n", "3", now=NOW + 86_400, why=pin)
+    assert code == 0 and "  left open #5: no merge can pay its order, but pull request #40 of @stranger names it and is open" in said
+    assert "stranded #6:" in said and "stranded #5:" not in said
+    code, said, _ = run(forge, "open", "--apply", "--faucet", "--kinds", "-n", "3", now=NOW + 86_400, why=pin)
+    assert code == 0
+    assert {i["number"]: i["state"] for i in forge.issues if i["number"] <= 11} == {4: "closed", 5: "open", 6: "closed", 7: "closed", 8: "closed",
+                                                                                   9: "closed", 10: "closed", 11: "closed"}
+    assert not [c for c in forge.comments[5] if "funded through" in c["body"]]
+    opened = [tb.MARK.search(i["body"]).group(1) for i in forge.issues if i["number"] > 11]
+    assert opened == [k["slug"] for k in new] + ["outside-reproduce", "outside-fund", "outside-install"]          # 8 x 5.05 = 40.40 of 45.00
+    assert "today's budget of 45.00 test USDC is used up to 40.40 test USDC: outside-judge (5.05 test USDC with its fee) waits for tomorrow (UTC)" in said
+    assert all([c["body"] for c in forge.comments[n]] == [f"/knos fund 5 days {tb.KIND_DAYS}"] for n in range(12, 20))
+
+
 @pytest.fixture(scope="module")
 def chain():
     from _order import USDC, OrderChain

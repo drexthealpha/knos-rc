@@ -40,12 +40,14 @@ THE TASKS THAT ARE NOT CODE (`--kinds`; tasks/outside/<kind>.json, knos.tasks.KI
 `outside-<kind>` that pays 5 test USDC on a maintainer's MERGE of the pull request filing its evidence, one file
 outside/<kind>/<login>.json; the maintainer checks it with knos.tasks.accepts first. No acceptance bundle is theirs: the
 starter task's checks under the issue's number are removed in the same commit as its line in board.json, so the funding
-is merge mode. They are opened before the code tasks, count in the same day's budget, and not in the target.
+is merge mode. They are opened before the code tasks, a kind never offered before ahead of one opened again, count in
+the same day's budget, and not in the target.
 
 A STRANDED TASK IS OPENED AGAIN. `plan` and `open` read each open funded issue's order from the chain (knos.tasks.why):
 one funded through a commit of the workflows the playground no longer calls (every release rebuilds it at the next
 commit), past its deadline, or no longer open can pay no merge. `plan` names it; `open --apply` closes it with that
 sentence (its money goes back at its deadline) and the board opens the task again in a new issue, in the day's budget.
+One that an open pull request of another account names is left open, and said: nothing a person works on is closed.
 
 A HELD PAYMENT IS A STATE OF THE BOARD. `status` lists, under `held`, each merged pull request on a board task whose
 payment waits for its author to say where it goes, with the one instruction for the payee: comment
@@ -554,6 +556,21 @@ def stranded(state: dict, repo: str, why: Callable) -> dict[int, str]:
     return out
 
 
+def working(gh: Forge, repo: str, owner_id: int, lost: dict[int, str]) -> dict[int, list[str]]:
+    """{issue: ["pull request #M of @login", ...]} for each stranded issue that an open pull request of another account
+    names (`Closes #N`): a person is working on it, so it is not closed and its task is not opened again."""
+    if not lost:
+        return {}
+    out: dict[int, list[str]] = {}
+    for p in _pages(gh, f"repos/{repo}/pulls?state=open"):
+        user = p.get("user") if isinstance(p.get("user"), dict) else {}
+        if user.get("id") == owner_id:
+            continue
+        for n in sorted({int(x) for x in CLOSES.findall(str(p.get("body") or ""))} & set(lost)):
+            out.setdefault(n, []).append(f"pull request #{int(p['number'])} of @{user.get('login') or 'someone'}")
+    return out
+
+
 def plan(state: dict, now: float, target: int = TARGET, budget: int = BUDGET, reserve: int = RESERVE, balance: int | None = None,
          tasks: list[dict] | None = None, kinds_: list[dict] | None = None) -> dict:
     """What `open` would do. `balance`: millionths the named Balance holds, None when none was named (the faucet pays).
@@ -582,7 +599,9 @@ def plan(state: dict, now: float, target: int = TARGET, budget: int = BUDGET, re
     live_code = len([r for r in live if not is_kind(r)])
     left = budget - spent
     stopped = False
-    for t in list(kinds_ or []) + tasks[start:] + tasks[:start]:
+    offered = {r["slug"] for r in state["rows"]}
+    kinds_ = [k for k in kinds_ or [] if k["slug"] not in offered] + [k for k in kinds_ or [] if k["slug"] in offered]   # a kind never offered before goes first
+    for t in kinds_ + tasks[start:] + tasks[:start]:
         if not is_kind(t) and live_code + len([x for x in new if not is_kind(x)]) >= target:
             break
         if t["slug"] in taken:
@@ -840,6 +859,9 @@ def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc,
             raise Stop("nothing was sent: say what pays, `--balance <address>` (its reserve is kept) or `--faucet` (the devnet faucet mints it)")
         state = read(gh, a.repo, playground.OWNER_ID)
         lost = stranded(state, a.repo, why or _tasks().why)
+        busy = working(gh, a.repo, playground.OWNER_ID, lost)
+        for n in busy:
+            del lost[n]
         for r in state["rows"]:
             if r["number"] in lost:
                 r["state"] = "stranded"         # not open for the plan: its money cannot pay a merge, so the task is opened again
@@ -848,6 +870,9 @@ def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc,
         p["listed"] = state["listed"]
         for line in words(p, a.repo):
             say(line)
+        for n, pulls in sorted(busy.items()):
+            say(f"  left open #{n}: no merge can pay its order, but {', '.join(pulls)} names it and is open: nothing a person is working on is closed. "
+                "On the merge a maintainer tips the work (`/knos tip <amount>`).")
         for n, said in sorted(lost.items()):
             say(f"  stranded #{n}: {said} {'It is closed with that sentence' if a.command == 'open' and a.apply else 'open --apply closes it with that sentence'}, "
                 "and its task can be opened again.")
