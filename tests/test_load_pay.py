@@ -4,6 +4,7 @@ counted, and a failure or a payment that never completed is never dropped from t
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -69,3 +70,52 @@ def test_the_command_asks_for_what_it_needs():
     assert run("--relays", "2").returncode == 2 and "--tokens" in run("--relays", "2").stderr
     assert run("--relays", "2", "--simulate").returncode == 2
     assert run("--relays", "0", "--simulate", "--orders", "1").returncode == 2
+
+
+def test_a_token_another_relay_carried_first_is_counted_and_never_as_paid():
+    """`already`: the chain showed the payment done before this relay sent anything. It is in the denominator, and it
+    is not a payment of the run: counting it as paid would time a read, not a PayOrder."""
+    from knos.settle.v2 import relay
+    tokens = [{"kind": "pay", "jwt": f"t{i}"} for i in range(3)]
+    real = relay.lane
+    relay.lane = lambda jwt: jwt
+    try:
+        got = load_pay.on_cluster(None, Keypair.from_seed(bytes(32)), 2, tokens, relay_one=lambda led, k, kind, jwt: {"ok": True, "already": jwt == "t0"},
+                                  lend=lambda k: True, sweep=lambda k: None)
+    finally:
+        relay.lane = real
+    assert (got["attempted"], got["paid"], got["already"], got["refused"], got["never_completed"]) == (3, 2, 1, 0, 0) and got["ok"] is False
+    assert got["payment_s"]["n"] == 2
+
+
+def test_measure_pay_write_keeps_the_cluster_run_and_the_page_prints_it_with_its_denominator(tmp_path, monkeypatch):
+    """`python scripts/load.py measure --pay --relays 4 --tokens FILE --wallet KEY --write`, the command docs/LOAD.md
+    names: the run of scripts/load_pay.py is appended to docs/load.json and rendered under its own heading."""
+    sys.path[:0] = [p for p in (str(ROOT / "scripts"), str(ROOT / "tests")) if p not in sys.path]
+    import load
+    import load_pay as lp
+    monkeypatch.setattr(load, "JSON", tmp_path / "load.json")
+    monkeypatch.setattr(load, "DOC", tmp_path / "LOAD.md")
+    (tmp_path / "load.json").write_text(json.dumps({"runs": []}), encoding="utf-8")
+    from knos.settle.v2 import pay
+    record = {"kind": "pay", "cluster": "devnet", "date": "2026-10-09", "relays": 4, "orders": 5, "wallet": "W",
+              "programs": {"knos_pay": str(pay.PAY_ID), "knos_oidc": str(pay.OIDC_ID), "ids": "the ids this installation names"},
+              "fee_payers": ["A", "B", "C", "D"], "attempted": 5, "paid": 4, "refused": 1, "never_completed": 0, "already": 0,
+              "per_relay": [], "first_refusals": ["error 91"], "seconds": 12.5, "paid_per_s": 0.32,
+              "payment_s": {"n": 4, "p50": 2.1, "p95": 3.0, "p99": 3.0, "max": 3.0}, "ok": False}
+    monkeypatch.setattr(lp, "on_cluster", lambda *a, **k: record)
+    toks, key = tmp_path / "pay.json", tmp_path / "key.json"
+    toks.write_text(json.dumps([{"kind": "pay", "jwt": "x"}]), encoding="utf-8")
+    key.write_text(json.dumps(list(bytes(Keypair.from_seed(bytes(32))))), encoding="utf-8")
+    assert load.main(["measure", "--pay", "--relays", "4", "--tokens", str(toks), "--wallet", str(key), "--write"]) == 1     # not every payment paid
+    kept = json.loads((tmp_path / "load.json").read_text(encoding="utf-8"))["measured"]
+    assert kept == [record]
+    page = (tmp_path / "LOAD.md").read_text(encoding="utf-8")
+    assert ("#### Measured on devnet, public program ids, 2026-10-09: end-to-end PayOrder: token verification, then the payment; "
+            "4 relays, 5 payments attempted (did not complete cleanly)") in page
+    assert "| 5 | 4 of 5 | 0 | 1 | 0 | 12.5 | 0.32 | 2.1 | 3.0 | none: fewer than 100 payments | 3.0 |" in page
+    assert "Not measured: end-to-end PayOrder capacity" not in page and "The first refusals: error 91." in page
+    import rate_claims
+    assert rate_claims.check(page) == []
+    with pytest.raises(SystemExit):
+        load.main(["measure", "--pay", "--relays", "2", "--orders", "2", "--simulate", "--write"])      # a simulated run is never written

@@ -64,7 +64,8 @@ def spread(values: list[float]) -> dict:
 def counted(rows: list[dict], relays: int) -> dict:
     """The totals every run reports: attempts first, then each outcome, so no rate stands without its denominator."""
     out: dict = {"attempted": len(rows), "paid": sum(1 for r in rows if r["state"] == "paid"), "refused": sum(1 for r in rows if r["state"] == "refused"),
-           "never_completed": sum(1 for r in rows if r["state"] == "never_completed")}
+           "never_completed": sum(1 for r in rows if r["state"] == "never_completed"),
+           "already": sum(1 for r in rows if r["state"] == "already")}     # carried by another relay first: counted, never as paid
     out["per_relay"] = [{"relay": i, "attempted": sum(1 for r in rows if r["relay"] == i), "paid": sum(1 for r in rows if r["relay"] == i and r["state"] == "paid")}
                         for i in range(relays)]
     out["first_refusals"] = [r["why"] for r in rows if r["state"] == "refused"][:5]
@@ -174,8 +175,9 @@ def on_cluster(rpc, wallet: Keypair, relays: int, tokens: list[dict], clock=time
             began = clock()
             try:
                 got = send(ledger, keys[r], str(t.get("kind") or "pay"), str(t["jwt"]))
-                state = "paid" if got.get("ok") else "refused"
-                why = None if got.get("ok") else str(got.get("why") or "no reason given")[:200]
+                state = ("already" if got.get("already") else "paid") if got.get("ok") else "refused"
+                why = (None if state == "paid" else "the chain showed it done before this relay sent anything: not a payment of this run"
+                       if state == "already" else str(got.get("why") or "no reason given")[:200])
             except Exception as e:  # noqa: BLE001 - no answer: counted, never dropped
                 state, why = "never_completed", f"{type(e).__name__}: {e}"[:200]
             done.append({"relay": r, "state": state, "why": why, "began": began, "ended": clock()})

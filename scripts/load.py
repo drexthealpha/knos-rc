@@ -662,6 +662,9 @@ def render_measured(doc: dict) -> list[str]:
                 "Until the release run records one, this page holds no measured throughput.", ""]
     for m in runs:
         kind = MEASURED_KIND.get(m.get("kind", "fund"), m.get("kind", "fund"))
+        if m.get("kind") == "pay" and "phases" not in m:            # scripts/load_pay.py's record: one row of payments
+            out += paid_rows(m, kind)
+            continue
         out += [f"#### Measured on devnet, {ids_of(m.get('programs') or m.get('program'))}, {m['date']}: {kind}; {m['relays']} relays, {m['orders']:,} orders each way"
                 + ("" if m.get("ok") else " (did not complete cleanly)"), "",
                 "| | Confirmed | Seconds | Confirmed a second | Retries | Failures | Confirm p50 s | p95 | p99 | worst | Slots used | Most in one slot |",
@@ -680,7 +683,7 @@ def render_measured(doc: dict) -> list[str]:
                 "PayOrder, the transaction that writes the fee account of the mint, side by side on a cluster, so how many payments a second "
                 "the whole path carries (token verification, then PayOrder, through the one fee account) has no measured figure, on the "
                 "public program ids or on staging. The derived ceiling below is arithmetic. The command that will measure it: "
-                "`python scripts/load.py measure --pay --relays 4 --orders 40 --wallet <keypair> --write`. A run of it is recorded here "
+                "`python scripts/load.py measure --pay --relays 4 --tokens <pay tokens GitHub signed> --wallet <keypair> --write`. A run of it is recorded here "
                 "under its own heading, with its ids and date.", ""]
     if doc.get("local"):
         d = doc["local"]["derived"]
@@ -705,6 +708,28 @@ def usd(micro: int) -> str:
 
 
 PUBLIC_IDS = ROOT / "src" / "knos" / "settle" / "v2" / "program_ids.json"
+
+
+def paid_rows(m: dict, kind: str) -> list[str]:
+    """One end-to-end PayOrder run of scripts/load_pay.py on a cluster: every payment attempted, what became of each,
+    and the seconds of the ones paid, p50, p95 and p99 apart (no p99 below 100 payments)."""
+    progs = {k: v for k, v in (m.get("programs") or {}).items() if k != "ids"}
+    c = m.get("payment_s") or {}
+    p99 = c.get("p99") if m.get("paid", 0) >= 100 else "none: fewer than 100 payments"
+    out = [f"#### Measured on devnet, {ids_of(progs)}, {m['date']}: {kind}; {m['relays']} relays, {m.get('attempted', 0):,} payments attempted"
+           + ("" if m.get("ok") else " (did not complete cleanly)"), "",
+           "| Attempted | Paid | Carried first by another relay | Refused | Never completed | Seconds | Paid a second | Payment p50 s | p95 | p99 | worst |",
+           "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+           f"| {m.get('attempted', 0):,} | {m.get('paid', 0):,} of {m.get('attempted', 0):,} | {m.get('already', 0)} | {m.get('refused', 0)} | "
+           f"{m.get('never_completed', 0)} | {m.get('seconds')} | {m.get('paid_per_s')} | {c.get('p50')} | {c.get('p95')} | {p99} | {c.get('max')} |", ""]
+    said = (f"A payment's seconds run from its first submission to the relay's answer: the token written, GitHub's signature verified, then "
+            f"PayOrder. Each relay paid from a fee payer of its own ({', '.join(f'`{k}`' for k in m.get('fee_payers') or [])}), lent its SOL by "
+            f"wallet `{m.get('wallet')}` and swept back.")
+    if m.get("first_refusals"):
+        said += " The first refusals: " + "; ".join(m["first_refusals"]) + "."
+    if m.get("stopped"):
+        said += f" Stopped: {m['stopped']}."
+    return out + [said, ""]
 
 
 def ids_of(programs) -> str:
@@ -1099,7 +1124,24 @@ def main(argv=None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if args[:1] == ["measure"] and "--pay" in args:     # end-to-end PayOrder capacity: scripts/load_pay.py
         import load_pay
-        return load_pay.main([x for x in args[1:] if x != "--pay"])
+        rest = [x for x in args[1:] if x not in ("--pay", "--write")]
+        if "--write" not in args:
+            return load_pay.main(rest)
+        if "--simulate" in rest or "--out" in rest:
+            ap.error("measure --pay --write records a cluster's run: a simulated run measures nothing and is never written; --out is not needed")
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "pay.json"
+            code = load_pay.main([*rest, "--out", str(out)])
+            got = json.loads(out.read_text(encoding="utf-8")) if out.is_file() else None
+        if got is None:
+            return code or 1
+        print(json.dumps(got, indent=1))
+        if got.get("attempted"):                        # a run that sent nothing has no figure to keep
+            doc = load()
+            doc.setdefault("measured", []).append(got)
+            write(doc)
+        return code
     a = ap.parse_args(argv)
     doc = load()
     if a.stages:
