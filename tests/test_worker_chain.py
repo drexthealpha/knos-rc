@@ -101,6 +101,19 @@ def test_the_watchdog_starts_a_chain_only_when_none_is_queued_or_in_progress():
     assert chain.watch("o/r", 90, tries=2, **gh.kw()) == "failed"
 
 
+
+def test_the_watchdog_inside_a_chain_run_that_did_not_relay_starts_that_runs_successor():
+    """worker.yml's job `rewatch` (`watch --successor`): run 90 is still in progress while its last job watches, so it is
+    not counted, and the run started takes over from it ("relay after 90"): a first run would find run 90 going and end
+    at its first step. A run that took over from 90 already holds the chain: nothing is started."""
+    ending = [(90, "in_progress", "relay after 85"), (85, "completed", "relay after 80")]
+    gh = GitHub(listed=ending)
+    assert chain.watch("o/r", 90, successor=True, **gh.kw()) == "started" and gh.starts == [{"ref": "main", "inputs": {"after": "90"}}]
+    gh = GitHub(listed=[*ending, (93, "queued", "relay after 90")])
+    assert chain.watch("o/r", 90, successor=True, **gh.kw()) == "alive" and gh.starts == []
+    gh = GitHub(listed=ending)          # without --successor (the timer's watchdog) a start is a first run, as before
+    assert chain.watch("o/r", 77, **gh.kw()) == "alive" and gh.starts == []
+
 def test_two_watchdogs_cannot_start_two_chains():
     """The second watchdog runs after the first (their concurrency group) and finds the run the first one started. And
     when its start got a 500 that GitHub took, the listing before the next try finds that run too."""

@@ -35,7 +35,11 @@ What holds now:
 - In the 0.3.20 release run GitHub's 5-minute timer fired twice in four hours, and a run that sat in its PyPI install
   wait counted as alive while the chain was down. Since 0.3.21:
   - the same watchdog also runs when any run of the worker ends, whatever its conclusion (`watchdog.yml`, a file of
-    its own so that its own runs ending start nothing), on a `knos-watch` dispatch, and by hand (the release step);
+    its own so that its own runs ending start nothing), on a `knos-watch` dispatch, and by hand (the release step).
+    GitHub sends `watchdog.yml` that event only for a run a person started, never for one the workflow's own token
+    started, which is every run of the chain after the first (seen in staging on 8 October 2026). So a chain run whose
+    relay job failed, was cancelled or timed out runs the watchdog itself as its last job (`rewatch` in `worker.yml`),
+    and the run it starts takes over from it;
   - a run is alive by its **heartbeat**, not by existing: the relay job's step `heartbeat: the relay starts with what
     was installed`, which GitHub lists with the time it completed. Alive: queued less than 15 minutes, or in progress
     with a heartbeat less than 9 minutes old, or still installing less than 8 minutes after it started. Anything

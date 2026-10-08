@@ -88,6 +88,11 @@ name: always-on worker
 #   - the watchdog also runs when a run of this workflow ends, whatever its conclusion (watchdog.yml: a file of its own,
 #     so that its own runs ending start nothing), on a `knos-watch` dispatch or by hand (the release step), and on
 #     every event this file already takes (a token announced, a `knos` run ended);
+#   - GitHub sends watchdog.yml no `workflow_run` for a run of the chain: each is started by the run before it with the
+#     workflow's own token, and an event that token causes starts no workflow (staging, 8 Oct 2026: a run a person
+#     started woke watchdog.yml when it ended; the two chain runs after it, one handed over, one cancelled, did not). So
+#     a chain run whose relay job did not succeed (it failed, was cancelled or timed out) runs the watchdog itself, in
+#     the job `rewatch`, as its last job: it starts a chain at once when none is alive, the run itself not counted;
 #   - "alive" is a run with a HEARTBEAT (the relay job's step of that name) less than 9 minutes old, or one still
 #     installing less than 8 minutes after it started, or one queued less than 15 minutes: a run with no heartbeat in
 #     time is cancelled and one is started in its place (src/knos/proof/chain.py);
@@ -306,6 +311,34 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -I src/knos/proof/chain.py watch
+
+  # The same watchdog at the end of a chain run whose relay job did not succeed: that run starts no next one, and the end
+  # of a run this workflow's own token started wakes no other workflow (watchdog.yml's `workflow_run` is not sent for
+  # it). `always()`: it runs after a cancel and a timeout too (a force-cancel skips it; the watchdog that asks one has
+  # started a run already). The run it is part of is not counted (chain.py watch leaves out GITHUB_RUN_ID), so with no
+  # other run of a chain alive it starts one, as this run's successor (`--successor`: "relay after <this run>", which
+  # the first step lets go on while this run is still ending); with one alive (this run handed over before it was
+  # cancelled, or a watchdog replaced it) it does nothing. A re-run, or a run that ended at its first step, has a relay
+  # job that succeeded: nothing runs here.
+  rewatch:
+    needs: relay
+    if: always() && github.event_name == 'workflow_dispatch' && (needs.relay.result == 'failure' || needs.relay.result == 'cancelled')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write        # it lists the runs and starts one
+    concurrency:
+      group: knos-relay-watchdog
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: start a chain of runs when none is alive but this one
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I src/knos/proof/chain.py watch --successor
 
   # One event, one run: the tokens the event names, and nothing else. The same install as the chain's, by hash; no
   # cache of any kind (this job sees the fee key); nothing of the event is ever run, and none of it reaches a shell:

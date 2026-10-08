@@ -1763,6 +1763,29 @@ def test_two_watchdogs_cannot_start_two_chains_and_two_first_runs_do_not_end_eac
     assert go("", [_run(85, "relay after 80", "queued")], me=83)[0] == "go=false"       # a chain's run, older or newer, always holds
 
 
+
+def test_a_chain_run_whose_relay_did_not_succeed_runs_the_watchdog_itself_and_starts_its_own_successor(tmp_path):
+    """GitHub sends no `workflow_run` to watchdog.yml for a run the workflow's own token started, which is every run of
+    the chain (staging, 8 Oct 2026: run 37752653844 handed over and 37753311643 was cancelled; neither woke
+    watchdog.yml, while the run a person started before them did). So the chain run whose relay job failed, was
+    cancelled or timed out runs the watchdog as its last job, with no secret, one watchdog at a time, and a run it
+    starts takes over from it: the first step of that run lets it go on while this run is still ending."""
+    doc = _doc(WF / "worker.yml")
+    job = doc["jobs"]["rewatch"]
+    assert job["needs"] == "relay"
+    assert job["if"] == ("always() && github.event_name == 'workflow_dispatch' && "
+                         "(needs.relay.result == 'failure' || needs.relay.result == 'cancelled')")
+    assert job["permissions"] == {"contents": "read", "actions": "write"} and job["concurrency"] == {"group": "knos-relay-watchdog", "cancel-in-progress": False}
+    assert "secrets." not in json.dumps(job) and not any("cache" in str(s.get("uses", "")) for s in _steps(job))
+    assert _steps(job)[0]["with"] == {"persist-credentials": False}
+    assert _steps(job)[-1]["run"] == "python3 -I src/knos/proof/chain.py watch --successor" and set(_steps(job)[-1]["env"]) == {"GH_TOKEN"}
+    go = _chain_step(tmp_path, _steps(doc["jobs"]["relay"])[0]["run"])
+    # run 90 (still ending: its rewatch job runs) started 95 as its successor: 95 goes on; a second successor does not
+    assert go("90", [_run(90, "relay after 85")], me=95)[0] == "go=true"
+    assert go("90", [_run(90, "relay after 85"), _run(93, "relay after 90")], me=95)[0] == "go=false"
+    watchdog = (WF / "watchdog.yml").read_text(encoding="utf-8")
+    assert "workflow's own token" in watchdog and "job `rewatch`" in watchdog
+
 def _run(n: int, title: str, status: str = "in_progress") -> dict:
     return {"databaseId": n, "status": status, "displayTitle": title}
 
@@ -1832,12 +1855,12 @@ def test_the_worker_keeps_its_keys_apart_the_claim_sweep_holds_none_and_the_fauc
     permissions, with no `pull-requests` among them."""
     doc = _doc(WF / "worker.yml")
     jobs = doc["jobs"]
-    assert sorted(jobs) == ["claims", "event", "faucet", "relay", "watchdog"]
+    assert sorted(jobs) == ["claims", "event", "faucet", "relay", "rewatch", "watchdog"]
     assert doc["permissions"] == {"contents": "read", "actions": "write", "issues": "write"}        # as before 0.3.19
     assert "permissions" not in jobs["relay"] and "permissions" not in jobs["event"]               # the fee key's jobs: the workflow's, and no more
     holds = {name: sorted(set(re.findall(r"secrets\.(\w+)", json.dumps(job)))) for name, job in jobs.items()}
     assert holds == {"claims": [], "event": ["KNOS_RELAY_KEY", "KNOS_RELAY_KEYS", "KNOS_WORKER_KEY"], "faucet": ["KNOS_FAUCET_KEY", "KNOS_RELAY_KEY", "KNOS_WORKER_KEY"],
-                     "relay": ["KNOS_RELAY_KEY", "KNOS_RELAY_KEYS", "KNOS_WORKER_KEY"], "watchdog": []}
+                     "relay": ["KNOS_RELAY_KEY", "KNOS_RELAY_KEYS", "KNOS_WORKER_KEY"], "rewatch": [], "watchdog": []}
     # the sweep: the chain's runs only, one at a time, with the forge token and nothing else
     claims = jobs["claims"]
     assert claims["if"] == "github.event_name == 'workflow_dispatch'" and claims["concurrency"] == {"group": "knos-claims", "cancel-in-progress": False}

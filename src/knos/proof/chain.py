@@ -195,11 +195,16 @@ def replace(repo: str, stuck: list[int], request: Callable = call, sleep: Callab
 
 
 def watch(repo: str, me: int = 0, tries: int = TRIES, request: Callable = call, sleep: Callable[[float], None] = time.sleep,
-          say: Callable[[str], None] = print, now: Callable[[], float] = time.time) -> str:
+          say: Callable[[str], None] = print, now: Callable[[], float] = time.time, successor: bool = False) -> str:
     """The watchdog. `alive`: a run holds the chain with a heartbeat (or is still installing within its time), nothing is
     started. `started`: none did (or the ones that held it were stuck and are cancelled), and one was started.
     `unknown`: GitHub did not list the runs, so nothing is started (two chains are worse than a late one; the next
-    watchdog asks again). `stuck`: a stuck run would not end, so nothing is started. `failed`: GitHub took no start."""
+    watchdog asks again). `stuck`: a stuck run would not end, so nothing is started. `failed`: GitHub took no start.
+
+    `successor`: the watchdog runs inside run `me` of the chain, whose relay did not succeed (worker.yml, job
+    `rewatch`). Run `me` is still in progress while this runs, and a first run ("relay") that finds a run of the chain
+    going ends at its first step; so the run started here takes over from `me` ("relay after <me>"), which that step
+    lets go on. A run that took over from `me` already holds the chain like any other: nothing is started then."""
     listed = None
     for n in range(1, 4):
         try:
@@ -234,7 +239,7 @@ def watch(repo: str, me: int = 0, tries: int = TRIES, request: Callable = call, 
             return "stuck"
     else:
         say("no run of the chain is queued or in progress: starting one")
-    if not start(repo, "", tries=tries, request=request, sleep=sleep, say=say):
+    if not start(repo, str(me) if successor and me else "", tries=tries, request=request, sleep=sleep, say=say):
         return "failed"
     for n in range(SEEN_TRIES):     # so that the next watchdog, which runs after this one, finds the run this one started
         try:
@@ -256,13 +261,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--tries", type=int, default=TRIES)
     ap.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY", ""))
     ap.add_argument("--ref", default="main")
+    ap.add_argument("--successor", action="store_true",
+                    help="watch: run inside a chain run whose relay did not succeed; a run it starts takes over from this one")
     a = ap.parse_args(argv)
     if not a.repo:
         ap.error("give --repo owner/name (or GITHUB_REPOSITORY)")
     try:
         if a.command == "start":
             return 0 if start(a.repo, a.after, a.ref, a.tries) else 1
-        return 1 if watch(a.repo, int(os.environ.get("GITHUB_RUN_ID") or 0), a.tries) in ("failed", "stuck") else 0
+        return 1 if watch(a.repo, int(os.environ.get("GITHUB_RUN_ID") or 0), a.tries, successor=a.successor) in ("failed", "stuck") else 0
     except Refused as no:
         print(f"stopped: {no}", file=sys.stderr)
         return 1
