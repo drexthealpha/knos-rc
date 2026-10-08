@@ -47,7 +47,7 @@ Two parts of the package go into a coding agent:
 | a repository's pull requests | [a workflow file](#the-github-action) | the free check, as a GitHub Action |
 | a seller who settles a merged pull request without the buyer's workflow | [a workflow file in a repository of your own](#settle-yourself-the-attest-workflow) | nothing: it only reads, and asks GitHub to sign |
 | a JavaScript project | [`npm install knos-settle`](#the-javascript-client) | the client `knos-settle` |
-| a Solana program | [a git dependency](#the-rust-interface-crates) | the crates `knos-oidc-interface` and `knos-pay-interface` |
+| a Solana program | [`knos-oidc-interface = "0.3.14"`](#the-rust-interface-crates) | the crates `knos-oidc-interface` and `knos-pay-interface` |
 
 The routes for one agent start Knos as `uvx knos ...`, so they need
 [uv](https://docs.astral.sh/uv/getting-started/installation/) and nothing else: uv downloads `knos` from PyPI the

@@ -202,6 +202,17 @@ def test_a_package_knos_published_said_to_be_unpublished_is_found_with_its_insta
     assert "knos-oidc-interface 0.3.14 is on crates.io" in found[0].against
 
 
+def test_none_published_and_neither_has_been_published_are_found_too(tmp_path):
+    """docs/RELEASE.md said "Three packages, none published yet" and "Neither has been published" after all three were
+    on their registries (8 Oct 2026): the words slipped past "not published". A sentence about the past still passes."""
+    root = _tree(tmp_path, compose="Three packages, none published yet: the crates and `knos-settle`.\n\n"
+                                   "The crates and the npm client: neither has been published.\n\n"
+                                   "Each crate is published on crates.io.\n\nOn 4 October none was published on npm, before the first publish.\n")
+    found = [p for p in _tool().problems(root) if p.rule == "published"]
+    assert [(p.file, p.line) for p in found] == [("docs/COMPOSE.md", 1), ("docs/COMPOSE.md", 3)]
+    assert "knos-settle 0.3.20 is on npm" in found[0].against and 'this says "none published"' in found[0].against
+
+
 def test_an_old_meter_price_in_a_comparison_table_is_found_cell_by_cell(tmp_path):
     """COMPARE.md printed the earlier price book in one cell of a row whose other cell said "before the work"."""
     root = _tree(tmp_path, compare="| | terms | fee |\n|---|---|---|\n| **Knos** | hashed before the work | 10,000 evaluations a month free, then 0.05 USD; "

@@ -23,7 +23,8 @@ The rules, each with a planted contradiction in tests/test_truth_check.py:
     live      a statement says the public knos_pay charges a fee, or has a quorum fix, that the build docs/capabilities.json
               records at its public id does not have ("today ... 0.30%" while 2.1 runs; "the quorum is fixed" before 2.2)
     published a statement says a package Knos has published (PUBLISHED: the two interface crates on crates.io, the JS
-              client on npm) is "not published", "unpublished" or "not on crates.io / npm"
+              client on npm) is "not published", "unpublished", "none published", "neither has been published" or
+              "not on crates.io / npm"
 
 A statement is one sentence of a paragraph, one table row or one list item. A statement about the past ("was",
 "until", "withdrawn", "0.3.14") is not held to today's price. The checker reads; it changes nothing.
@@ -487,7 +488,7 @@ PUBLISHED: dict[str, tuple[str, str, str]] = {
     "knos-pay-interface": ("crates.io", "0.3.14", "https://crates.io/crates/knos-pay-interface"),
     "knos-settle": ("npm", "0.3.20", "https://www.npmjs.com/package/knos-settle"),
 }
-UNPUBLISHED = re.compile(r"\b(neither\b[^.]{0,60}\b(?:is|are) on (?:crates\.io|npm)|not (?:yet )?published|unpublished|not (?:yet )?(?:on|in) (?:crates\.io|npm)|is not on (?:crates\.io|npm)|no (?:crate|package) on (?:crates\.io|npm))\b", re.I)
+UNPUBLISHED = re.compile(r"\b(neither\b[^.]{0,60}\b(?:is|are) on (?:crates\.io|npm)|neither (?:\w+ )?(?:has|have) been published|none (?:of them )?(?:is |are )?published|not (?:yet )?published|unpublished|not (?:yet )?(?:on|in) (?:crates\.io|npm)|is not on (?:crates\.io|npm)|no (?:crate|package) on (?:crates\.io|npm))\b", re.I)
 PACKAGE = re.compile(r"\b(knos-(?:oidc|pay)-interface|knos-settle|interface crates?|crates?|crates\.io|npm|JS (?:SDK|client)|JavaScript client)\b", re.I)
 
 

@@ -558,8 +558,11 @@ index had "no version of" the release they asked for. `publish` now asks that in
 
 ## Publishing the crates and the npm package
 
-Three packages, none published yet: `knos-oidc-interface` and `knos-pay-interface` (crates.io) and `knos-settle`
-(npm). On 4 October 2026 all three names were free: `https://crates.io/api/v1/crates/<name>` and
+Three packages, each published: `knos-oidc-interface` 0.3.14 and `knos-pay-interface` 0.3.14 on crates.io
+([knos-oidc-interface](https://crates.io/crates/knos-oidc-interface),
+[knos-pay-interface](https://crates.io/crates/knos-pay-interface)) and `knos-settle` 0.3.20 on npm
+([knos-settle](https://www.npmjs.com/package/knos-settle)), all three by hand by the owner on 8 October 2026. On
+4 October 2026 all three names were free: `https://crates.io/api/v1/crates/<name>` and
 `https://registry.npmjs.org/knos-settle` each answered 404.
 
 After the first version, `release.yml` publishes them with no stored secret (the jobs `crates-trusted` and
@@ -568,7 +571,7 @@ records provenance. But both registries let a trusted publisher be configured on
 ([crates.io](https://blog.rust-lang.org/2025/07/11/crates-io-development-update-2025-07/): "you'll need to publish
 your first release manually"; [npm](https://docs.npmjs.com/trusted-publishers): the setting is on the package's own
 page). So the first version of each is published by hand, once, by the owner, signed in to each registry. That is
-the only step here that needs a person and an account, and it has not been done.
+the only step here that needs a person and an account, and it was done on 8 October 2026 for all three.
 
 Before anything is uploaded, on the release commit (each prints what would be uploaded and uploads nothing):
 
@@ -643,7 +646,8 @@ python scripts/release.py registry-plan --online        # each version is now on
 ```
 
 When a registry says `blocked`, nothing is published there and the release goes on: no `cargo login`, no
-`npm login`, no account. Neither has been published: the 0.3.19 run was signed in to neither registry.
+`npm login`, no account. The 0.3.19 run was signed in to neither registry; the first versions went up by hand on
+8 October 2026, from a machine signed in to both.
 
 A package is published at ITS OWN version. `knos-settle` moves with every release, so its version is the tag's.
 The two interface crates are among the crates `scripts/bump_version.py` holds (`PROGRAMS_FROZEN`, at `FROZEN_AT`), so
@@ -652,7 +656,7 @@ during such a release their version is NOT the tag's, on purpose. The publishing
 package that is not on its registry yet, and a version the registry already has, are green with a notice; only a
 version the registry lacks is published. (In 0.3.15 the job compared a held crate with the tag and could never pass.)
 
-Until the first publish, the crates install as git dependencies and the client from the release's tarball
+Besides the registries, the crates still install as git dependencies and the client from the release's tarball
 ([INSTALL.md](INSTALL.md)).
 
 ## After the pending upgrade: the ONE proposal set
