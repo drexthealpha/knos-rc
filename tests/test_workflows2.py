@@ -2012,3 +2012,21 @@ def test_check_refuses_a_published_job_that_runs_a_module_or_a_command_the_wheel
     assert pub.modules_run() == [".github/workflows/prove.yml runs `python -m knos.verdict_gates`, which is not a module of src/knos"]
     monkeypatch.setattr(pub, "sources", lambda: {**real, "attest.yml": real["attest.yml"].replace("knos.verdict_gate shape", "knos.verdict_gate bless")})
     assert pub.modules_run() == [".github/workflows/attest.yml runs `python -m knos.verdict_gate bless`, a command that module does not have"]
+
+
+def test_every_job_that_installs_chromiums_system_packages_keeps_what_apt_fetched():
+    """tests.yml's two browser jobs: `playwright install-deps` fetched 32.5 MB at 131 kB/s from the runner's mirror on
+    8 Oct 2026 and the web job went over its 5 minutes. apt is pointed at a folder of the job's, restored before the
+    install and kept after it, keyed by the runner's image; nothing else in it changes."""
+    doc = _doc(WF / "tests.yml")
+    for name in ("sdk", "site"):
+        steps = _steps(doc["jobs"][name])
+        installs = [i for i, s in enumerate(steps) if "playwright install" in str(s.get("run", ""))]
+        apt = next(i for i, s in enumerate(steps) if s.get("id") == "apt")
+        kept = next(i for i, s in enumerate(steps) if "apt-archives" in str(s.get("with", {}).get("path", "")))
+        assert apt < kept < min(installs), name
+        assert 'Dir::Cache::Archives \\"$RUNNER_TEMP/apt-archives\\";' in steps[apt]["run"] and "/etc/apt/apt.conf.d/" in steps[apt]["run"]
+        assert "image=$ImageOS-$ImageVersion" in steps[apt]["run"]
+        cache = steps[kept]
+        assert cache["uses"].startswith("actions/cache@") and cache["with"]["path"] == "${{ runner.temp }}/apt-archives/*.deb"
+        assert cache["with"]["key"] == "playwright-deps-${{ runner.arch }}-${{ steps.apt.outputs.image }}-1.56.0-chromium"
