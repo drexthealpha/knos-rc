@@ -544,7 +544,9 @@ export const PAGES = {
 for (const [name, a] of Object.entries(ADDED)) PAGES[name] = { files: [a.file], draw: async (el) => {
   const [m, data] = await Promise.all([import(a.file), a.json ? fetch(a.json).then((r) => (r.ok ? r.json() : null)).catch(() => null) : undefined]);
   if (a.json && !data) return;
-  await m[a.draw]?.(el, { esc, go, EXPLORER, data });
+  // arg: what follows "=" in the hash the page was first opened at (#vendor=<agent>); later arrivals are the module's (hashchange)
+  const [, ...rest] = location.hash.replace(/^#/, "").split("="), arg = rest.length ? decodeURIComponent(rest.join("=")) : "";
+  await m[a.draw]?.(el, { esc, go, EXPLORER, data, arg });
 } };
 function initAdded() {
   const main = document.querySelector("main"), nav = $("nav"), list = $("more-list");

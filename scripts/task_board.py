@@ -2,7 +2,7 @@
 
     python scripts/task_board.py plan                  what `open` would do, and why it stops where it stops
     python scripts/task_board.py open [--apply] [--kinds]   do it; without --apply nothing leaves this machine; --kinds: the
-                                                       five tasks that are not code as well (below)
+                                                       tasks that are not code as well (below)
     python scripts/task_board.py status [--json]       the board, and the pull requests whose runs wait for approval
     python scripts/task_board.py status --json --empty the same document with nothing read: what a build with no network writes
     python scripts/task_board.py why OWNER/REPO#N [--pull M]   one sentence: why a merged pull request was not paid, and what fixes it
@@ -36,7 +36,7 @@ reusable workflow they call is drexthealpha/knos-workflows at the commit this ch
 through a staging copy is one the public worker cannot pay (that is why one merged pull request was not paid in
 0.3.19). `plan` and `status` say the same check's result; `why` reads one order back from the chain (knos.tasks.why).
 
-THE FIVE TASKS THAT ARE NOT CODE (`--kinds`; tasks/outside/<kind>.json, knos.tasks.KINDS). Each opens as a board issue
+THE TASKS THAT ARE NOT CODE (`--kinds`; tasks/outside/<kind>.json, knos.tasks.KINDS). Each opens as a board issue
 `outside-<kind>` that pays 5 test USDC on a maintainer's MERGE of the pull request filing its evidence, one file
 outside/<kind>/<login>.json; the maintainer checks it with knos.tasks.accepts first. No acceptance bundle is theirs: the
 starter task's checks under the issue's number are removed in the same commit as its line in board.json, so the funding
@@ -171,7 +171,7 @@ def catalogue() -> list[dict]:
 
 
 def kinds() -> list[dict]:
-    """The five tasks that are not code puzzles (knos.tasks.KINDS: tasks/outside/<kind>.json holds the same text), each
+    """The tasks that are not code puzzles (knos.tasks.KINDS: tasks/outside/<kind>.json holds the same text), each
     as a board task `outside-<kind>`: no acceptance bundle, paid on the merge of the pull request that files its evidence
     under outside/<kind>/. Raises Stop when one breaks a rule every task of the board keeps."""
     out = []
@@ -801,7 +801,7 @@ def main(argv: list[str] | None = None, gh: Forge = github, ask: Callable = rpc,
             one.add_argument("--balance", default=os.environ.get("KNOS_BOARD_BALANCE", ""), help="the address of the Balance the owner's comment spends")
             one.add_argument("--faucet", action="store_true", help="no Balance: the devnet faucet mints each funding")
             one.add_argument("--pace", type=float, default=PACE, help="seconds between two fundings")
-            one.add_argument("--kinds", action="store_true", help="also keep the five tasks that are not code open (tasks/outside/), first, in the same budget")
+            one.add_argument("--kinds", action="store_true", help="also keep the tasks that are not code open (tasks/outside/), first, in the same budget")
         if name == "open":
             one.add_argument("--apply", action="store_true", help="send it (the account must own the repository)")
         if name == "status":

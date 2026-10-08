@@ -78,6 +78,11 @@ jobs:
       # under a release.
       - run: uv pip install --system -e ".[dev]" pytest-xdist==3.8.0
       - run: git config --global user.email ci@example.invalid && git config --global user.name ci
+      # Squads Labs' deployed v4 program, read from devnet and checked against its pinned sha256, for the boundary tests
+      # (tests/test_boundary.py). It needs the network: when devnet does not answer, those tests skip and say so.
+      - name: the Squads v4 program for the boundary tests
+        continue-on-error: true
+        run: python scripts/squads_program.py fetch
       - name: pytest, this shard
         shell: bash
         run: |
@@ -342,6 +347,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
       - run: python scripts/doc_claims.py
       - run: python scripts/truth_check.py
+      - run: python scripts/rate_claims.py
       - run: python scripts/public_face.py --check
       - run: python scripts/judges.py --check
       - run: python -m knos.enforce --check
