@@ -1,0 +1,71 @@
+name: staging prove judge (A 0.3.21)
+
+# Staging only, on branch a0321-judge, never on main. prove.yml's `judge` job, step for step, on the same image
+# (ubuntu-24.04), with one change: knos is installed from this commit's checkout, because prove.yml installs
+# knos==0.3.21 from PyPI and that version is published only after staging is green. Two judgments with
+# `--sandbox hermetic`: (1) a black-box bundle (examples/acceptance/classify, the honest solution): the default
+# container; (2) a pytest acceptance suite that runs work in parallel (threads and one process per core): the host
+# sandbox, the hermetic judge's fallback, whose limit is 256 tasks of uid 65534 on the machine. A sampler records the
+# most tasks uid 65534 held at once during each judgment.
+on:
+  push:
+    branches: [a0321-judge]
+
+permissions:
+  contents: read
+
+jobs:
+  judge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: knos-src
+          persist-credentials: false
+      - name: uv, with no cache
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.8.20"
+          python-version: "3.12"
+          enable-cache: false
+          ignore-empty-workdir: true
+      - name: install knos (this commit's checkout in place of knos==0.3.21), with pytest and pip for the trees it judges
+        env:
+          UV_EXCLUDE_NEWER: "2026-10-10T00:00:00Z"
+        run: uv tool install --no-config --with pytest --with pip "$GITHUB_WORKSPACE/knos-src"
+      - name: the sandbox has no network (prove.yml's step, letter for letter)
+        run: |
+          set -euo pipefail
+          probe=$(cat <<'PY'
+          import socket
+          for host in ("1.1.1.1", "8.8.8.8", "140.82.112.3"):
+              s = socket.socket()
+              s.settimeout(3)
+              try:
+                  s.connect((host, 443))
+              except OSError:
+                  continue
+              print("reached " + host)
+              raise SystemExit(1)
+          print("no network")
+          PY
+          )
+          python=$(command -v python3)
+          out=$(sudo -n unshare -n -- sh -c 'ip link set lo up 2>/dev/null; exec "$@"' sh \
+                  setpriv --reuid=65534 --regid=65534 --clear-groups -- env -i "$python" -c "$probe" 2>&1) || true
+          if [ "$out" != "no network" ]; then
+            echo "The sandbox for the pull request's code is not safe on this machine ($out). None of that code was run."
+            exit 1
+          fi
+          echo "$out"
+      - name: two trees, each a base commit and a pull request's head (git archive into pr/, as prove.yml lays it)
+        run: bash knos-src/.github/a-judge-trees.sh "$RUNNER_TEMP/t"
+      - name: "knos proof judge, in the sandbox (1, black-box bundle: the container)"
+        run: bash knos-src/.github/a-judge-run.sh "$RUNNER_TEMP/t/classify" 1
+      - name: "knos proof judge, in the sandbox (2, a parallel pytest suite: the host sandbox and its 256-task limit)"
+        run: bash knos-src/.github/a-judge-run.sh "$RUNNER_TEMP/t/parallel" 1
+      - name: cores and the uid 65534 limit on this runner
+        if: always()
+        run: |
+          echo "nproc $(nproc); ulimit -u (runner) $(ulimit -u); judge.HOST_LIMITS: $("$(uv tool dir)/knos/bin/python" -c 'from knos import judge; print(judge.HOST_LIMITS)')" | tee -a "$GITHUB_STEP_SUMMARY"
