@@ -759,7 +759,6 @@ done
 "$@"
 exit $?
 """
-SANDBOX_REFUSED = 125      # the exit code of a run the sandbox would not start (_ISOLATE could not make it safe)
 
 
 def _posix_limits(limits: HostLimits):

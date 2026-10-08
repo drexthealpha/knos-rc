@@ -28,7 +28,6 @@ from . import standalone_verify as V
 from .ledger import Bad, canon, month_of
 
 ROLES, ACK_KIND, CLOSE_KIND = V.ROLES, V.ACK_KIND, V.CLOSE_KIND
-DISCREPANCIES = (V.MISSING_AFTER_ACK, V.CHANGED_AFTER_ACK, V.AFTER_CLOSE)
 
 
 def _lines(log) -> tuple[list[str], list[int], list[str]]:

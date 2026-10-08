@@ -46,14 +46,17 @@ def _alive(token: str) -> int:
 
 
 @posix
-def test_the_sandboxed_command_line_is_limits_then_another_user_inside_namespaces(monkeypatch):
+def test_the_sandboxed_command_line_is_limits_then_another_user_inside_namespaces(monkeypatch, tmp_path):
+    # A Box makes its folders when it is made: the root is the test's own folder, never one at the top of the machine,
+    # which only root may create (a runner is not root: run 37750601693, "Permission denied: '/t'").
     monkeypatch.setattr(os, "geteuid", lambda: 0)
-    box = judge.Box(Path("/t/box"), True, limits=judge.HostLimits(nproc=64, cpu=30, data=1 << 30, fsize=1 << 20))
+    root = tmp_path / "box"
+    box = judge.Box(root, True, limits=judge.HostLimits(nproc=64, cpu=30, data=1 << 30, fsize=1 << 20))
     argv, env = box.wrap(["python3", "x.py"], net=False, seconds=90)
     assert env is None
     assert argv[:4] == ["timeout", "-s", "KILL", "90"]
     assert argv[4:11] == ["unshare", "--mount", "--pid", "--fork", "--kill-child", "--net", "--"]
-    assert argv[11:13] == ["sh", "-c"] and argv[13] == judge._ISOLATE and argv[14:16] == ["sh", "/t/box"]
+    assert argv[11:13] == ["sh", "-c"] and argv[13] == judge._ISOLATE and argv[14:16] == ["sh", str(root)]
     at = argv.index("prlimit")
     assert argv[at:at + 6] == ["prlimit", "--nproc=64", "--cpu=30", f"--data={1 << 30}", f"--fsize={1 << 20}", "--"]
     assert argv[at + 6:at + 10] == ["setpriv", "--reuid=65534", "--regid=65534", "--clear-groups"]
