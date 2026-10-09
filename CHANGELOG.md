@@ -14,6 +14,18 @@ Solana devnet, which is test mode: the money is test USDC. Everything this relea
 outside this repository. **No program changes in this release:** nothing under `programs-v2/knos_*`, `programs/`,
 `idl/` or `tests/fixtures/*.so` moved by a byte. The interface crates stay at 0.3.14.
 
+### The upgrade ran
+
+- **knos_oidc 2.2 and knos_pay 2.2 run at the public program ids** since 9 Oct: upgrade proposals 7 and 8 were
+  executed by the scheduled run. `python scripts/exercise_public.py status --want 2.2` reads it from the chain.
+- **The after rounds ran there and are recorded.** Newly exercised at the public ids: strict JSON and ES256 tokens
+  at knos_oidc, the presentation grace at knos_pay and a holdback's release
+  ([`docs/CAPABILITIES.md`](docs/CAPABILITIES.md)). The rounds that need a second repository owner, more test USDC
+  than the wallet holds or an arranged clock say `cannot`; those waiting on a deadline say `needs time`.
+- **The 8-day upgrade time lock is approved, not applied.** Its Squads configuration transaction (proposal 9) was
+  created and approved by two member keys; the Squads program executes it only once the present 48-hour lock has run,
+  and until then the lock on chain is 48 hours ([`docs/GOVERNANCE.md`](docs/GOVERNANCE.md)).
+
 ### The number, read again
 
 - **The lead fell from 30 to 9.** The scan of 1 Oct counted 30 of 241 merged agent pull requests that claimed

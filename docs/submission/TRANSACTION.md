@@ -12,8 +12,8 @@ Test USDC has no monetary value.
 - The reply names the order account and the fee before any work: the funder pays 0.40 on top
   ([funded reply](https://github.com/drexthealpha/knos-witness/issues/9#issuecomment-6075144470),
   [funding transaction](https://explorer.solana.com/tx/3UaY22WKexigMpkVhibfeMdNgBiyybWm2Z4LuLskKGbNUDXV34yYWyH42atxFjELbrqSgoVs6TwpFzSQwhfXqzgM?cluster=devnet)).
-- 0.40 is the order floor of the program deployed today, knos_pay 2.1. Upgrade proposal 8, pending, charges 0.30%
-  with a 0.05 floor, which on 5.00 is 0.05 ([../MANIFEST.md](../MANIFEST.md) has both schedules;
+- 0.40 is the order floor of knos_pay 2.1, the build deployed when the order was funded. Upgrade proposal 8 has
+  since executed: knos_pay 2.2 charges 0.30% with a 0.05 floor, which on 5.00 is 0.05 ([../MANIFEST.md](../MANIFEST.md) has both schedules;
   [the price book](../MARKET.md#3-the-price-book)).
 
 ## 2. One result rejected, one accepted
