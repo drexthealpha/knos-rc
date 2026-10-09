@@ -1,5 +1,8 @@
-// The front door: check your own invoice before anything else. One box takes a supplier's invoice (CSV, or lines of
-// pull request links) or the name of a public repository; the answer is drawn in place: the supplier's count beside
+// The front door: the ten-second check first. One pull request pasted alone (a link, or owner/repo#123) goes to the
+// check of that one pull request, web/check.js at #check=owner/repo/123 (checkHref): a pasted link is checked as it
+// lands, so landing, paste and post are three presses at most (tests/web/front_door.mjs counts them). Anything else the
+// box takes as before: a supplier's invoice (CSV, or lines of pull request links) or the name of a public repository,
+// and the answer is drawn in place: the supplier's count beside
 // the neutral count, then every line in one of four groups, each line with its four steps (policy satisfied, parties
 // accepted, payment authorised, settled: web/line_steps.js). A line whose checks passed is "policy met", never
 // "agreed": nobody accepted or authorised it until someone does, here or in the statement. Left unauthorised more than
@@ -7,6 +10,7 @@
 // No install, no login, nothing sent to Knos.
 //
 //   renderFrontDoor(el[, env])    the control in `el` (index.html: <form id="front-door">) and its result
+//   prOf(text), checkHref(pr)     one pull request and nothing else in the box, and the hash of its check
 //   LINE_STATES, LINE_WORDS       src/knos/ids.py's, mirrored (tests/web/front_door.mjs holds the two together)
 //   stateOf(row)                  which of the four a statement line of web/shadow.js is
 //   answers(row, pull)            the seven things an approver asks of one line, each in a few words
@@ -56,6 +60,16 @@ export function reading(text) {
   return { invoice: parse(text) };
 }
 
+/** One pull request and nothing else in the box: { owner, repo, number }; null for anything else (an invoice, a name). */
+export function prOf(text) {
+  const t = String(text || "").trim(), p = /[\n,;\t]/.test(t) ? null : pullOf(t);
+  if (!p) return null;
+  const [owner, repo] = p.repo.split("/");
+  return { owner, repo, number: p.number };
+}
+/** Where one pull request is checked: the #check view (web/check.js), which reads the pull request from its hash. */
+export const checkHref = (pr) => `#check=${pr.owner}/${pr.repo}/${pr.number}`;
+
 /** A named repository as an invoice: its latest merged pull requests, one line each, no amounts. `known`: each pull
  *  request as the listing gave it, so that it is not asked for again. */
 export async function repoInvoice(at, get) {
@@ -104,14 +118,15 @@ const STYLE = `.fd textarea{min-height:64px;font-size:15px;resize:vertical}.fd .
 .fd-under{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin:16px 0 8px}.fd-result [hidden]{display:none}`;
 
 /** Draw the front door. `el`: the form (or an empty element, which is given one). env, all optional: { out } where the
- *  result goes, { fetch } to read GitHub with, { get } a reader instead of GitHub, { now } a Date for the approval. */
+ *  result goes, { fetch } to read GitHub with, { get } a reader instead of GitHub, { now } a Date for the approval,
+ *  { elsewhere(text, out) } what the page answers itself (true when it did: a transaction, a repository's record). */
 export function renderFrontDoor(el, env = {}) {
   const doc = el.ownerDocument, fetchFn = env.fetch || ((...a) => globalThis.fetch(...a));
   if (!doc.getElementById("fd-style")) { const s = doc.createElement("style"); s.id = "fd-style"; s.textContent = STYLE; doc.head.appendChild(s); }
   stepStyle(doc);
   if (!el.querySelector("textarea")) {
     el.classList.add("fd");
-    el.innerHTML = `<textarea id="fd-in" rows="2" spellcheck="false" autocomplete="off" aria-label="A supplier's invoice, or a public repository" placeholder="Paste an invoice, or type owner/repo"></textarea>
+    el.innerHTML = `<textarea id="fd-in" rows="2" spellcheck="false" autocomplete="off" aria-label="An agent's pull request, an invoice, or owner/repo" placeholder="Paste an agent's pull request"></textarea>
       <p class="actions"><button type="submit" class="k-btn" data-fd="run">Check</button> <button type="button" class="k-btn quiet" data-fd="sample">Try a sample</button></p>`;
   }
   let out = env.out || doc.getElementById("front-result");
@@ -154,7 +169,13 @@ export function renderFrontDoor(el, env = {}) {
   };
   const owedHtml = () => `<p class="fd-owed" data-fd-owed>Owed to the supplier: policy met, unauthorised ${ACCEPT_DAYS} days. <a href="${APPEAL}" target="_blank" rel="noopener">Supplier: appeal</a></p>`;
 
-  async function run(sample = false) {
+  async function run(sample = false, counting = false) {
+    const pr = sample ? null : prOf(box.value);      // one pull request: its own check, on its own page (env.go: a test's)
+    if (pr) { (env.go || ((to) => { globalThis.location.hash = to; }))(checkHref(pr)); return; }
+    // one line that the page around the box answers itself (env.elsewhere, web/front.js): a transaction, or a repository
+    // named alone (its record; data-fd="count" then counts its merged pull requests here). Without it, as before.
+    const one = box.value.trim();
+    if (!sample && !counting && !busy && env.elsewhere && one && !/[\n,;\t]/.test(one) && await env.elsewhere(one, out)) return;
     if (busy) { again = !sample && box.value !== checking; return; }     // asked while a check runs: what the box holds now is checked next, when it is not what is being checked
     checking = sample ? null : box.value; again = false;
     let what;
@@ -300,7 +321,7 @@ export function renderFrontDoor(el, env = {}) {
   // Enter in the box checks what is in it, whatever it holds (a pasted invoice has many lines: Enter used to add one more
   // there and check nothing); Shift+Enter is the new line. An Enter that ends an input method's composition is not one.
   box.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing && ev.keyCode !== 229) { ev.preventDefault(); run(); } });
-  box.addEventListener("paste", () => setTimeout(() => { if (box.value.includes("\n")) run(); }, 0));      // a pasted invoice is checked as it lands
+  box.addEventListener("paste", () => setTimeout(() => { if (box.value.includes("\n") || prOf(box.value)) run(); }, 0));      // a pasted invoice, or one pasted pull request, is checked as it lands
   out.addEventListener("click", (ev) => {
     const what = ev.target.closest("[data-fd]")?.dataset.fd;
     // INSTALL THE METER, for a repository that was named: its terms are proposed from its own checks, in place
@@ -312,6 +333,7 @@ export function renderFrontDoor(el, env = {}) {
       import("./propose_view.js").then((m) => m.renderProposal(box, mine.repo, { branch: mine.branch, install: mine.href, propose: env.propose, proposeEnv: env.proposeEnv }))
         .then(() => box.scrollIntoView?.({ block: "nearest", behavior: motion && !motion.prefersReduced() ? "smooth" : "auto" })).catch(() => { box.hidden = false; box.textContent = "Not read. Try again."; });
     }
+    if (what === "count") { ev.preventDefault(); run(false, true); }
     if (what === "approve") approve().catch(() => { $("approved").textContent = "Not recorded. Try again."; });
     if (what === "csv") download().catch(() => { $("approved").textContent = "Download failed. Try again."; say("Download failed", "bad"); });
   });

@@ -1,4 +1,4 @@
-# Release manifest: Knos 0.3.24
+# Release manifest: Knos 0.3.25
 
 **The neutral meter for AI agent work: neither side keeps the count.**
 
@@ -16,7 +16,7 @@ deployed there, the transactions recorded, and the fee schedule. The rows behind
 
 ## Source
 
-- Release: Knos 0.3.24 (`pyproject.toml`). Tag: [`v0.3.24`](https://github.com/drexthealpha/Knos/tree/v0.3.24); `git rev-list -n 1 v0.3.24` prints its commit. A file
+- Release: Knos 0.3.25 (`pyproject.toml`). Tag: [`v0.3.25`](https://github.com/drexthealpha/Knos/tree/v0.3.25); `git rev-list -n 1 v0.3.25` prints its commit. A file
   cannot hold the hash of the commit that holds it.
 - Cluster: Solana devnet. The money is test USDC. Mainnet is not touched.
 
@@ -56,6 +56,9 @@ capability is in [CAPABILITIES.md](CAPABILITIES.md).
 | capability | stage | source | test | deployed build | transaction | independent reproduction |
 |---|---|---|---|---|---|---|
 | `check` | tested locally | [`src/knos/proof/claims.py`](../src/knos/proof/claims.py): `def read(text: str) -> Claim` | [`tests/test_proof.py`](../tests/test_proof.py): `test_claims_are_read_by_kind_not_phrasing` | none | none | none |
+| `pr_check_browser` | tested locally | [`web/check_rules.js`](../web/check_rules.js): `export function findClaim` | [`tests/test_check_rules.py`](../tests/test_check_rules.py): `test_python_and_the_browser_agree_on_every_recorded_pull_request` | none | none | none |
+| `share_check` | tested locally | [`web/share.js`](../web/share.js): `export function postUrl` | [`tests/test_share.py`](../tests/test_share.py): `test_a_check_is_shared_by_link_copy_post_card_and_badge` | none | none | none |
+| `readme_badge` | tested locally | [`web/share.js`](../web/share.js): `export function checkedBadgeSvg` | [`tests/test_share.py`](../tests/test_share.py): `test_the_badge_is_a_static_svg_that_fetches_nothing` | none | none | none |
 | `install_by_pull_request` | tested locally | [`web/install.js`](../web/install.js): `export function installLink` | [`tests/test_install_link.py`](../tests/test_install_link.py): `test_the_link_opens_githubs_editor_with_the_exact_file_and_fits` | none | none | none |
 | `terms_templates` | tested locally | [`src/knos/terms_templates.py`](../src/knos/terms_templates.py): `def export` | [`tests/test_install_link.py`](../tests/test_install_link.py): `test_every_templates_comment_parses_into_terms_whose_hash_is_the_templates` | none | none | none |
 | `stop_hook` | tested locally | [`src/knos/proof/hook.py`](../src/knos/proof/hook.py): `def last_message` | [`tests/test_proof.py`](../tests/test_proof.py): `test_the_stop_hook_blocks_then_lets_go_after_three_on_unchanged_evidence` | none | none | none |
@@ -296,6 +299,22 @@ capability is in [CAPABILITIES.md](CAPABILITIES.md).
 | `index_review` | tested locally | [`scripts/backtest.py`](../scripts/backtest.py): `def reviewed` | [`tests/test_backtest.py`](../tests/test_backtest.py): `test_the_review_reads_every_one_of_the_thirty_and_the_reviewed_counts_lead` | none | none | none |
 | `payee_passkey_bind` | tested locally | [`web/payee.js`](../web/payee.js): `export function renderPayee` | [`tests/test_site_payee.py`](../tests/test_site_payee.py): `test_the_page_in_a_browser_with_a_virtual_passkey` | none | none | none |
 | `pypi_description_links` | tested locally | [`scripts/bump_version.py`](../scripts/bump_version.py): `def pypi_readme` | [`tests/test_pypi_readme.py`](../tests/test_pypi_readme.py): `test_the_package_description_is_the_pinned_readme_and_no_relative_link_remains` | none | none | none |
+| `record_api_safe` | tested locally | [`src/knos/record_api.py`](../src/knos/record_api.py): `class Limiter` | [`tests/test_record_api_safe.py`](../tests/test_record_api_safe.py): `test_every_route_is_stated_and_answers_as_stated_and_nothing_else_is_served` | none | none | none |
+| `backup_restore` | tested locally | [`src/knos/archive.py`](../src/knos/archive.py): `def make` | [`tests/test_backup_restore.py`](../tests/test_backup_restore.py): `test_back_up_delete_restore_and_the_statements_are_byte_identical` | none | none | none |
+| `statement_completeness` | tested locally | [`src/knos/completeness.py`](../src/knos/completeness.py): `def check` | [`tests/test_completeness.py`](../tests/test_completeness.py): `test_an_order_the_chain_paid_in_the_period_with_no_line_is_an_omitted_exception` | none | none | none |
+| `finality_booking` | tested locally | [`src/knos/completeness.py`](../src/knos/completeness.py): `def contradictions` | [`tests/test_completeness.py`](../tests/test_completeness.py): `test_a_payment_the_cluster_has_only_processed_or_confirmed_is_never_booked_until_it_is_finalized` | none | none | none |
+| `secret_scan_history` | tested locally | [`scripts/secret_scan.py`](../scripts/secret_scan.py): `def history_blobs` | [`tests/test_secret_scan.py`](../tests/test_secret_scan.py): `test_a_key_deleted_from_the_tree_is_still_found_in_history_by_kind_without_its_value` | none | none | none |
+| `launch_check` | tested locally | [`scripts/launch_check.py`](../scripts/launch_check.py): `def check` | [`tests/test_launch_check.py`](../tests/test_launch_check.py): `test_this_repository_passes_and_every_item_of_the_list_has_its_row` | none | none | none |
+| `site_404` | tested locally | [`web/404.html`](../web/404.html): `lost-guess` | [`tests/web/launch.mjs`](../tests/web/launch.mjs): `404: an address that names no page offers no guess` | none | none | none |
+| `site_data_retry` | tested locally | [`web/retry.js`](../web/retry.js): `Try again: ` | [`tests/web/launch.mjs`](../tests/web/launch.mjs): `data: the line is there while stats.json does not load` | none | none | none |
+| `site_android_first_screen` | tested locally | [`tests/web/android.mjs`](../tests/web/android.mjs): `setCPUThrottlingRate` | [`tests/test_site_launch.py`](../tests/test_site_launch.py): `test_a_cheap_android_phone_paints_and_can_be_used_within_three_seconds` | none | none | none |
+| `site_privacy_terms` | tested locally | [`web/privacy.html`](../web/privacy.html): `cookie` | [`tests/test_site_launch.py`](../tests/test_site_launch.py): `test_each_privacy_line_agrees_with_the_code` | none | none | none |
+| `site_share_tags` | tested locally | [`web/index.html`](../web/index.html): `twitter:image` | [`tests/test_site_launch.py`](../tests/test_site_launch.py): `test_a_shared_link_has_every_tag_and_one_address` | none | none | none |
+| `rpc_fanout` | tested locally | [`src/knos/settle/v2/fanout.py`](../src/knos/settle/v2/fanout.py): `class FanLedger` | [`tests/test_burst_fanout.py`](../tests/test_burst_fanout.py): `test_fanned_out_resent_and_confirmed_by_signature_the_burst_pays_40_of_40_once_each` | none | none | none |
+| `grace_refund_by_another` | tested locally | [`scripts/exercise_public.py`](../scripts/exercise_public.py): `def refunded` | [`tests/test_grace_refunded_by_another.py`](../tests/test_grace_refunded_by_another.py): `test_a_refund_the_relay_sent_first_is_read_and_noted_and_the_round_passes` | none | none | none |
+| `reproduction_verify` | tested locally | [`src/knos/reproduce.py`](../src/knos/reproduce.py): `def verify_lines` | [`tests/test_reproduce_verify.py`](../tests/test_reproduce_verify.py): `test_verify_refuses_an_edited_report_a_failed_check_another_key_and_calls_an_own_run_what_it_is` | none | none | none |
+| `consumer_node_standalone` | tested locally | [`examples/consumer/consumer.mjs`](../examples/consumer/consumer.mjs): `export async function decideReceipt` | [`tests/test_consumer.py`](../tests/test_consumer.py): `test_the_node_tests_pass_offline` | none | none | none |
+| `erp_bill_import` | tested locally | [`src/knos/erp.py`](../src/knos/erp.py): `TARGETS = {` | [`tests/test_erp.py`](../tests/test_erp.py): `test_disputed_and_owed_lines_go_to_the_held_sheet_never_the_payable` | none | none | none |
 
 ## Fee schedule of each recorded order
 
@@ -317,6 +336,8 @@ fee the order stored when the record states it, else the build live at its slot 
 | 40 orders funded and refunded by a load run, 4 relays; order ids not kept in docs/load.json | none kept | knos_pay 2.0 or 2.1, not 2.2 | its date rules out 2.2 only (proposal 8 could not yet execute); the run kept no transaction to read a slot from | docs/load.json `measured` |
 | 40 orders paid by a load run, 1 relay; order ids not kept in docs/load.json | none kept | knos_pay 2.1: orders 2.5% of the first 1,000, 1% to 50,000, 0.5% above, at least 0.40; jobs 2.5% of the amount, at least 0.05 | its date: a day before proposal 8 (2.2) could execute (web/upgrades.json `earliest_execution_utc`) and after the cluster read that found proposal 4 (2.1) live (docs/provenance.json `read` of `before`) | docs/load.json `measured` |
 | 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | knos_pay 2.1: orders 2.5% of the first 1,000, 1% to 50,000, 0.5% above, at least 0.40; jobs 2.5% of the amount, at least 0.05 | its date: a day before proposal 8 (2.2) could execute (web/upgrades.json `earliest_execution_utc`) and after the cluster read that found proposal 4 (2.1) live (docs/provenance.json `read` of `before`) | docs/load.json `measured` |
+| 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
+| 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
 | 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
 | 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
 | 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |

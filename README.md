@@ -1,8 +1,8 @@
 <h1>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/drexthealpha/Knos/v0.3.24/web/brand/wordmark-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/drexthealpha/Knos/v0.3.24/web/brand/wordmark-light.svg">
-    <img alt="Knos" src="https://raw.githubusercontent.com/drexthealpha/Knos/v0.3.24/web/brand/wordmark-light.svg" height="84">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/drexthealpha/Knos/v0.3.25/web/brand/wordmark-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/drexthealpha/Knos/v0.3.25/web/brand/wordmark-light.svg">
+    <img alt="Knos" src="https://raw.githubusercontent.com/drexthealpha/Knos/v0.3.25/web/brand/wordmark-light.svg" height="84">
   </picture>
 </h1>
 
@@ -50,12 +50,12 @@ Everything else is one click from [docs/JUDGES.md](docs/JUDGES.md).
 <!-- bench:today -->
 | What | Today | Read from |
 |---|---|---|
-| This copy | Release 0.3.24, October 2026. A copy naming an older release, or another product, is out of date | [CHANGELOG.md](CHANGELOG.md); the newest: [PyPI](https://pypi.org/project/knos/) |
-| Reproduced by someone else | 0 of 241 | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "reproduced by someone else" |
-| Exercised at the public devnet program ids | 20 of 241: GitHub token verification, funding from a wallet, refund at the deadline, work orders, an order paying up to four payees, orders judged by hidden tests, auto-accepted orders, a holdback released after its warranty, top-ups, single-use tokens, a counted batch of evaluations, the seller's own count, a passkey funder, the passkey relay, the site's Buy page, an x402 order, strict JSON in the verifier, an outcome that is not code, ES256 tokens in one transaction, the presentation grace | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "exercised on devnet" |
-| Deployed at the public devnet program ids, no transaction recorded | 9 of 241: GitLab token verification, the key guardian, funding by one comment, pay on merge, holding pay for a payee with no wallet, pause, one counted evaluation, a payee's passkey wallet, the upgrade gate | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "deployed on devnet" |
-| Tested here only | 209 of 241, each with the test its row names | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "tested locally" |
-| Written, not tested | 3 of 241 | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "implemented" |
+| This copy | Release 0.3.25, October 2026. A copy naming an older release, or another product, is out of date | [CHANGELOG.md](CHANGELOG.md); the newest: [PyPI](https://pypi.org/project/knos/) |
+| Reproduced by someone else | 0 of 260 | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "reproduced by someone else" |
+| Exercised at the public devnet program ids | 20 of 260: GitHub token verification, funding from a wallet, refund at the deadline, work orders, an order paying up to four payees, orders judged by hidden tests, auto-accepted orders, a holdback released after its warranty, top-ups, single-use tokens, a counted batch of evaluations, the seller's own count, a passkey funder, the passkey relay, the site's Buy page, an x402 order, strict JSON in the verifier, an outcome that is not code, ES256 tokens in one transaction, the presentation grace | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "exercised on devnet" |
+| Deployed at the public devnet program ids, no transaction recorded | 9 of 260: GitLab token verification, the key guardian, funding by one comment, pay on merge, holding pay for a payee with no wallet, pause, one counted evaluation, a payee's passkey wallet, the upgrade gate | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "deployed on devnet" |
+| Tested here only | 228 of 260, each with the test its row names | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "tested locally" |
+| Written, not tested | 3 of 260 | [docs/CAPABILITIES.md](docs/CAPABILITIES.md), the rows "implemented" |
 | Outside funders | 0 | [docs/submission/NUMBERS.md](docs/submission/NUMBERS.md), row 1 |
 | Outside repositories | 0 | [docs/submission/NUMBERS.md](docs/submission/NUMBERS.md), row 2 |
 | Outside payees | 1, on tasks Knos funded itself | [docs/submission/NUMBERS.md](docs/submission/NUMBERS.md), row 3 |
@@ -81,7 +81,9 @@ Everything else is one click from [docs/JUDGES.md](docs/JUDGES.md).
 
 ---
 
-Below this line: records that scripts write from their sources, and the licence. Nothing here is typed by hand.
+Contact: open an issue; report a vulnerability privately (SECURITY.md).
+
+Below: records that scripts write from their sources, and the licence. Nothing below is typed by hand.
 
 <!-- programs:start -->
 | program | address | on devnet, as [`docs/capabilities.json`](docs/capabilities.json) records it |

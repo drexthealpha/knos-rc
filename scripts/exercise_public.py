@@ -1732,6 +1732,9 @@ NOT_ON_CHAIN = {"fuzz_rsa_diff_target", "kani_fee_conservation", "rust_handler_t
 NO_ROUND = {
     "verify_any_issuer": "cannot: no issuer other than GitHub and GitLab has a key admitted on GitHub's signature at the public id, and Knos runs no such "
                          "issuer; a Kubernetes cluster's token is verified under a private key instead (the round `issuer`, capability `outcome_not_code`)",
+    "hold_and_bind": "cannot: a job is held only for a payee whose GitHub account has no wallet bound, and the wallet is bound only from a run that "
+                     "account starts in its own repository. The maintainer's one account (scripts/own_github_ids.json) has a wallet bound, so "
+                     "one owner can pay but never be held for; the held half needs another person's account, and its bind is theirs to start",
 }
 
 
@@ -1885,10 +1888,11 @@ def record(ev: dict, root: Path = ROOT, say: Callable[[str], None] = print, refr
         if e.get("status") != "exercised" or c["stage"] in ("exercised", "reproduced"):
             continue
         prog = e["program"]
-        if prog not in live or not _SIG.fullmatch(e["signature"]) or "tested" not in c["evidence"]:
+        gated = prog == "upgrade_gate" and prog in manifest["programs"]       # never upgraded: it runs the one version it was deployed with
+        if (prog not in live and not gated) or not _SIG.fullmatch(e["signature"]) or "tested" not in c["evidence"]:
             say(f"{c['id']}: not moved ({prog} is not on its upgraded build, or the evidence is not a transaction)")
             continue
-        ran_on = c["evidence"].get("deployed", {}).get("version") or version[prog]
+        ran_on = c["evidence"].get("deployed", {}).get("version") or version.get(prog) or manifest["programs"][prog].get("on_chain")
         c["evidence"]["deployed"] = {"program": prog, "id": manifest["programs"][prog]["id"], "version": ran_on}
         c["evidence"]["exercised"] = {"signature": e["signature"], "ids": "public", "round": e["round"], "asserted": e["asserted"],
                                       **({"refusals": e["refusals"]} if e.get("refusals") else {})}
@@ -2564,7 +2568,7 @@ def after_grace(book: Book, st: dict) -> None:
     if "fund" not in st:
         sig, order, o = _rc_fund(w, st, 8, AMOUNT, pay.opts(grace=True), work_s=120)
         _check(o.grace and o.pay_until == o.deadline + pay.GRACE, "the order was not funded with the presentation grace")
-        st["fund"] = {"signature": sig, "order": str(order), "fee": o.fee, "deadline": o.deadline, "pay_until": o.pay_until}
+        st["fund"] = {"signature": sig, "order": str(order), "amount": o.amount, "fee": o.fee, "deadline": o.deadline, "pay_until": o.pay_until}
         book.tx(st, f"a wallet funds an order with the presentation grace, open for two minutes (until {day(o.deadline)})", sig, "knos_pay")
     if sim and "paid" not in st:            # a token issued by the deadline, shown after it: only the simulator has a forge and a clock to arrange
         sig, second, o2 = _rc_fund(w, st, 9, AMOUNT, pay.opts(grace=True), work_s=120)
@@ -2576,8 +2580,8 @@ def after_grace(book: Book, st: dict) -> None:
         _check(bool(r.get("ok")) and w.tokens(dest) - had == AMOUNT, f"a token issued by the deadline did not pay inside the grace: {r.get('why')}")
         st["paid"] = {"signature": r["sigs"][-1], "after_deadline_s": w.now() - o2.deadline}
         book.tx(st, "a second such order: a token issued by its deadline pays it after the deadline, inside the grace", r["sigs"][-1], "knos_pay")
-    o = have(pay.read_order(w.account(order)), "the order")
     if "early" not in st:
+        o = have(pay.read_order(w.account(order)), "the order")
         w.wait_until(st["fund"]["deadline"], "the order's deadline")
         held = w.tokens(pay.ov_pda(order))
         sig, code = w.refused([pay.refund_order_ix(w.relayer.pubkey(), order, o)])
@@ -2591,11 +2595,29 @@ def after_grace(book: Book, st: dict) -> None:
                      ["paying inside the grace needs a merge within two minutes of the funding: not attempted at the public id"])],
                   [{"signature": sig, "error": code, "means": st["early"]["means"], "what": "the refund of an order inside its presentation grace"}])
     w.wait_until(st["fund"]["pay_until"], "the end of the grace, after which the order goes back")
-    had = w.tokens(w.funder_token)
-    sig = w.send([pay.refund_order_ix(w.relayer.pubkey(), order, have(pay.read_order(w.account(order)), "the order"))])
-    _check(w.tokens(w.funder_token) - had == o.amount + o.fee and w.account(order) is None, "the order did not go back whole when its grace was over")
-    st["refund"] = {"signature": sig}
-    book.tx(st, "the grace is over: the order goes back to the wallet with its fee", sig, "knos_pay")
+    back = int(st["fund"].get("amount", AMOUNT)) + int(st["fund"]["fee"])
+    data = w.account(order)
+    if data is not None:
+        had = w.tokens(w.funder_token)
+        try:
+            sig = w.send([pay.refund_order_ix(w.relayer.pubkey(), order, have(pay.read_order(data), "the order"))])
+        except Exception:  # noqa: BLE001 - another sender's refund landed between the read and this one: read it below
+            if w.account(order) is not None:
+                raise
+        else:
+            _check(w.tokens(w.funder_token) - had == back and w.account(order) is None, "the order did not go back whole when its grace was over")
+            st["refund"] = {"signature": sig}
+            book.tx(st, "the grace is over: the order goes back to the wallet with its fee", sig, "knos_pay")
+            return
+    # RefundOrder is anyone's once the grace is over, and the public relay sends every refund that is due (0.3.24: it sent
+    # this one 41 s after the grace ended, before this step did): the refund is read from knos_pay's own line, never assumed.
+    sig = w.refunded(order, back)
+    _check(sig is not None, "the order is not there, and no transaction of knos_pay refunded it with its amount and its fee "
+                            f"({money(back)})")
+    by = w.payer_of(sig)
+    st["refund"] = {"signature": sig, "refunded": True, **({"sent_by": by} if by else {})}
+    book.tx(st, f"the grace is over: the order went back to the wallet whole ({money(back)}), in a refund "
+                + (f"{by} sent" if by else "another sender sent") + " (RefundOrder is anyone's once the grace is over)", sig, "knos_pay")
 
 
 def after_strict(book: Book, st: dict) -> None:

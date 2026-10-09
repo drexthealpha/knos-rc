@@ -1439,7 +1439,43 @@
    "measures": "every transaction that has room carries a compute unit price (SetComputeUnitPrice), 10,000 micro-lamports unless --cu-price says otherwise",
    "source": "the operator's release run of 0.3.23 on 9 Oct 2026 with its own wallets, 4 relays, 40 pay tokens a scenario; recorded from the run's report, which kept the payments paid, the retries, p50, p95 and the worst, and the rate; it kept no fee payers, no run seconds and no split of the failures into refused and never completed",
    "note": "No transaction of this run carried a price: the code of 0.3.23 skipped v1 transactions, so this is a plain run, not a priced one.",
-   "rerun": "by the 0.3.24 release, which prices v1 transactions in the message; until then this row is a plain run"
+   "rerun": "done by the 0.3.24 release on 9 Oct 2026: the next priority-fee row"
+  },
+  {
+   "kind": "pay",
+   "cluster": "devnet",
+   "date": "2026-10-09",
+   "programs": {
+    "knos_pay": "5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k",
+    "knos_oidc": "FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W",
+    "ids": "the public program ids"
+   },
+   "relays": 4,
+   "orders": 40,
+   "attempted": 40,
+   "paid": 40,
+   "already": 0,
+   "refused": 0,
+   "never_completed": 0,
+   "failures": 0,
+   "seconds": null,
+   "paid_per_s": 0.201,
+   "payment_s": {
+    "n": 40,
+    "p50": 12.9,
+    "p95": 23.5,
+    "p99": 31.5,
+    "max": 31.5
+   },
+   "retries": 0,
+   "ok": true,
+   "lanes": "order",
+   "fee_payers": [],
+   "wallet": null,
+   "scenario": "priority-fee",
+   "measures": "every transaction that has room carries a compute unit price (SetComputeUnitPrice), 10,000 micro-lamports unless --cu-price says otherwise",
+   "source": "the operator's release run of 0.3.24 on 9 Oct 2026 with its own wallets, 4 relays, 40 pay tokens a scenario; recorded from the run's report, which kept the payments paid, the retries, the duplicates refused, p50, p95 and the worst, and the rate; it kept no fee payers, no run seconds and no split of the failures into refused and never completed",
+   "note": "Every PayOrder carried a compute unit price this time (0.3.24 writes it into version-1 messages)."
   },
   {
    "kind": "pay",
@@ -1476,7 +1512,44 @@
    "measures": "every relay sends all of its payments at once instead of one after another",
    "source": "the operator's release run of 0.3.23 on 9 Oct 2026 with its own wallets, 4 relays, 40 pay tokens a scenario; recorded from the run's report, which kept the payments paid, the retries, p50, p95 and the worst, and the rate; it kept no fee payers, no run seconds and no split of the failures into refused and never completed",
    "note": "The 27 failures were HTTP 429 (the public endpoint's rate limit) and \"Blockhash not found\"; 0.3.23 sent each payment once.",
-   "rerun": "by the 0.3.24 release, which waits and sends again over a fresh blockhash after a 429 or an expired blockhash; until then 13 of 40 stands"
+   "rerun": "done by the 0.3.24 release on 9 Oct 2026: the next burst row"
+  },
+  {
+   "kind": "pay",
+   "cluster": "devnet",
+   "date": "2026-10-09",
+   "programs": {
+    "knos_pay": "5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k",
+    "knos_oidc": "FkwZdsYCmzicJMtHLTkPK76bYNVG4WNwkWJBiVWNtF3W",
+    "ids": "the public program ids"
+   },
+   "relays": 4,
+   "orders": 40,
+   "attempted": 40,
+   "paid": 22,
+   "already": 0,
+   "refused": null,
+   "never_completed": null,
+   "failures": 18,
+   "seconds": null,
+   "paid_per_s": 0.077,
+   "payment_s": {
+    "n": 22,
+    "p50": 262.5,
+    "p95": 278.3,
+    "p99": 278.3,
+    "max": 278.3
+   },
+   "retries": 4,
+   "ok": false,
+   "lanes": "order",
+   "fee_payers": [],
+   "wallet": null,
+   "scenario": "burst",
+   "measures": "every relay sends all of its payments at once instead of one after another",
+   "source": "the operator's release run of 0.3.24 on 9 Oct 2026 with its own wallets, 4 relays, 40 pay tokens a scenario; recorded from the run's report, which kept the payments paid, the retries, the duplicates refused, p50, p95 and the worst, and the rate; it kept no fee payers, no run seconds and no split of the failures into refused and never completed",
+   "note": "The 18 failures were RPC drops, timeouts and HTTP 408: answers lost on the way, which 0.3.24 did not send again.",
+   "rerun": "by the 0.3.25 release, which sends each signed transaction to every endpoint, again every 2 s, and confirms it by its signature (knos.settle.v2.fanout); until then 22 of 40 stands"
   }
  ],
  "scenarios": {

@@ -735,7 +735,7 @@ def test_the_after_rounds_run_on_the_live_build_upgraded_in_place_and_assert_the
     strict = ev["exercises"]["oidc_strict_json"]
     assert strict["refusals"] == [{"signature": ev["rounds"]["strict"]["refused"]["signature"], "error": 61, "means": "the payload is not JSON", "what": "a NaN claim"}]
     done = {c for c, e in ev["exercises"].items() if e["status"] == "exercised"}
-    registered = {"netting_reserve", "verify_gitlab", "gitlab_pay"}          # the registered rounds of the phase that have a path on the simulator and need no second owner
+    registered = {"netting_reserve", "verify_gitlab", "gitlab_pay", "meter_single"}     # the registered rounds of the phase that have a path on the simulator and need no second owner
     assert done - registered == {"fee_one_rate", "quorum_by_owner", "presentation_grace", "oidc_strict_json", "es256_tokens"} and registered <= done
     assert (ev["rounds"]["private"]["exit"], ev["rounds"]["judge"]["exit"]) == (0, 3) and ev["rounds"]["judge"]["result"].startswith("skipped: no `--neutral")
     # nothing stays: every order these rounds opened is closed or went back
