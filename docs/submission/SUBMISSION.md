@@ -163,7 +163,7 @@ USDC. By 3 Oct 2026 the two deployments had made 15 payments on devnet: 3 to one
 Knos funded itself, and the rest to Knos's own accounts. When the release ran, 315 tasks had been
 paid on the second deployment. Across both deployments, 0 paid tasks were funded by someone other than Knos with
 their own tokens, by 0 funders, of whom 0 funded again. From merge to paid took 26 seconds at the median, over 51
-payments. 3,860 tests pass. Buyers: none. Interviews: none. Letters of intent: none. Pilots: none, offered or
+payments. 3,928 tests pass. Buyers: none. Interviews: none. Letters of intent: none. Pilots: none, offered or
 sold. Revenue: none; test USDC is not money. Outside reproductions: none known. NUMBERS.md has each of these with its
 source; the site's Numbers page shows today's counts with Knos's own accounts kept apart.
 
