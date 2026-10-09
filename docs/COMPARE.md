@@ -128,12 +128,12 @@ Knos: 0.
 - It is on devnet. No real money has moved.
 - No security firm has audited anything. Until an outside review, Knos can change the second deployment through its multisig, after a public
   48-hour delay, and every member key of that multisig is the founder's.
-- It charges a fee on top of the amount: 0.30%, at least 0.05, from knos_pay 2.2 (until that upgrade executes the
-  public program charges 2.5% of the first 1,000, 1% to 50,000, 0.5% above, at least 0.40). MergePay charges no
-  platform fee, and its default relayer fee of 0.03 is lower than Knos's fee on any order.
+- It charges a fee on top of the amount: 0.30%, at least 0.05, from knos_pay 2.2, which the public program runs
+  (an order funded before that upgrade keeps the fee it was funded with: 2.5% of the first 1,000, 1% to 50,000, 0.5%
+  above, at least 0.40). MergePay charges no platform fee, and its default relayer fee of 0.03 is lower than Knos's
+  fee on any order.
 - It is not the cheapest on any order. The 0.05 minimum makes a 5 USDC order pay 1.00%, and every order under
-  16.67 pays more than 0.30%. Today, on the public program, the 0.40 minimum of the 0.3.14 fee still makes a 5 USDC
-  order pay 8%.
+  16.67 pays more than 0.30%.
 - Nothing it sells has been bought. The one offer for money, a 30-day [Pilot](PILOT.md), cannot be invoiced yet:
   there is no legal entity.
 - Its speed is measured on few payments. From merge to payment took 26 seconds

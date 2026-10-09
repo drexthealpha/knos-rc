@@ -212,7 +212,7 @@ transaction created the payee's token account (0.18 USD of rent the relayer puts
 more than the fee. The fee owner keeps the rest. In test USDC, from the constants of each build
 (`knos bill margin` prints both tables; `knos status` says which build is live):
 
-**knos_pay 2.1, the build live on 7 Oct 2026** (three tiers and a floor of 0.40):
+**knos_pay 2.1, the build before 2.2** (three tiers and a floor of 0.40; an order funded under it keeps that fee):
 
 | release | fee | as a share | relayer's tip | fee owner | first payment: tip | less 0.18 of rent | fee owner |
 |---|---|---|---|---|---|---|---|
@@ -221,7 +221,7 @@ more than the fee. The fee owner keeps the rest. In test USDC, from the constant
 | 100.00 | 2.50 | 2.50% | 0.05 | 2.45 | 0.30 | 0.12 | 2.20 |
 | 1,000.00 | 25.00 | 2.50% | 0.05 | 24.95 | 0.30 | 0.12 | 24.70 |
 
-**knos_pay 2.2, proposed on that day** (0.30% of the amount, at least 0.05):
+**knos_pay 2.2, the build the public program runs** (proposal 8, executed; 0.30% of the amount, at least 0.05):
 
 | release | fee | as a share | relayer's tip | fee owner | first payment: tip | less 0.18 of rent | fee owner |
 |---|---|---|---|---|---|---|---|
