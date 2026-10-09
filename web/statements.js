@@ -302,7 +302,7 @@ export function renderStatements(el, ctx = {}) {
   const doc = el.ownerDocument, esc = escHtml, file = ctx.file || jsonFile;
   stepStyle(doc);
   el.innerHTML = `<h2 class="no-print">One invoice, line by line</h2>
-    <div class="k-statement-tools no-print"><label class="k-btn quiet" for="aps-file">Open a statement file</label>
+    <div class="k-statement-tools no-print"><button type="button" class="k-btn quiet" id="aps-open">Open a statement file</button>
       <input type="file" id="aps-file" accept=".json,application/json" multiple hidden>
       <button type="button" class="k-btn quiet" id="aps-sample">Open the sample</button></div>
     <div id="aps-result" role="status" aria-live="polite"></div>`;
@@ -370,6 +370,8 @@ export function renderStatements(el, ctx = {}) {
     try { await open(await file(SAMPLE), await file(SAMPLE.replace(".json", ".status.json"))); } catch (e) { say(e.message, "bad"); }
   };
   $("aps-sample").onclick = sample;
+  // a button, not a label for the hidden input: a label is not reached by Tab, so with the keyboard alone no file could be opened
+  $("aps-open").onclick = () => $("aps-file").click();
   // the invoice checked on the first screen is opened here as it is: the same statement, with its approval if one was made
   const handed = () => { if (HANDED.st) open(HANDED.st, HANDED.status).catch((e) => say(e.message, "bad")); };
   doc.addEventListener("knos:statement", handed);
