@@ -155,7 +155,7 @@ jobs:
           enable-cache: false
           ignore-empty-workdir: true
       - name: install knos, the released wheel
-        run: uv tool install --no-config "knos==0.3.22"
+        run: uv tool install --no-config "knos==0.3.23"
       - name: the record and the token the first job made
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:

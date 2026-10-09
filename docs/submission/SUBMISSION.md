@@ -20,7 +20,7 @@ What is in this folder:
 | [../STORY.md](../STORY.md) | the one page: the number, the seven steps with the evidence under each, and the ask |
 | [../MANIFEST.md](../MANIFEST.md) | the release manifest, written by a script: source, the build live at each public program id, pending proposals, every capability's stage with its evidence, the outstanding limits |
 | [NUMBERS.md](NUMBERS.md) | the nine numbers about outside use, each with today's value, zeros included |
-| [pitch_script.md](pitch_script.md) | the presentation, under three minutes: the buyer, the problem, the insight, the evidence, the team, the business, and the limits in one sentence |
+| [pitch_script.md](pitch_script.md) | the presentation, under three minutes: the Agent PR Index finding, one transaction in seven steps, the evidence, the founder's record, the business, the limits in one sentence, and the ask |
 | [demo_script.md](demo_script.md) | the technical demonstration, three minutes in seven beats, the refusal first, each captioned with the program ids it ran on |
 | [CRITERIA.md](CRITERIA.md) | one paragraph for each factor Colosseum lists, founder and market fit included, and for each criterion in the rules; then six evidence targets, as targets |
 | [../PILOT.md](../PILOT.md) | the one offer for money: a 30-day pilot for one buyer and its suppliers, and what blocks it |
