@@ -122,14 +122,17 @@ def simulate(relays: int, orders: int, seed: int = SEED, fee_accounts: int = 1, 
     from solders.compute_budget import set_compute_unit_price
 
     import load
-    from _order import OWNER, USDC, OrderChain, issue, user
+    from _order import OWNER, USDC, OrderChain, user
     from solders.pubkey import Pubkey
 
     from knos.settle.v2 import pay
     if scenario == "hot-funder":
         fee_accounts = 1
     load.fast_signer()
-    c = OrderChain()
+    # The Balance's owner and each order's issue come from the seed, so the seed alone says where every order lies
+    # and so which relay's part it falls in: one seed, one run. (They were drawn anew each run: then 1 run in 32 of
+    # 2 relays and 6 orders put every order in one part, and hot-funder had one relay write the fee account, not all.)
+    c = OrderChain(owner=Keypair.from_seed(hashlib.sha256(b"knos-load-pay-owner" + seed.to_bytes(4, "little")).digest()))
     meter = c.svm = load.Meter(c.svm)
     rng = random.Random(seed)
     home = c.payer
@@ -147,7 +150,7 @@ def simulate(relays: int, orders: int, seed: int = SEED, fee_accounts: int = 1, 
     funded = []
     for i in range(orders):
         meter.phase, meter.order = "fund", i
-        repo, num, amount = 900_000 + i, issue(), (20 + rng.randrange(40)) * USDC     # over 16.67: the fee (0.30%) is more than the 0.05 tip
+        repo, num, amount = 900_000 + i, 1_001 + i, (20 + rng.randrange(40)) * USDC     # over 16.67: the fee (0.30%) is more than the 0.05 tip
         tok = c.fund_token(num, amount, repository_id=repo)
         assert c.send([c.fund_balance_ix(tok, num, repo=repo)]), f"order {i} was not funded: {c.err}"
         address = pay.order_pda(pay.scope_of(repo, num), c.bal)

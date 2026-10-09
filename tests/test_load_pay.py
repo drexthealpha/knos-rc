@@ -164,6 +164,16 @@ def test_the_one_relay_run_and_the_four_relay_run_of_8_october_stand_side_by_sid
 
 
 # == contention scenarios ==============================================================================================
+def test_one_seed_lays_the_same_orders_over_the_same_relays_so_hot_funder_has_every_relay_write_the_fee_account():
+    """The Balance's owner and the orders' issues come from the seed: two runs of one seed spread the orders alike.
+    Drawn anew each run, 1 run in 32 of 2 relays and 6 orders put every order in one part, and hot-funder's one fee
+    account was then written by one relay, not by all (tests.yml run 37925673025, Python 3.10)."""
+    pytest.importorskip("solders.litesvm")
+    a, b = (load_pay.simulate(2, 6, fee_accounts=2, scenario="hot-funder") for _ in range(2))
+    assert a["per_relay"] == b["per_relay"] and all(r["attempted"] for r in a["per_relay"]), (a["per_relay"], b["per_relay"])
+    assert a["checks"]["one_fee_account_written_by_every_relay"] and a["written_by_every_relay"] >= 1
+
+
 @pytest.mark.parametrize("scenario", sorted(load_pay.SCENARIOS))
 def test_each_contention_scenario_runs_in_the_simulator_with_its_own_checks_and_no_rate(scenario):
     """hot-funder: one fee account written by every relay; rpc-faults: refusals and lost answers injected, a resend
