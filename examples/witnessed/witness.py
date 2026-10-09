@@ -25,7 +25,8 @@ key). The steps:
     pass      the corrected work on the same pull request; the judge passes, GitHub signs, the escrow pays, no merge
     replay    `/knos settle` again on the paid pull request: nothing more is paid
     buyer     the buyer's statement: the chain's paid line (knos audit export), the judge's verdict and the supplier's
-              invoice line for it taken into a log of events, and the statement of that log (one line, its policy met)
+              invoice line for it taken into a log of events, and the statement of that log (one line, its policy met),
+              its "settled" step closed from the paying transaction (`knos statement settle-sync`: amount, payee, order)
     supplier  the supplier's statement, made again from a second export: the same payable, the same hash
     archive   one archive of the evidence, checked by the stand-alone verifier inside it (python verify.py)
     record    witness.json committed to your repository: each step's public link
@@ -71,6 +72,12 @@ FAUCET_NO = re.compile(r"^Knos: nothing was sent\. (?P<why>.*)", re.S)
 FUNDED = re.compile(r"^Knos: (?P<money>[\d.]+ .+?) from (?P<source>.+?) is in escrow for issue #(?P<issue>\d+)(?: as a (?:private )?work order)? "
                     r"\(\[[^\]]*\]\(https://explorer\.solana\.com/address/(?P<order>[1-9A-HJ-NP-Za-km-z]{32,44})")
 NOT_FUNDED = ("nothing was funded", "Knos: not confirmed yet.")      # every refusal of `_fund`, and the relay's time out
+# Which comment on the issue is the funding's reply. The workflow posts two, as the same account (github-actions[bot]):
+# first the token GitHub signed, `knos-fund: <jwt>` (knos.flow `_relay_there`, for a relayer to carry), then the reply.
+# 0.3.23 took the first comment after its own for the reply, and read the token as "nothing was funded". Every reply
+# of the flow and of the command grammar (knos.commands.reply) starts "Knos: "; a token comment never does.
+FLOW_REPLY = re.compile(r"\A\s*Knos: ")
+SETTLED = re.compile(r"settled by (?P<tx>[1-9A-HJ-NP-Za-km-z]{64,90}) in slot (?P<slot>\d+)")     # `knos statement settle-sync`
 
 
 class Stop(Exception):
@@ -215,7 +222,7 @@ def terms(s: dict, sh: Shell) -> dict:
     for argv in (["git", "add", ".knos"], ["git", "commit", "-qm", f"Acceptance pairs for #{n}"], ["git", "push", "-q", "origin", "HEAD"]):
         _ok(sh, argv, work)
     mine = _comment(sh, s["repo"], n, FUND_LINE)
-    said = sh.wait("the funding's reply", _reply(sh, s["repo"], n, mine, re.compile(r"\S"), other_than=s["login"]))
+    said = sh.wait("the funding's reply", _reply(sh, s["repo"], n, mine, FLOW_REPLY, other_than=s["login"]))
     return {"issue": n, "funded_reply": said["url"], "funded_order": funding(str(said["body"]), n, str(said["url"]))}
 
 
@@ -345,7 +352,13 @@ def buyer(s: dict, sh: Shell) -> dict:
     lines = json.loads((s["dir"] / "buyer" / STATEMENT).read_text(encoding="utf-8"))["lines"]
     if not lines:
         raise Stop("the buyer's statement has no line: the log of events in buyer/ shows why")
-    return {**got, "statement_lines": len(lines), "statement_state": ",".join(sorted({ln["state"] for ln in lines}))}
+    # the line's "settled" step: the paying transaction read from the chain, checked against the line, written beside the statement
+    out = _ok(sh, ["knos", "statement", "settle-sync", str(s["dir"] / "buyer" / STATEMENT), "--order", str(s.get("funded_order") or "")])
+    paid = SETTLED.search(out)
+    if not paid:
+        raise Stop(f"the statement's line was not recorded settled: {' '.join(out.split())[:300]}")
+    return {**got, "statement_lines": len(lines), "statement_state": ",".join(sorted({ln["state"] for ln in lines})),
+            "settled_tx": paid.group("tx"), "settled_slot": int(paid.group("slot"))}
 
 
 def supplier(s: dict, sh: Shell) -> dict:
@@ -374,7 +387,7 @@ def payments(s: dict) -> int:
 def record(s: dict, sh: Shell) -> dict:
     keep = ("actor_id", "repository", "repository_owner_id", "address", "faucet_reply", "faucet_tx", "faucet_refused", "top_up_tx", "budget_tx", "issue",
             "funded_reply", "funded_order", "funded_tx", "pull_url", "failed_run", "passed_head", "passed_run", "paid_reply", "paid_tx", "replay_refused",
-            "buyer_statement", "statement_lines", "statement_state", "supplier_statement", "statements_agree", "archive", "verified")
+            "buyer_statement", "statement_lines", "statement_state", "settled_tx", "settled_slot", "supplier_statement", "statements_agree", "archive", "verified")
     doc = {"v": 1, "note": "Test USDC, no monetary value.", **{k: s[k] for k in keep if k in s}, "payments": payments(s)}
     work = s["dir"] / NAME
     (work / "witness.json").write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")

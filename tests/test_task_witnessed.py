@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from knos import audit, commands, faucet, judge, tasks
+from knos import audit, commands, faucet, judge, statement, tasks
 from knos.settle.v2 import pay as pay2
 from test_audit import DAY, T0, U, funded, line, paid
 
@@ -36,6 +36,27 @@ def funded_reply(issue: int) -> str:
         "The acceptance checks decide. `auto`: the first pull request they pass is paid, with no merge.",
         f"To earn it: open a pull request whose description says `Fixes #{issue}`. Reserve it with `/knos reserve`.",
         "Memory: the last 2 work orders here were paid."))
+
+
+BOT = "github-actions[bot]"          # who posts both the token and the reply: the workflow's GITHUB_TOKEN
+
+
+def fund_token() -> str:
+    """The comment knos.flow `_relay_there` posts before the reply: the token GitHub signed, for a relayer to carry."""
+    return ("knos-fund: eyJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJrbm9zMzpmdW5kIn0.c2ln\nknos-terms: {\"auto\":true}\n\n"
+            "<sub>knosrelay: GitHub signed this token for the one action it names. Anyone may carry it to Solana; Knos's public relay does.</sub>")
+
+
+def pay_order_tx(sig: str, order: str, payee: int, amount: int, fee: int = 50_000, tip: int = 50_000, slot: int = 412_345_678,
+                 at: int = T0 + DAY + 300, err=None) -> dict:
+    """getTransaction's JSON (encoding json) of a knos_pay PayOrder, with the log lines order_pay.rs prints."""
+    pid = str(pay2.PAY_ID)
+    return {"slot": slot, "blockTime": at, "transaction": {"signatures": [sig], "message": {"accountKeys": ["R" * 44, order, "W" * 44, pid]}},
+            "meta": {"err": err, "loadedAddresses": {"writable": [], "readonly": []}, "logMessages": [
+                f"Program {pid} invoke [1]",
+                f"Program log: knos3:paid order={order} pr=2 payee={payee} amount={amount} to={'W' * 44}",
+                f"Program log: knos3:settled order={order} paid={amount} of={amount} fee={fee - tip} tip={tip} judge=9",
+                f"Program {pid} success"]}}
 
 
 def _witness():
@@ -100,7 +121,8 @@ class World(W.Shell):
                 self._post(repo, issue, faucet._words(row), "knos-bot")
         elif isinstance(cmd, commands.Fund):
             self.chain += funded("OrdW", T0 + DAY + 60, FUNDED, 5 * U, by=ME, issue=issue)
-            self._post(repo, issue, funded_reply(issue), "knos-bot")
+            self._post(repo, issue, fund_token(), BOT)          # the token comment comes first, as the same account
+            self._post(repo, issue, funded_reply(issue), BOT)
         elif isinstance(cmd, commands.Settle):
             if self.replay_pays:
                 self.chain += paid("OrdW", T0 + DAY + 600, "Q" * 64, [(ME, 5 * U)], 5 * U, 5 * U, 0, pr=2)
@@ -179,6 +201,10 @@ class World(W.Shell):
             out = Path(a[a.index("--out") + 1])
             out.write_text(audit.export(sorted(self.chain, key=lambda e: e["at"]), ME, "csv", first=DAYS, last=DAYS), encoding="utf-8")
             return 0, ""
+        if a[:3] == ["knos", "statement", "settle-sync"]:     # the real command, given the payment's transaction as the chain holds it
+            got = Path(a[3]).parent / "paid-tx.json"
+            got.write_text(json.dumps({"jsonrpc": "2.0", "result": pay_order_tx(PAID, ORDER, ME, 5 * U)}), encoding="utf-8")
+            a = [*a, "--tx", str(got)]
         if a[0] == "knos":           # events, statement, archive: the real command line
             got = subprocess.run([sys.executable, "-m", "knos", *a[1:]], cwd=cwd, capture_output=True, text=True, encoding="utf-8", timeout=120)
             return got.returncode, got.stdout + got.stderr
@@ -208,13 +234,17 @@ def test_the_whole_sequence_runs_in_order_leaves_a_link_for_each_step_and_the_re
     s = W.run(LOGIN, tmp_path, world, state={"day": DAYS})
     assert s["done"] == [n for n, _f, _w in W.STEPS]
     assert (s["funded_tx"], s["paid_tx"], s["faucet_tx"], s["budget_tx"]) == (FUNDED, PAID, FAUCET, DEPOSIT)
-    assert s["funded_order"] == ORDER and s["funded_reply"].endswith("#issuecomment-104")
+    assert s["funded_order"] == ORDER and s["funded_reply"].endswith("#issuecomment-105")      # 104 is the token comment
     assert s["statements_agree"] is True and s["payments"] == 1
     # the statements carry the paid line, agreed (0.3.22's had none: the settle mode alone writes no invoice line)
     st = json.loads((tmp_path / "buyer" / W.STATEMENT).read_text(encoding="utf-8"))
     assert (s["statement_lines"], s["statement_state"]) == (1, "agreed") and len(st["lines"]) == 1
     assert (st["lines"][0]["state"], st["lines"][0]["amount"], st["lines"][0]["supplier"]) == ("agreed", "5.00", str(ME))
     assert s["buyer_statement"] == s["supplier_statement"] and len(s["buyer_statement"]) == 64
+    # the line's four steps end settled: the paying transaction, read and checked, is beside the statement
+    assert (s["settled_tx"], s["settled_slot"]) == (PAID, 412_345_678)
+    done = json.loads((tmp_path / "buyer" / "ap-statement.status.json").read_text(encoding="utf-8"))["events"][-1]
+    assert done["chain"] == {"signature": PAID, "slot": 412_345_678, "on": DAYS, "amount": "5.00", "fee": "0.05", "order": ORDER, "payee": str(ME), "to": "W" * 44}
     record = json.loads((tmp_path / W.NAME / "witness.json").read_text(encoding="utf-8"))
     assert record["note"] == "Test USDC, no monetary value." and record["repository"] == f"https://github.com/{LOGIN}/{W.NAME}"
     assert tasks.accepts("witness", record) == (True, "") and W.check(record) == (True, "")
@@ -315,3 +345,58 @@ def test_the_bundle_the_script_commits_is_black_box_and_tells_the_right_answer_f
         (tmp_path / rel).write_bytes(data)
     (tmp_path / "words.py").write_text(W.RIGHT, encoding="utf-8")
     accept.verify(files, [sys.executable, "-I", "words.py"], tmp_path, tmp_path)      # the right file passes; an echo does not
+
+
+def test_the_funding_reply_is_the_flows_and_never_the_token_comment_posted_before_it(tmp_path):
+    """0.3.23's run read fund.yml's `knos-fund:` comment (posted first, by the same account) as the reply."""
+    world = World(tmp_path)
+    mine = world._post("me/r", 1, W.FUND_LINE)["id"]
+    world._post("me/r", 1, fund_token(), BOT)
+    got = W._reply(world, "me/r", 1, mine, W.FLOW_REPLY, other_than=LOGIN)
+    assert got() is None                                    # the token alone: still waiting, never "nothing was funded"
+    world._post("me/r", 1, funded_reply(1), BOT)
+    said = got()
+    assert said["body"] == funded_reply(1) and W.funding(said["body"], 1) == ORDER
+    world2 = World(tmp_path)                                # a refusal after the token is read as the refusal
+    mine = world2._post("me/r", 1, W.FUND_LINE)["id"]
+    world2._post("me/r", 1, fund_token(), BOT)
+    world2._post("me/r", 1, "Knos: nothing was funded. New funding is paused on Solana until 2026-10-09 08:25 UTC.", BOT)
+    said = W._reply(world2, "me/r", 1, mine, W.FLOW_REPLY, other_than=LOGIN)()
+    with pytest.raises(W.Stop, match="nothing was funded: Knos: nothing was funded. New funding is paused"):
+        W.funding(said["body"], 1)
+    assert not W.FLOW_REPLY.search(fund_token()) and W.FLOW_REPLY.search(commands.reply("malformed", "fund", why="no amount"))
+
+
+def _one_line_statement() -> dict:
+    ln = {"invoice_line": "inv_1", "state": "agreed", "amount": "5.00", "supplier": str(ME), "reference": f"tx:{PAID}", "deliverable": "dlv_1"}
+    st = {"lines": [ln], "scale": 6, "source": "events", "date": DAYS, "sha256": "s" * 64}
+    return st
+
+
+def test_settle_sync_writes_the_paying_transaction_after_checking_amount_payee_and_order():
+    st = _one_line_statement()
+    ok = pay_order_tx(PAID, ORDER, ME, 5 * U)
+    status, said = statement.settle_sync(st, None, {PAID: ok}.get, order=ORDER)
+    assert said == [("inv_1", f"settled by {PAID} in slot 412345678: 5.00 to {ME}, fee 0.05")]
+    steps, owed = statement.steps_of(st, st["lines"][0], status["events"])
+    assert steps[3]["state"] == "done" and "slot 412345678" in steps[3]["said"] and not owed
+    again, said = statement.settle_sync(st, status, {PAID: ok}.get, order=ORDER)    # twice changes nothing
+    assert again == status and said == [("inv_1", "already settled")]
+    for tx, why in ((pay_order_tx(PAID, ORDER, ME, 4 * U), "paid 4.00, and the line says 5.00"),
+                    (pay_order_tx(PAID, ORDER, ME + 1, 5 * U), "someone other than the line's supplier"),
+                    (pay_order_tx(PAID, "X" * 44, ME, 5 * U), f"paid no one from the order {ORDER}"),
+                    (pay_order_tx(PAID, ORDER, ME, 5 * U, err={"InstructionError": [0, "Custom"]}), "failed on chain"),
+                    (None, "did not give the transaction")):
+        status, said = statement.settle_sync(st, None, {PAID: tx}.get, order=ORDER)
+        assert status["events"] == [] and said[0][1].startswith("not settled") and why in said[0][1]
+
+
+def test_settle_sync_finds_the_payment_among_the_orders_signatures_when_the_line_names_none():
+    st = _one_line_statement()
+    st["lines"][0]["reference"] = "issue 1"
+    other = "Q" * 64
+    txs = {other: pay_order_tx(other, "X" * 44, ME, 5 * U), PAID: pay_order_tx(PAID, ORDER, ME, 5 * U)}
+    status, said = statement.settle_sync(st, None, txs.get, lambda order: [other, PAID], order=ORDER)
+    assert status["events"][-1]["reference"] == PAID and said[0][1].startswith("settled by")
+    _, said = statement.settle_sync(st, None, txs.get)
+    assert said == [("inv_1", "not settled: its evidence names no transaction (give --order)")]

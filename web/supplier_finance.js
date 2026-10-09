@@ -87,7 +87,7 @@ const STYLE = `.sf-rows{display:grid;grid-template-columns:repeat(auto-fit,minma
 export function renderSupplierFinance(el, ctx = {}) {
   const doc = el.ownerDocument, win = doc.defaultView;
   if (!doc.getElementById("sf-style")) { const s = doc.createElement("style"); s.id = "sf-style"; s.textContent = STYLE; doc.head.appendChild(s); }
-  const h = el.closest(".supplier") ? "h3" : "h2";      // a section of the supplier page, or a page of its own (#payee)
+  const h = el.closest(".supplier") ? "h3" : "h2";      // a section of the supplier page, or a page of its own (#finance)
   el.innerHTML = `<${h}>See when you are paid</${h}>
     <form class="sf-row" data-sf="in" novalidate><input type="text" id="sf-order" aria-label="The funding comment, or the order's address" placeholder="Paste the funding comment, or the order's address" spellcheck="false" autocomplete="off">
       <button type="submit" class="k-btn" data-sf="read">Read</button> <button type="button" class="k-btn quiet" data-sf="sample">Try the sample</button></form>

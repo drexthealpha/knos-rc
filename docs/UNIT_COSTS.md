@@ -415,6 +415,21 @@ Knos runs no customer test. The tests run on the customer's runners, on the cust
 out of Knos's gross margin. **It is not a saving for the customer:** the customer paid for those minutes before Knos and
 pays for them after.
 
+## Exceptional review is priced apart
+
+Exceptional review: priced per case by contract, never inside the unit prices. The arithmetic (`knos.billing.review_budget`):
+
+| step | value |
+|---|---|
+| Acceptance on a 0.99 USD outcome at 0.20% | 0.00198 USD |
+| Direct-cost budget at a 95% gross margin (5% of that) | 0.000099 USD, about 0.0001 |
+| One manual review at 25 USD, in such budgets | 252,525 outcomes, about 250,000 |
+
+So no person can look at a routine exception inside the unit prices. Routine exceptions are automated: the supplier
+contests a refusal with `knos appeal`, the judge runs again from pinned inputs, and the statement records the
+outcome. A case that needs a person is billed as its own invoice line (`reviews` in a customer-month; one line each,
+never drawn from an annual commitment), at the price the contract names for it. No contract exists today.
+
 ## What is not known
 
 - What a relay costs for private repositories. No bill has been read.

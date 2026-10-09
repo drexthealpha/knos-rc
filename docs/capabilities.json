@@ -3742,7 +3742,7 @@
      "names": "test_the_simulator_pays_every_order_once_each_by_the_relay_of_its_part_with_that_relays_key_alone"
     }
    },
-   "note": "The simulator proves the path and counts; it gives no rate. End-to-end PayOrder capacity on devnet has not been measured: the release run measures it."
+   "note": "Measured on devnet, public ids, 8 and 9 Oct (n=40 each); burst 13/40 and priority-fee unpriced until the release reruns them."
   },
   {
    "id": "approval_record",
@@ -3979,7 +3979,7 @@
      "names": "test_each_contention_scenario_runs_in_the_simulator_with_its_own_checks_and_no_rate"
     }
    },
-   "note": "Simulated here with injected faults; not run on devnet yet (docs/LOAD.md)."
+   "note": "Simulated here with injected faults; run on devnet, public ids, 9 Oct (n=40 each): hot-funder 40/40, rpc-faults 40/40, priority-fee 40/40 with version-1 transactions unpriced, burst 13/40 (docs/LOAD.md)."
   },
   {
    "id": "audit_export_fast",
@@ -3995,6 +3995,150 @@
      "names": "test_a_history_the_size_of_the_witnessed_run_takes_a_handful_of_calls_not_a_thousand"
     }
    }
+  },
+  {
+   "id": "assurance_levels",
+   "what": "Every receipt and accepted statement line says its assurance level (workflow-reported, re-executed, independently attested or proved), and a statement keeps agreement, completeness, correctness and satisfaction apart.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/assurance.py",
+     "names": "def of_line"
+    },
+    "tested": {
+     "test": "tests/test_assurance_levels.py",
+     "names": "test_the_levels_are_four_in_order_and_two_are_reachable"
+    }
+   },
+   "note": "Workflow-reported and re-executed are reachable today; independently attested and proved are defined and nothing reaches them. Commercial satisfaction is never claimed (`knos assurance`)."
+  },
+  {
+   "id": "plan_floor_check",
+   "what": "`knos fees plans --check` reads every fee Plan of knos_pay on the cluster and fails when one in force is below the 20 bps contract floor; Knos's own Plan builder refuses below 20.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/plan_floor.py",
+     "names": "def below"
+    },
+    "tested": {
+     "test": "tests/test_plan_floor.py",
+     "names": "test_the_check_fails_on_a_plan_in_force_below_20"
+    }
+   },
+   "note": "The program allows Plans from 10 to 30 bps; the 20 bps floor is enforced by Knos's own signer and checked against the chain, not by the program."
+  },
+  {
+   "id": "workflow_strip_check",
+   "what": "`knos protect --check-strip OWNER/REPO` reads a repository's rulesets and branch protection and says whether a buyer can remove the Knos workflow before merging: closed, partly closed or open.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/strip_check.py",
+     "names": "def classify"
+    },
+    "tested": {
+     "test": "tests/test_strip_check.py",
+     "names": "test_closed_is_never_closed_for_those_who_can_edit_the_ruleset"
+    }
+   },
+   "note": "Tested on recorded GitHub answers. Never closed for those who can edit the ruleset; open is said plainly."
+  },
+  {
+   "id": "exceptional_review_line",
+   "what": "An exceptional manual review is its own invoice line, priced per case by contract and never drawn from the unit prices.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/billing.py",
+     "names": "Exceptional review"
+    },
+    "tested": {
+     "test": "tests/test_billing_review.py",
+     "names": "test_a_manual_review_is_a_separate_line_never_drawn_from_the_commitment"
+    }
+   },
+   "note": "Nothing has been sold; no review has been priced for anyone."
+  },
+  {
+   "id": "statement_settle_sync",
+   "what": "`knos statement settle-sync` writes the paying transaction into a statement's settled step after checking amount, payee and order against the PayOrder transaction.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "src/knos/statement.py",
+     "names": "def settle_sync"
+    },
+    "tested": {
+     "test": "tests/test_task_witnessed.py",
+     "names": "test_settle_sync_writes_the_paying_transaction_after_checking_amount_payee_and_order"
+    }
+   },
+   "note": "Offline only: tested on recorded transactions (also tests/test_statement.py); not yet run against devnet."
+  },
+  {
+   "id": "witness_funding_reply",
+   "what": "The witnessed run reads the funding reply from the flow's own reply only, never from a token comment posted before it.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "examples/witnessed/witness.py",
+     "names": "def _reply"
+    },
+    "tested": {
+     "test": "tests/test_task_witnessed.py",
+     "names": "test_the_funding_reply_is_the_flows_and_never_the_token_comment_posted_before_it"
+    }
+   },
+   "note": "Tested on recorded comments; the witnessed run of 9 Oct predates the fix."
+  },
+  {
+   "id": "index_review",
+   "what": "Each of the 30 merged pull requests the scan counted with a failed check is read again under a frozen method; the reviewed counts lead.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "scripts/backtest.py",
+     "names": "def reviewed"
+    },
+    "tested": {
+     "test": "tests/test_backtest.py",
+     "names": "test_the_review_reads_every_one_of_the_thirty_and_the_reviewed_counts_lead"
+    }
+   },
+   "note": "30 re-read by hand on 9 Oct; method version 1 hash-checked (docs/INDEX_METHOD.md, docs/index_review.json)."
+  },
+  {
+   "id": "payee_passkey_bind",
+   "what": "The payout page (`#payee=<login>`) makes a passkey wallet with no seed phrase and links the payee to the one run that binds it.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "web/payee.js",
+     "names": "export function renderPayee"
+    },
+    "tested": {
+     "test": "tests/test_site_payee.py",
+     "names": "test_the_page_in_a_browser_with_a_virtual_passkey"
+    }
+   },
+   "note": "Not exercised on public ids. 8 clicks, 4 with knos-claim already created; one click needs a program change (docs/PAYEE.md)."
+  },
+  {
+   "id": "pypi_description_links",
+   "what": "The package description on PyPI is the README with every link pinned to the release's tag.",
+   "stage": "tested",
+   "evidence": {
+    "implemented": {
+     "path": "scripts/bump_version.py",
+     "names": "def pypi_readme"
+    },
+    "tested": {
+     "test": "tests/test_pypi_readme.py",
+     "names": "test_the_package_description_is_the_pinned_readme_and_no_relative_link_remains"
+    }
+   },
+   "note": "Written by bump_version; checked by `bump_version --check`."
   }
  ],
  "public_round": {

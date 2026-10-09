@@ -41,7 +41,7 @@ def test_the_page_is_one_page_thirteen_rows_five_zeros_and_the_file_is_the_page(
     lines = [line for line in page.splitlines() if line.strip()]
     assert lines[1] == "**The neutral meter for AI agent work: neither side keeps the count.**"
     assert lines[2] == j.PITCH == data["pitch"]                                          # the pitch line is the second line
-    assert lines[3] == "Of 241 merged agent pull requests that claimed passing tests, 30 had a failed check."
+    assert lines[3] == "Of 241 merged agent pull requests claiming passing tests, 9 failed a test, build, lint or type check."
     assert [r["thing"] for r in data["rows"]] == j.JUDGED and len(data["rows"]) == 13
     assert set(data) == {"title", "sentence", "pitch", "number", "claim", "why_solana", "source", "columns", "rows", "wait", "not_real", "entry", "page"}
     for row in data["rows"]:
@@ -68,12 +68,12 @@ def test_a_judge_enters_through_the_manifest_and_the_witnessed_transaction_and_e
     assert first["yourself"].endswith("examples/witnessed/README.md") and (ROOT / "examples" / "witnessed" / "README.md").exists()
     # what that run was, plainly: an own repository, test money, and what it needed
     start = flat("docs/JUDGES.md").split("## Start here")[1].split("## ")[0]
-    assert "own repository, test USDC" in start and "three workarounds" in start and "no lines" in start
+    assert "own repository, test USDC" in start and "One step fixed by hand" in start and "not yet settled" in start
     # the README's judge link is the page whose first entry this is, and its "For a judge" part carries the same links
     readme = read("README.md")
     assert "](docs/JUDGES.md)" in readme.split("</h1>", 1)[1].split("\n## ", 1)[0]
     judge = readme.split("\n## For a judge\n", 1)[1].split("\n## ", 1)[0]
-    assert judge.index("](docs/MANIFEST.md)") < judge.index(first["witnessed"][0]["link"]) and "three workarounds" in judge
+    assert judge.index("](docs/MANIFEST.md)") < judge.index(first["witnessed"][0]["link"]) and "one step fixed by hand" in judge
     assert all(f"[{w['label']}]({w['link']})" in judge for w in first["witnessed"]) and len([x for x in judge.splitlines() if x.strip()]) == 3
 
 
@@ -93,7 +93,7 @@ def test_the_zeros_are_the_numbers_page_and_no_fee_or_missing_thing_is_claimed()
     assert not re.search(r"\d(\.\d+)?\s*(%|bps)", page) and "this page prints no rate" in page
     # the measured time is said with its sample, and the wait a buyer has is said to be unmeasured
     bench = json.loads(read("docs/bench.json"))
-    assert "From merge to paid took 25 seconds at the median, over 42 payments on devnet." in page and "25" in json.dumps(bench)
+    assert "From merge to paid took 26 seconds at the median, over 51 payments on devnet." in page and "25" in json.dumps(bench)
     assert "It has not measured it with any buyer, so no figure for it is given here." in page
     for word in ("audit", "customer says", "pilot customer", "immutable", "trustless"):
         assert word not in page.lower(), word

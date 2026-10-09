@@ -1,4 +1,4 @@
-# Release manifest: Knos 0.3.23
+# Release manifest: Knos 0.3.24
 
 **The neutral meter for AI agent work: neither side keeps the count.**
 
@@ -16,7 +16,7 @@ deployed there, the transactions recorded, and the fee schedule. The rows behind
 
 ## Source
 
-- Release: Knos 0.3.23 (`pyproject.toml`). Tag: [`v0.3.23`](https://github.com/drexthealpha/Knos/tree/v0.3.23); `git rev-list -n 1 v0.3.23` prints its commit. A file
+- Release: Knos 0.3.24 (`pyproject.toml`). Tag: [`v0.3.24`](https://github.com/drexthealpha/Knos/tree/v0.3.24); `git rev-list -n 1 v0.3.24` prints its commit. A file
   cannot hold the hash of the commit that holds it.
 - Cluster: Solana devnet. The money is test USDC. Mainnet is not touched.
 
@@ -290,6 +290,15 @@ capability is in [CAPABILITIES.md](CAPABILITIES.md).
 | `selfhost_bundle` | tested locally | [`src/knos/selfhost.py`](../src/knos/selfhost.py): `def check` | [`tests/test_selfhost.py`](../tests/test_selfhost.py): `test_compose_parses_and_names_only_pinned_images` | none | none | none |
 | `contention_scenarios` | tested locally | [`scripts/load_pay.py`](../scripts/load_pay.py): `SCENARIOS` | [`tests/test_load_pay.py`](../tests/test_load_pay.py): `test_each_contention_scenario_runs_in_the_simulator_with_its_own_checks_and_no_rate` | none | none | none |
 | `audit_export_fast` | tested locally | [`src/knos/audit.py`](../src/knos/audit.py): `def owner_history` | [`tests/test_audit_speed.py`](../tests/test_audit_speed.py): `test_a_history_the_size_of_the_witnessed_run_takes_a_handful_of_calls_not_a_thousand` | none | none | none |
+| `assurance_levels` | tested locally | [`src/knos/assurance.py`](../src/knos/assurance.py): `def of_line` | [`tests/test_assurance_levels.py`](../tests/test_assurance_levels.py): `test_the_levels_are_four_in_order_and_two_are_reachable` | none | none | none |
+| `plan_floor_check` | tested locally | [`src/knos/plan_floor.py`](../src/knos/plan_floor.py): `def below` | [`tests/test_plan_floor.py`](../tests/test_plan_floor.py): `test_the_check_fails_on_a_plan_in_force_below_20` | none | none | none |
+| `workflow_strip_check` | tested locally | [`src/knos/strip_check.py`](../src/knos/strip_check.py): `def classify` | [`tests/test_strip_check.py`](../tests/test_strip_check.py): `test_closed_is_never_closed_for_those_who_can_edit_the_ruleset` | none | none | none |
+| `exceptional_review_line` | tested locally | [`src/knos/billing.py`](../src/knos/billing.py): `Exceptional review` | [`tests/test_billing_review.py`](../tests/test_billing_review.py): `test_a_manual_review_is_a_separate_line_never_drawn_from_the_commitment` | none | none | none |
+| `statement_settle_sync` | tested locally | [`src/knos/statement.py`](../src/knos/statement.py): `def settle_sync` | [`tests/test_task_witnessed.py`](../tests/test_task_witnessed.py): `test_settle_sync_writes_the_paying_transaction_after_checking_amount_payee_and_order` | none | none | none |
+| `witness_funding_reply` | tested locally | [`examples/witnessed/witness.py`](../examples/witnessed/witness.py): `def _reply` | [`tests/test_task_witnessed.py`](../tests/test_task_witnessed.py): `test_the_funding_reply_is_the_flows_and_never_the_token_comment_posted_before_it` | none | none | none |
+| `index_review` | tested locally | [`scripts/backtest.py`](../scripts/backtest.py): `def reviewed` | [`tests/test_backtest.py`](../tests/test_backtest.py): `test_the_review_reads_every_one_of_the_thirty_and_the_reviewed_counts_lead` | none | none | none |
+| `payee_passkey_bind` | tested locally | [`web/payee.js`](../web/payee.js): `export function renderPayee` | [`tests/test_site_payee.py`](../tests/test_site_payee.py): `test_the_page_in_a_browser_with_a_virtual_passkey` | none | none | none |
+| `pypi_description_links` | tested locally | [`scripts/bump_version.py`](../scripts/bump_version.py): `def pypi_readme` | [`tests/test_pypi_readme.py`](../tests/test_pypi_readme.py): `test_the_package_description_is_the_pinned_readme_and_no_relative_link_remains` | none | none | none |
 
 ## Fee schedule of each recorded order
 
@@ -309,6 +318,10 @@ fee the order stored when the record states it, else the build live at its slot 
 | 40 orders funded and refunded by a load run, 4 relays; order ids not kept in docs/load.json | none kept | knos_pay 2.0 or 2.1, not 2.2 | its date rules out 2.2 only (proposal 8 could not yet execute); the run kept no transaction to read a slot from | docs/load.json `measured` |
 | 40 orders paid by a load run, 1 relay; order ids not kept in docs/load.json | none kept | knos_pay 2.1: orders 2.5% of the first 1,000, 1% to 50,000, 0.5% above, at least 0.40; jobs 2.5% of the amount, at least 0.05 | its date: a day before proposal 8 (2.2) could execute (web/upgrades.json `earliest_execution_utc`) and after the cluster read that found proposal 4 (2.1) live (docs/provenance.json `read`) | docs/load.json `measured` |
 | 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | knos_pay 2.1: orders 2.5% of the first 1,000, 1% to 50,000, 0.5% above, at least 0.40; jobs 2.5% of the amount, at least 0.05 | its date: a day before proposal 8 (2.2) could execute (web/upgrades.json `earliest_execution_utc`) and after the cluster read that found proposal 4 (2.1) live (docs/provenance.json `read`) | docs/load.json `measured` |
+| 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
+| 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
+| 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
+| 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
 
 ## Outstanding limits
 

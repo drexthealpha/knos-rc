@@ -4,7 +4,7 @@
 
 Knos lets buyers and suppliers agree what AI work earned payment, and independently prove that agreement later.
 
-Of 241 merged agent pull requests that claimed passing tests, 30 had a failed check.
+Of 241 merged agent pull requests claiming passing tests, 9 failed a test, build, lint or type check.
 
 The claim: two parties who distrust each other compute the same bill from evidence a third party signed, and the
 program releases the money on that signature.
@@ -14,17 +14,17 @@ Why Solana: Money is released with no custodian, and the count is anchored where
 ## Start here
 
 1. [The release manifest](MANIFEST.md): source, build hash, deployed version, transactions, fee schedule.
-2. The witnessed transaction (8 Oct 2026, Knos 0.3.22, own repository, test USDC):
-   [funded](https://explorer.solana.com/tx/5NGGSCAN17FiN1gaSiZ5YBUwPiDX56DXdv7txKGqKGQL4FMrCYL3gpduBzxDYLYojYp4YhKq8ZhkQLttiSEEAnjN?cluster=devnet),
-   [wrong work refused](https://github.com/drexthealpha/knos-witness/actions/runs/37834796417/job/113509142113),
-   [paid](https://explorer.solana.com/tx/5agirebr3WcfmjF4JV8KNJeFsWqrd21vkPZtebqZyxTLNTWqYv8azX28zTZuMYKCuH6uaCmTaGPeTbLAooJT1Vs9?cluster=devnet),
-   [replay paid nothing more](https://github.com/drexthealpha/knos-witness/pull/8#issuecomment-6067864262),
+2. The witnessed transaction (9 Oct 2026, Knos 0.3.23, own repository, test USDC):
+   [funded](https://explorer.solana.com/tx/3UaY22WKexigMpkVhibfeMdNgBiyybWm2Z4LuLskKGbNUDXV34yYWyH42atxFjELbrqSgoVs6TwpFzSQwhfXqzgM?cluster=devnet),
+   [wrong work refused](https://github.com/drexthealpha/knos-witness/actions/runs/37890511112/job/113690226126),
+   [paid](https://explorer.solana.com/tx/2PtmKUrQHKPARZE4nr35Te559NGQSG7tSHUfwzcKCAjL7gzvQ76fNTVLMWvq8mcZLxd27tbyTe31mCk2PxEGfAqa?cluster=devnet),
+   [replay paid nothing more](https://github.com/drexthealpha/knos-witness/pull/10#issuecomment-6075196710),
    [the record](https://github.com/drexthealpha/knos-witness/blob/main/witness.json).
-   It needed three workarounds; its statements had no lines. [Run it yourself](../examples/witnessed/README.md).
+   One step fixed by hand; one agreed line, not yet settled. [Run it yourself](../examples/witnessed/README.md).
 
 ## Six criteria and seven factors, one link each
 
-Six criteria from the rules, then the seven factors on [Colosseum's page](https://colosseum.com/hackathon).
+Six criteria from the rules; seven factors from [Colosseum's page](https://colosseum.com/hackathon).
 
 | judged | in one sentence | evidence |
 |---|---|---|
@@ -42,12 +42,12 @@ Six criteria from the rules, then the seven factors on [Colosseum's page](https:
 | Viability | Each customer's delivery cost is budgeted line by line, only the monthly batch is measured, and nothing has been sold. | [the unit costs](UNIT_COSTS.md) |
 | Traction | Outside funders 0, outside repositories 0, interviews 0, revenue 0; one outside payee was paid on tasks Knos funded. | [the outside-use numbers](submission/NUMBERS.md) |
 
-The fee the public program ids charge today is read from the chain and shown on the site's pricing page; this
+The public program ids' fee today is read from the chain and shown on the site's pricing page; this
 page prints no rate.
 
 ## Days to approve, not seconds to pay
 
-From merge to paid took 25 seconds at the median, over 42 payments on devnet. Days to approve is defined as the days
+From merge to paid took 26 seconds at the median, over 51 payments on devnet. Days to approve is defined as the days
 from the day the buyer receives a supplier's invoice to the day a person with authority approves it.
 Not measured. It has not measured it with any buyer, so no figure for it is given here.
 

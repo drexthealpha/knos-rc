@@ -72,9 +72,10 @@ RESULTS = ("pass", "fail", "skipped")
 # rehearsal on devnet"; the signature is in the note of `order_pay` in docs/capabilities.json, which stays `tested`).
 PAYMENT = {"signature": "63wT5rhYhEKbgmF5k8vEKdexzoCaXZCiDvRG2GQMGSMBBsc9avGfDw3izER9D6LHoe4ucJeinTBiWaWGWpnFWvfq",
            "pay": "FJJtqcRjQ9ATx37sBTCLUBxBqLUA9aQgSTLAsZynqtnH", "oidc": "iosu8ARUNvvruHPCcMWQ5rqsnJewzBxcPXajSpoHqXd"}
-# The pull request `claim` checks: merged, so its head no longer moves; docs/agent_pr_ci.json records it as `failed`
-# at this commit (its description says tests pass, and a check failed there), which `knos check` calls "false".
-CLAIM = {"pr": "SciML/SciMLBase.jl#1574", "head": "2ee3d2b1e1be9ccef2631c5c1fa071b73fc9899b", "verdict": "false"}
+# The pull request `claim` checks: merged into its repository's default branch, so its head no longer moves;
+# docs/agent_pr_ci.json records it as `failed` at this commit (the agent's own words say the tests passed, and the job
+# named `test` failed there), which `knos check` calls "false". docs/index_review.json read it again and kept it.
+CLAIM = {"pr": "JPL-Devin/atlas#24", "head": "a4fca4c2e07cd1ccc1b3ced0ca49f0da89a0f3e5", "verdict": "false"}
 SUITE = ("tests/test_double_pay.py", "tests/test_invariants_machine.py")
 SUPPORTS = {"payment": ("order_pay",), "programs": ("upgrade_delay", "upgrade_feed"),
             "simulator": ("single_use_tokens", "invariants_state_machine"), "claim": ("check",),
