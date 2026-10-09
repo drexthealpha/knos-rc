@@ -148,8 +148,8 @@ commands that reproduce every count.
 
 None yet. No buyer or supplier has been interviewed, there is no letter of intent, no pilot, no shadow count,
 and nobody has paid. NUMBERS.md prints each of those as a zero. What exists is a measurement, an offer and a
-plan to ask. The measurement: of 241 merged agent pull requests whose description said tests pass, 30 had a
-failed check at the head commit. The buyer is whoever must approve a supplier's invoice and defend it
+plan to ask. The measurement: of 241 merged agent pull requests whose description said tests pass, 9 had a
+failed test, build, lint or type-check job at the head commit, each read again by hand. The buyer is whoever must approve a supplier's invoice and defend it
 afterwards. An organisation is qualified when it has measurable spend on work bought per outcome, acceptance
 criteria it can write down, a buyer with authority, and a problem worth another system; nobody has counted how
 many there are. A maintainer's bounty is the smallest case and not the market: all open bounties on every board

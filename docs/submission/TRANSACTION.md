@@ -30,7 +30,7 @@ Test USDC has no monetary value.
 
 - The order: the buyer's and the supplier's statements each have one line, agreed, and the same sha256,
   `a3791c5d92a545a16b0486a01b9d70f091e3e431074a5b6cbb47549c7a110280`
-  ([the record](https://github.com/drexthealpha/knos-witness/blob/main/witness.json)). The line's "settled" step is
+  ([the record](https://github.com/drexthealpha/knos-witness/blob/acaa854d241c2e030f521b6f5603c8f43c93bab6/witness.json)). The line's "settled" step is
   still open: the statement does not yet record the payment.
 - The made-up invoice: 7 lines, 2,900.00. Both sides run
   `knos shadow examples/shadow/invoice.csv --recorded examples/shadow/recorded.json` and get one statement, sha256

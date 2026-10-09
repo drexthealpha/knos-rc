@@ -19,7 +19,7 @@ Why Solana: Money is released with no custodian, and the count is anchored where
    [wrong work refused](https://github.com/drexthealpha/knos-witness/actions/runs/37890511112/job/113690226126),
    [paid](https://explorer.solana.com/tx/2PtmKUrQHKPARZE4nr35Te559NGQSG7tSHUfwzcKCAjL7gzvQ76fNTVLMWvq8mcZLxd27tbyTe31mCk2PxEGfAqa?cluster=devnet),
    [replay paid nothing more](https://github.com/drexthealpha/knos-witness/pull/10#issuecomment-6075196710),
-   [the record](https://github.com/drexthealpha/knos-witness/blob/main/witness.json).
+   [the record](https://github.com/drexthealpha/knos-witness/blob/acaa854d241c2e030f521b6f5603c8f43c93bab6/witness.json).
    One step fixed by hand; one agreed line, not yet settled. [Run it yourself](../examples/witnessed/README.md).
 
 ## Six criteria and seven factors, one link each
@@ -29,7 +29,7 @@ Six criteria from the rules; seven factors from [Colosseum's page](https://colos
 | judged | in one sentence | evidence |
 |---|---|---|
 | How well it works | A Solana program checked GitHub's signature itself and released the payment, on the public program ids, in test USDC. | [the paying transaction](https://explorer.solana.com/tx/59AfaYHTvWHhbAhiiNHCbCfEcGCxG1kCydJwfRNjZqry9bCnMF3ox6bd4P7favA9hjgzB5nk283g2Mdq3LruyNWV?cluster=devnet) |
-| Potential impact | A buyer paying per merge on our sample would have paid for 30 pull requests whose checks failed. | [the measurement](BENCH.md) |
+| Potential impact | A buyer paying per merge on our sample would have paid for 19 pull requests whose checks failed, read again by hand. | [the measurement](BENCH.md) |
 | Novelty | The black-box check refused all 63 cheating submissions, and plain CI passed 56 of them. | [the tamper benchmark](TAMPER.md) |
 | User experience | A buyer pastes an invoice on the first screen and gets the count, with no install and no sign-up. | [the site](https://drexthealpha.github.io/Knos/) |
 | Open source and composition | The code is MIT, and the verifier is a separate program that other Solana programs call. | [how to call it](COMPOSE.md) |

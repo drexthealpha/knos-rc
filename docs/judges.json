@@ -22,7 +22,7 @@
   {
    "id": "potential_impact",
    "thing": "Potential impact",
-   "sentence": "A buyer paying per merge on our sample would have paid for 30 pull requests whose checks failed.",
+   "sentence": "A buyer paying per merge on our sample would have paid for 19 pull requests whose checks failed, read again by hand.",
    "link": "https://github.com/drexthealpha/Knos/blob/main/docs/BENCH.md",
    "label": "the measurement"
   },
@@ -133,7 +133,7 @@
    },
    {
     "label": "the record",
-    "link": "https://github.com/drexthealpha/knos-witness/blob/main/witness.json"
+    "link": "https://github.com/drexthealpha/knos-witness/blob/acaa854d241c2e030f521b6f5603c8f43c93bab6/witness.json"
    }
   ],
   "yourself": "https://github.com/drexthealpha/Knos/blob/main/examples/witnessed/README.md"

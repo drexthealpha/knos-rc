@@ -154,3 +154,22 @@ def test_the_seven_factors_are_colosseums_and_traction_says_the_zeros():
     assert factors["Potential market size"]["sentence"].startswith("Not counted")
     wait = data["wait"]
     assert j.DAYS in wait and "Not measured." in wait and not re.search(r"\d+(\.\d+)? days", wait)
+
+
+def test_the_witnessed_record_is_linked_at_its_commit_and_the_impact_row_counts_after_the_second_reading():
+    # knos-witness's main moves with every witnessed run: a link to main/witness.json would show a later run's record
+    # beside the text of this one. Each page that names the 0.3.23 run links the record at the commit that wrote it.
+    for rel in ("README.md", "docs/JUDGES.md", "docs/submission/TRANSACTION.md", "docs/judges.json"):
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        assert "knos-witness/blob/main/" not in text, rel
+    assert "knos-witness/blob/acaa854d241c2e030f521b6f5603c8f43c93bab6/witness.json" in (ROOT / "docs/JUDGES.md").read_text(encoding="utf-8")
+    # the scan's 30 is the count before the second reading (docs/index_review.json): the judged sentence and the
+    # submission's measurement give the counts after it, which docs/backtest.json keeps under `reviewed`
+    reviewed = json.loads((ROOT / "docs/backtest.json").read_text(encoding="utf-8"))["reviewed"]["overall"]
+    row = next(r for r in json.loads((ROOT / "docs/judges.json").read_text(encoding="utf-8"))["rows"] if r["thing"] == "Potential impact")
+    assert f"would have paid for {reviewed['any_check_failed']['prs']} pull requests whose checks failed, read again by hand." in row["sentence"]
+    sub = " ".join((ROOT / "docs/submission/SUBMISSION.md").read_text(encoding="utf-8").split())
+    assert (f"of 241 merged agent pull requests whose description said tests pass, {reviewed['test_or_build_check_failed']['prs']} had a failed test, "
+            "build, lint or type-check job at the head commit, each read again by hand.") in sub
+    assert "30 had a failed check" not in sub
+
