@@ -39,6 +39,9 @@ def funded_reply(issue: int) -> str:
 
 
 BOT = "github-actions[bot]"          # who posts both the token and the reply: the workflow's GITHUB_TOKEN
+# a caller workflow as the template writes it now, and as an earlier release's template wrote it (another pin)
+CALLER = "jobs:\n  knos:\n    uses: drexthealpha/knos-workflows/.github/workflows/knos.yml@" + "b" * 40 + "\n"
+OLD_CALLER = CALLER.replace("b" * 40, "a" * 40)
 
 
 def fund_token() -> str:
@@ -76,9 +79,11 @@ def tx(sig: str) -> str:
 class World(W.Shell):
     """GitHub, the relay and the chain, as dictionaries. The check runs words.py on the committed pairs."""
 
-    def __init__(self, folder: Path, replay_pays: bool = False, faucet_says_no: bool = False):
+    def __init__(self, folder: Path, replay_pays: bool = False, faucet_says_no: bool = False, exists: bool = False):
         super().__init__(tries=3, pause=0)
         self.folder, self.replay_pays, self.faucet_says_no = folder, replay_pays, faucet_says_no
+        self.exists = exists                               # the repository is there already: an earlier run made it
+        self.pull_open = False                             # the judge runs on a push to the pull request's branch
         self.moved: list[tuple] = []
         self.comments: dict[tuple[str, int], list[dict]] = {}
         self.ids, self.commits, self.issues = 100, 0, 0
@@ -156,8 +161,26 @@ class World(W.Shell):
         self.said.append(list(argv))
         a = list(argv)
         if a[:3] == ["gh", "repo", "create"]:
+            if self.exists:
+                return 1, "GraphQL: Name already exists on this account (createRepository)"
             (Path(cwd) / W.NAME).mkdir()
+            self.exists = True
             return 0, ""
+        if a[:3] == ["gh", "repo", "clone"]:          # the repository an earlier run made (its callers at an earlier pin), or the template
+            if a[3] == f"{LOGIN}/{W.NAME}" and self.exists:
+                calls = Path(cwd) / a[4] / ".github" / "workflows"
+                calls.mkdir(parents=True)
+                (Path(cwd) / a[4] / ".git").mkdir()
+                (calls / "knos.yml").write_text(OLD_CALLER, encoding="utf-8")
+                (calls / "fund.yml").write_text(CALLER, encoding="utf-8")
+                return 0, ""
+            if a[3] == W.TEMPLATE:
+                calls = Path(a[4]) / ".github" / "workflows"
+                calls.mkdir(parents=True)
+                for name in ("knos.yml", "fund.yml"):
+                    (calls / name).write_text(CALLER, encoding="utf-8")
+                return 0, ""
+            return 1, f"GraphQL: Could not resolve to a Repository with the name '{a[3]}'."
         if a[:2] == ["gh", "api"]:
             path, fields = a[2], dict(f.split("=", 1) for f in a[4::2]) if "-f" in a else {}
             if "body" in fields and path.endswith("/comments"):
@@ -168,8 +191,10 @@ class World(W.Shell):
             if "title" in fields:
                 self.issues += 1
                 return 0, json.dumps({"number": self.issues})
-            if path == "user" or path == f"repos/{LOGIN}/{W.NAME}":
+            if path == "user" or (path == f"repos/{LOGIN}/{W.NAME}" and self.exists):
                 return 0, json.dumps({"id": ME, "owner": {"id": ME}})
+            if path == f"repos/{LOGIN}/{W.NAME}":
+                return 1, "gh: Not Found (HTTP 404)"
             if path.startswith(f"repos/{W.PLAYGROUND}/issues?labels=faucet"):
                 return 0, json.dumps([{"number": 3}])
             m = re.fullmatch(r"repos/(.+)/issues/(\d+)/comments\?per_page=100", path)
@@ -185,12 +210,13 @@ class World(W.Shell):
                 return 0, json.dumps({"check_runs": self.runs.get(m.group(1), [])})
             return 1, f"no such page {path}"
         if a[:3] == ["gh", "pr", "create"]:
+            self.pull_open = True
             self._check(f"c{self.commits}")
             return 0, f"https://github.com/{LOGIN}/{W.NAME}/pull/2\n"
         if a[0] == "git":
             if a[1] == "commit":
                 self.commits += 1
-            if a[1] == "push" and "main" not in a and self.commits >= 3 and f"c{self.commits}" not in self.runs:
+            if a[1] == "push" and "main" not in a and self.pull_open and f"c{self.commits}" not in self.runs:
                 self._check(f"c{self.commits}")
             return 0, f"c{self.commits}\n" if a[1] == "rev-parse" else ""
         if a[:3] == ["knos", "balance", "open"]:
@@ -233,6 +259,7 @@ def test_the_whole_sequence_runs_in_order_leaves_a_link_for_each_step_and_the_re
     _key({}, tmp_path)
     s = W.run(LOGIN, tmp_path, world, state={"day": DAYS})
     assert s["done"] == [n for n, _f, _w in W.STEPS]
+    assert ["gh", "repo", "create", f"{LOGIN}/{W.NAME}", "--public", "--template", W.TEMPLATE, "--clone"] in world.said and "callers_updated" not in s
     assert (s["funded_tx"], s["paid_tx"], s["faucet_tx"], s["budget_tx"]) == (FUNDED, PAID, FAUCET, DEPOSIT)
     assert s["funded_order"] == ORDER and s["funded_reply"].endswith("#issuecomment-105")      # 104 is the token comment
     assert s["statements_agree"] is True and s["payments"] == 1
@@ -291,6 +318,33 @@ def test_when_the_faucet_says_no_the_run_uses_the_own_key_named_or_stops_saying_
     assert "own-key" not in saved and "fund_from" not in saved                     # the key's file is never written down
     record = json.loads((tmp_path / W.NAME / "witness.json").read_text(encoding="utf-8"))
     assert record["top_up_tx"] == TOPUP and tasks.accepts("witness", record) == (True, "")
+
+
+def test_a_second_run_uses_the_repository_made_before_with_the_templates_callers_and_a_branch_of_its_own(tmp_path):
+    """0.3.23: `gh repo create` refuses a name that exists, so one account's second run stopped at its first step (and
+    `--from key` left the actor, the owner and the clone unset), and the work's branch was always `witness-work`, the
+    head of the earlier run's pull request."""
+    world = World(tmp_path, exists=True)
+    _key({}, tmp_path)
+    s = W.run(LOGIN, tmp_path, world, state={"day": DAYS})
+    assert s["done"] == [n for n, _f, _w in W.STEPS]
+    assert not any(a[:3] == ["gh", "repo", "create"] for a in world.said)
+    assert ["gh", "repo", "clone", f"{LOGIN}/{W.NAME}", W.NAME] in world.said
+    calls = tmp_path / W.NAME / ".github" / "workflows"
+    assert {f.name: f.read_text(encoding="utf-8") for f in calls.iterdir()} == {"knos.yml": CALLER, "fund.yml": CALLER}
+    assert s["callers_updated"] == ["knos.yml"]                           # fund.yml was the template's already
+    synced = world.said.index(["git", "commit", "-qm", f"Callers as the template {W.TEMPLATE} writes them"])
+    assert world.said[synced + 1] == ["git", "push", "-q", "origin", "main"] and synced < world.said.index(["git", "add", ".knos"])
+    assert ["git", "push", "-q", "-u", "origin", "witness-work-1"] in world.said
+    assert not any("witness-work" in a for a in world.said)              # never the bare name an earlier run's pull request holds
+    assert (s["actor_id"], s["repository_owner_id"], s["repository"]) == (ME, ME, f"https://github.com/{LOGIN}/{W.NAME}")
+    record = json.loads((tmp_path / W.NAME / "witness.json").read_text(encoding="utf-8"))
+    assert tasks.accepts("witness", record) == (True, "") and record["payments"] == 1
+    # once the callers are the template's, the step commits nothing for them, and the clone in DIR is used as it is
+    world.said.clear()
+    again = W.repo({"dir": tmp_path, "repo": f"{LOGIN}/{W.NAME}", "login": LOGIN}, world)
+    assert again["callers_updated"] == [] and not any(a[:2] == ["git", "commit"] for a in world.said)
+    assert not any(a[:4] == ["gh", "repo", "clone", f"{LOGIN}/{W.NAME}"] for a in world.said)
 
 
 def test_the_funding_reply_is_read_by_the_words_knos_writes():
