@@ -181,9 +181,11 @@ def test_the_method_is_frozen_at_version_one_and_a_changed_file_fails_the_check(
     assert json.loads((ROOT / "docs" / "backtest.json").read_text(encoding="utf-8"))["method"] == info
     text = (ROOT / "docs" / "INDEX_METHOD.md").read_text(encoding="utf-8")
     changed = tmp_path / "m.md"
-    changed.write_text(text.replace("R5: its page cannot be read", "R5: its page is slow"), encoding="utf-8")
+    # Written as bytes, with the line ends git checks the file out with on every OS (.gitattributes: eol=lf), so that
+    # only the line named changes. write_text on Windows ends every line with CR LF: that file names no version at all.
+    changed.write_bytes(text.replace("R5: its page cannot be read", "R5: its page is slow").encode("utf-8"))
     assert any("still says version 1" in p for p in backtest.method(changed)[1])
-    changed.write_text(text.replace("Version: 1", "Version: 2"), encoding="utf-8")
+    changed.write_bytes(text.replace("Version: 1", "Version: 2").encode("utf-8"))
     assert any("version 2" in p for p in backtest.method(changed)[1])
-    changed.write_text(text.replace(agent_pr_ci.TESTISH_RE.pattern, "test"), encoding="utf-8")
+    changed.write_bytes(text.replace(agent_pr_ci.TESTISH_RE.pattern, "test").encode("utf-8"))
     assert any("TESTISH_RE" in p for p in backtest.method(changed)[1])

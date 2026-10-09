@@ -41,10 +41,6 @@ PROVED = "the workflow identity: knos_oidc checked the forge's signature of the 
 NEVER = "The acceptance result is never proved: the chain checks who signed, not whether the tests were right."
 NOT_EVALUATED = "not evaluated"
 WORDS = ("agreement", "completeness", "correctness", "satisfaction")
-WORD_SAYS = {"agreement": "both sides reconstruct the same lines from the recorded events",
-             "completeness": "the record has no gap",
-             "correctness": "the acceptance decision matches the terms",
-             "satisfaction": "the buyer got what it wanted commercially"}
 
 
 def ladder(level: str | None) -> list[dict]:
