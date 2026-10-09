@@ -886,8 +886,8 @@ def work(queue: Queue, handle: Callable[[dict[str, Any]], Mapping[str, Any]], wo
             fresh = 0
         if fresh > 0:                       # a worker that had ended (nothing was left for it) is started again
             with ended:
-                idle = [i for i in range(n) if not carrying[i]]
-            for i in idle:
+                free = [i for i in range(n) if not carrying[i]]
+            for i in free:
                 start(i)
     for t in started:
         t.join()
