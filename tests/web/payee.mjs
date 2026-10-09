@@ -5,7 +5,8 @@
 // read by payee id from held jobs and held orders (a job less its fee, an order what it has not paid); a passkey is made
 // in one press and its address is the knos_passkey address of its key; the one link is GitHub's filled-in
 // new-repository form while <login>/knos-claim does not exist, and the claim workflow's page once it does; Check reads
-// the Bind account; the clicks table says 13 before and 8 now; no statement is longer than twelve words; no sideways
+// the Bind account; by keyboard, a login that does not exist brings the box back with the login in it and the cursor
+// there, and the right one moves the focus to the answer, which is said aloud; the clicks table says 13 before and 8 now; no statement is longer than twelve words; no sideways
 // scroll from 320 to 1280 px; nobody is asked but the page's host, api.github.com and devnet. No `playwright` package
 // or no browser: says SKIP and exits 0.
 import { createServer } from "node:http";
@@ -134,6 +135,35 @@ try {
   await again.waitForSelector("#py-go");
   ok("kept passkey, existing repository: the link is the claim workflow's page", (await again.$eval("#py-go", (a) => a.href)) === `https://github.com/${LOGIN}/knos-claim/actions/workflows/knos-claim.yml`
     && (await again.textContent("[data-py-address]")).trim() === address);
+
+  // by keyboard, with no login in the link: a login typed wrong is said, and the box comes back with it, the cursor in
+  // it, so it can be corrected (it used to stay hidden: the page had to be loaded again); the right login moves the
+  // focus to the answer, and the next Tab is the passkey
+  {
+    const fresh = await browser.newContext({ viewport: { width: 390, height: 900 } }), typed = await fresh.newPage();
+    await route(typed);
+    await typed.goto(`${origin}/#payee`);
+    await typed.waitForFunction(() => window.ready === true);
+    await typed.focus("#py-login");
+    await typed.keyboard.type(`${LOGIN}-typo`);
+    await typed.keyboard.press("Enter");
+    await typed.waitForFunction(() => /No GitHub account/.test(document.querySelector("[data-py-held]").textContent));
+    const asked = await typed.evaluate(() => ({ shown: getComputedStyle(document.querySelector("#py-who")).display !== "none",
+      value: document.querySelector("#py-login").value, focus: document.activeElement.id, said: document.querySelector("[data-py-held]").getAttribute("aria-live") }));
+    ok("keyboard: a login that does not exist is said aloud, and the box comes back with it, the cursor in it",
+      asked.shown && asked.value === `${LOGIN}-typo` && asked.focus === "py-login" && asked.said === "polite", asked);
+    await typed.keyboard.press("Control+A");
+    await typed.keyboard.type(LOGIN);
+    await typed.keyboard.press("Enter");
+    await typed.waitForSelector("[data-py-amount]");
+    const found = await typed.evaluate(() => ({ hidden: getComputedStyle(document.querySelector("#py-who")).display === "none",
+      focus: document.activeElement.matches("[data-py-held]"), amount: document.querySelector("[data-py-amount]").textContent }));
+    await typed.keyboard.press("Tab");
+    found.next = await typed.evaluate(() => document.activeElement.id);
+    ok("keyboard: the right login shows what is held, the focus on the answer, and Tab goes on to Make a passkey",
+      found.hidden && found.focus && found.amount === "12.45" && found.next === "py-make", found);
+    await fresh.close();
+  }
 
   for (const width of [320, 390, 768, 1280]) {
     await again.setViewportSize({ width, height: 900 });

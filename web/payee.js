@@ -90,7 +90,7 @@ export function renderPayee(el, ctx = {}) {
     <form id="py-who" class="row"${who ? ' style="display:none"' : ""}><label for="py-login">GitHub login</label>
       <input id="py-login" autocomplete="username" spellcheck="false" required><button class="k-btn" type="submit">Look up</button></form>
     <ol class="k-stage">
-      <li class="k-step" data-state="live" id="py-held"><span class="k-kicker">Held</span><p data-py-held>Reading devnet…</p></li>
+      <li class="k-step" data-state="live" id="py-held"><span class="k-kicker">Held</span><p data-py-held tabindex="-1" aria-live="polite">Reading devnet…</p></li>
       <li class="k-step" data-state="idle" id="py-key"><span class="k-kicker">Passkey</span>
         <p><button type="button" class="k-btn" id="py-make">Make a passkey</button></p><p data-py-key></p></li>
       <li class="k-step" data-state="idle" id="py-link"><span class="k-kicker">GitHub</span><p data-py-link>Make a passkey first.</p></li>
@@ -120,7 +120,14 @@ export function renderPayee(el, ctx = {}) {
       out.innerHTML = rows.length ? `<strong class="k-num" data-py-amount>${esc(money(sum))}</strong> test USDC held for @${esc(who.login)}.`
         : `Nothing held for @${esc(who.login)} now.`;
       step("py-held", "done");
-    } catch (e) { out.textContent = `Could not read: ${e.message}.`; step("py-held", "bad"); }
+    } catch (e) { out.textContent = `Could not read: ${e.message}.`; step("py-held", "bad"); ask(); }
+  }
+  // a login that could not be read (mistyped, or GitHub did not answer): the box comes back with it, the cursor in it
+  function ask() {
+    const form = $("#py-who"), box = $("#py-login");
+    form.style.display = "";
+    if (who && !box.value) box.value = who.login;
+    box.focus();
   }
 
   async function link() {
@@ -180,6 +187,7 @@ export function renderPayee(el, ctx = {}) {
     who = parseArg($("#py-login").value.trim());
     if (!who) { $("[data-py-held]").textContent = "A login is letters, digits and single hyphens."; return; }
     $("#py-who").style.display = "none"; repo = null;
+    $("[data-py-held]").focus();      // the box is gone: the focus moves to the answer, and Tab goes on to the passkey
     held(); link();
   };
 
