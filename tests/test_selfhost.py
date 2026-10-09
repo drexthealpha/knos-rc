@@ -187,7 +187,7 @@ def test_plan_is_what_compose_defines(capsys):
         if s["port"]:
             assert f"127.0.0.1:{s['port']}:{s['port']}" in services[s["service"]]["ports"]
             assert f"127.0.0.1:{s['port']}" in said
-        assert s["command"][-1] == str(selfhost.CONFIG)
+        assert s["command"][-1] == "/etc/knos/knos.toml" == selfhost.CONFIG.as_posix()     # the path inside the container, on every OS (a Windows str() gave \etc\knos)
     assert said.rstrip().endswith("up -d --build record relay site")
 
 

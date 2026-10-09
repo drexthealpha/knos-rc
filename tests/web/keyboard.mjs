@@ -20,13 +20,18 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const base = `http://127.0.0.1:${server.address().port}/`;
+// The page's own day decides what the sample says: its last merge is 2026-09-07 (web/front_door_sample.js), and a line
+// whose policy is met and nobody authorised is owed to the supplier ACCEPT_DAYS (30) days after (web/front_door.js
+// isOwed). So the day is set, never the machine's: still, inside the window; moving, past it, as a reader sees it now.
+const DAYS = { still: ["2026-10-06T12:00:00Z", ""], moving: ["2026-10-09T12:00:00Z", " 2 owed to the supplier."] };
 
 for (const reduced of [true, false]) {
   const tag = reduced ? "still" : "moving";
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true, reducedMotion: reduced ? "reduce" : "no-preference" });
   const strangers = [];
   await ctx.route("**/*", (route) => { const u = route.request().url(); if (u.startsWith(base) || u.startsWith("blob:")) return route.continue(); strangers.push(u); return route.abort(); });
-  const page = await ctx.newPage(), errors = [];
+  const page = await ctx.newPage(), errors = [], [day, owed] = DAYS[tag];
+  await page.clock.setFixedTime(new Date(day));                      // Date only: the timers and the frames still run
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.goto(base, { waitUntil: "load" });
   await page.waitForFunction(() => document.documentElement.dataset.ready === "check");
@@ -50,13 +55,13 @@ for (const reduced of [true, false]) {
   await page.keyboard.press("Enter");
   await page.waitForSelector("#front-result[data-done]");
   const said = await page.$eval('#front-result [data-fd="said"]', (e) => [e.textContent, e.getAttribute("aria-live"), e.getAttribute("role")]);
-  check(`${tag}: Enter runs it, and the answer is said in a live region`, said.join("|") === "Checked 7 lines. 5 exceptions.|polite|status", said);
+  check(`${tag}: Enter runs it, and the answer is said in a live region`, said.join("|") === `Checked 7 lines. 5 exceptions.${owed}|polite|status`, [day, ...said]);
   check(`${tag}: the lines are in their four groups, and the answer is in the window`, await page.$$eval("#front-result .fd-group", (l) => l.map((g) => g.querySelectorAll(".fd-line").length).join()) === "2,2,2,1"
     && await page.$eval('#front-result [data-fd="said"]', (e) => { const r = e.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; }));
   a = await tabTo((x) => x.id === "approve", 40);
   check(`${tag}: Tab reaches Approve agreed lines, ringed and scrolled into the window`, a.id === "approve" && a.ring && a.seen, a);
   await page.keyboard.press("Enter");
-  await page.waitForFunction(() => document.querySelector('[data-fd="approved"]').textContent.startsWith("Approved 2 lines"));
+  await page.waitForFunction(() => document.querySelector('[data-fd="approved"]').textContent === "Accepted and authorised 2 lines. 5 exceptions left. Not paid.");
   a = await at();
   check(`${tag}: Enter approves, says so in a live region, and the focus moves on to Download CSV`, a.id === "csv" && a.ring && (await page.getAttribute('[data-fd="approved"]', "aria-live")) === "polite", a);
   const [d] = await Promise.all([page.waitForEvent("download"), page.keyboard.press("Enter")]);

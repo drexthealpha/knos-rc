@@ -198,7 +198,7 @@ def services(c: Checked) -> list[dict[str, Any]]:
     """The compose services this config starts (deploy/compose.yaml defines all three; these are the ones to name)."""
     out = []
     for role in c.roles():
-        out.append({"service": role, "command": ["run", role, "--config", str(CONFIG)],
+        out.append({"service": role, "command": ["run", role, "--config", CONFIG.as_posix()],
                     "port": PORTS.get(role), "state": f"knos-{role}:{STATE}" if role != "site" else None,
                     "keys": [path for r, _n, path in needs(c) if r == role]})
     return out
