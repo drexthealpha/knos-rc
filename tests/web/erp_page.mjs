@@ -44,8 +44,9 @@ try { browser = await chromium.launch(); } catch (e) { console.log(`SKIP no brow
 try {
   for (const width of [320, 768, 1280]) {
     const page = await browser.newPage({ viewport: { width, height: 900 }, acceptDownloads: true });
-    const asked = [];
+    const asked = [], errors = [];
     page.on("request", (r) => { if (!r.url().startsWith(origin)) asked.push(r.url()); });
+    page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(origin);
     await page.waitForFunction(() => window.ready === true);
     await page.evaluate(async () => { const j = async (n) => (await fetch(`/golden/${n}`)).json(); await window.openStatement(await j("statement/sept.json"), await j("erp/sept.refused.status.json")); });
@@ -73,10 +74,21 @@ try {
       ok(`${width}px ${to}: it says both counts in twelve words or fewer`, said === "1 bill; 4 held lines on a separate sheet." && said.split(/\s+/).length <= 12, said);
       await page.evaluate(() => { document.getElementById("aps-erp-said").textContent = ""; });
     }
-    // the buttons above it (QuickBooks file, NetSuite file: exports.write_statement) save other bytes: never under the same name
-    const above = [];
-    for (const b of await page.$$("[data-aps-export]")) { const [d] = await Promise.all([page.waitForEvent("download"), b.click()]); above.push(d.suggestedFilename()); }
-    ok(`${width}px: no two downloads of the page share a name`, new Set([...above, ...names]).size === above.length + names.length && above.length === 3 && names.length === 8, [above, names]);
+    // the buttons above it (QuickBooks file, NetSuite file, Every line: exports.write_statement) save other bytes: never
+    // under the same name. Their names are read as the page hands them to the browser: the `download` of the link it clicks.
+    const above = await page.evaluate(async () => {
+      const got = [], real = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () { if (this.download) got.push(this.download); };
+      try {
+        for (const b of document.querySelectorAll("[data-aps-export]")) {
+          const had = got.length;
+          b.click();
+          for (let t = 0; got.length === had && t < 200; t++) await new Promise((r) => setTimeout(r, 25));
+        }
+      } finally { HTMLAnchorElement.prototype.click = real; }
+      return got;
+    });
+    ok(`${width}px: no two downloads of the page share a name`, new Set([...above, ...names]).size === above.length + names.length && above.length === 3 && names.length === 8, [above, names, errors]);
     ok(`${width}px: nothing runs off the side`, await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]));
     ok(`${width}px: nobody is asked but the page's own server`, asked.length === 0, asked);
     await page.close();
