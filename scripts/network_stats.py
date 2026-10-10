@@ -513,7 +513,8 @@ def read_history(url: str, program, page: int = PAGE, pages: int = PAGES, budget
     Output: {"events": oldest first, "unread": transactions the RPC refused (throttled), "late": transactions not
     asked for because the budget ran out, "cut": None when the whole history was listed, else why not, "listed":
     signatures listed, "oldest": the block time of the oldest one (None when unknown), "asked": pages asked for,
-    "cache": what the next build needs}."""
+    "read": transactions asked for in this build, "cached": transactions the cache gave, "cache": what the next build
+    needs}."""
     deadline = clock() + budget
     old = cache or {}
     held = old.get("sigs") or []
@@ -552,13 +553,15 @@ def read_history(url: str, program, page: int = PAGE, pages: int = PAGES, budget
             ended = True                # the program's first transaction (a cache it never met is from another history)
             break
         before = sigs[-1][0]
-    unread = late = 0
+    unread = late = read = cached = 0
     for sig, ok, _ in sigs:             # newest first: the newest payments matter most when the budget runs out
         if not ok or sig in store:
+            cached += ok
             continue
         if clock() >= deadline:
             late += 1
             continue
+        read += 1
         try:
             # version 1: what the relay sends to a 2.1 cluster. Asked with 0, the cluster refuses each of those, and
             # every payment and evaluation a relay carried would be counted as unread
@@ -571,7 +574,8 @@ def read_history(url: str, program, page: int = PAGE, pages: int = PAGES, budget
     if ended:                           # the whole history is listed: what it does not name is from another
         store = {sig: store[sig] for sig, _, _ in sigs if sig in store}
     return {"events": events, "unread": unread, "late": late, "cut": None if ended else cut, "listed": len(sigs),
-            "oldest": sigs[-1][2] if sigs else None, "asked": asked, "cache": {"sigs": sigs, "complete": ended, "events": store}}
+            "oldest": sigs[-1][2] if sigs else None, "asked": asked, "read": read, "cached": cached,
+            "cache": {"sigs": sigs, "complete": ended, "events": store}}
 
 
 def _load_cache(path: str | None) -> dict:
@@ -606,6 +610,9 @@ def collect(url: str, get=None, token: str | None = None, limit: int = PAGE, now
         kept = _load_cache(cache)
         for program in (pay.PAY_ID, pay2.PAY_ID, meter.METER_ID):     # (a program that is not deployed yet has no history: nothing is read)
             got = read_history(url, program, limit, pages, budget, kept.get(str(program)), clock)
+            # the build's log says what the cache saved: a build after a full one asks only for what is new
+            print(f"{program}: {got['listed']} signatures listed in {got['asked']} page{'s' if got['asked'] != 1 else ''}; "
+                  f"{got['read']} transactions read now, {got['cached']} from the cache, {got['late']} left for the next build", file=sys.stderr)
             events += got["events"]
             kept[str(program)] = got["cache"]
             if got["unread"]:
