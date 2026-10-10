@@ -32,12 +32,12 @@ Status words: **done**; **partly** (what exists, and the rest is in the last col
 | 16 | analytics to see where people drop off | partly | no analytics script, by design. Measured: the funnel in the site's `stats.json` (`scripts/network_stats.py`, `tests/test_network_stats.py::test_installed_is_the_public_repositories_whose_workflows_call_knos_and_not_knos_own`), the relay log (the issue labelled `knos-relay`, `.github/workflows/worker.yml`), PyPI download counts (pypistats.org, read by hand) | page views: not measured, and no tracker will be added |
 | 17 | signup, payment and password reset tested end to end | not applicable | there is no signup and no password: a GitHub account and a comment fund work. Nearest, fund, pay, refund and the passkey wallet's withdrawal: `tests/test_pay_chain.py::test_a_comment_funds_a_devnet_bounty_with_test_usdc_and_no_wallet`, `tests/test_pay_chain.py::test_a_merged_pull_request_is_paid_to_its_authors_github_account_and_claimed_without_a_wallet_at_work_time`, `tests/test_pay_chain.py::test_with_no_proof_by_the_deadline_the_money_goes_back`, `tests/test_passkey_chain.py::test_a_wallet_is_paid_before_it_exists_and_one_transaction_opens_it_and_withdraws`; the passkey payee round the release runs on devnet: `tests/test_exercise_deployed_rounds.py::test_a_passkey_wallet_is_paid_before_it_exists_and_one_transaction_signed_by_the_passkey_opens_it_and_withdraws`, run at the public ids (`docs/capabilities.json`, `passkey_payee_wallet`: transaction 321WqsCL...) | the round's passkey was a key held in software, not a person's phone |
 | 18 | emails do not land in spam | not applicable | Knos sends no email: every message is a comment on the forge, posted with the repository's own token (`src/knos/ghwords.py`); `scripts/launch_check.py` fails if the package gains an email sender | nothing |
-| 19 | a way to contact the maker | partly | `SECURITY.md`: private vulnerability reporting, and issues for everything else; a contact line in `README.md`; on the site, `web/privacy.html`: report a problem in GitHub issues | the founder confirms private reporting is switched on (Settings, Advanced Security) |
+| 19 | a way to contact the maker | done | `SECURITY.md`: private vulnerability reporting, switched on 10 October 2026 for this repository and for the 16 other public repositories of its owner whose name begins with knos (GitHub's API answers `enabled: true` for each), and issues for everything else; a contact line in `README.md`; on the site, `web/privacy.html`: report a problem in GitHub issues | nothing |
 | 20 | a rollback plan for launch day | done | `docs/ROLLBACK.md`: PyPI, npm, the tag, the site, the relay and the programs, with the commands and who can run them | no drill of the whole page has been run |
 
 ## Launch day
 
-`python scripts/launch_check.py --launch-day` fails today, and it should: four rows are partly. The check itself
+`python scripts/launch_check.py --launch-day` fails today, and it should: three rows are partly. The check itself
 holds (`python scripts/launch_check.py` exits 0). Each row closes only when its last column is done:
 
 - **9, error tracking.** Closes when the watchdog tells a person each time it restarts the relay (a comment on the
@@ -45,8 +45,8 @@ holds (`python scripts/launch_check.py` exits 0). Each row closes only when its 
 - **12, a cheap Android phone.** Closes when the founder opens the site on a real cheap phone and writes the times
   here.
 - **16, analytics.** Stays partly by choice: Knos adds no tracker, so page views are not measured.
-- **19, contact.** Closes when the founder switches on private vulnerability reporting (Settings, then Advanced
-  Security) and says so here.
+
+Row 19, contact, closed on 10 October 2026: private vulnerability reporting is switched on.
 
 ## The workflow-strip check on a personal repository
 

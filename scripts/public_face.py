@@ -45,7 +45,9 @@ KEY = "sentence"
 REPO = "drexthealpha/Knos"
 SITE = "https://drexthealpha.github.io/Knos/"
 SERVER = "io.github.drexthealpha/knos"
-TOPICS = ("ai-agents", "coding-agents", "metering", "invoice-reconciliation", "attestation", "oidc", "github-actions", "solana", "escrow", "mcp")
+# the repository's topics as GitHub lists them: what Knos is and what it serves (docs/X402.md, server.json)
+TOPICS = ("ai-agents", "coding-agents", "metering", "invoice-reconciliation", "oidc", "github-actions", "solana", "escrow", "mcp",
+          "mcp-server", "x402")
 STALE = ("Bounties that pay", "Paid GitHub bounties", "Hire any AI agent", "shared memory", "local memory", "memory every coding agent",
          "memory for every coding agent", "memory for coding agents")
 
