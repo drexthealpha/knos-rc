@@ -284,7 +284,7 @@
   {
    "id": "fund_by_comment",
    "what": "One comment on an issue funds a task from the repository owner's Balance.",
-   "stage": "deployed",
+   "stage": "exercised",
    "evidence": {
     "implemented": {
      "path": "programs-v2/knos_pay/src/fund.rs",
@@ -298,6 +298,14 @@
      "program": "knos_pay",
      "id": "5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k",
      "version": "2.0"
+    },
+    "exercised": {
+     "signature": "5DSN3BjKCUCLDGE2TsEoiLAEXv353jiVLbkm2RLxBUZD8ha58tUquYenoPZAsF5sBfaiCKPmqZVnwrE7UCsgvKrh",
+     "ids": "public",
+     "round": "tip",
+     "asserted": [
+      "a `/knos tip` comment in repository 1401439243 funded job #248 with 1.00 from the Balance D6SMFJDEE3G7Bp3GirkXPftUg2uyDdXq7ZjWEDo5XYQ7, as the token named"
+     ]
     }
    },
    "note": "Not exercised at the public id: with knos_pay 2.2 live, `/knos fund` makes a work order, and only `/knos tip` on a merged pull request still funds a job from the Balance. The round `tip` reads that funding from a tip in the maintainer's own repository; one owner can do it."
@@ -333,7 +341,7 @@
   {
    "id": "pay_on_merge",
    "what": "A merge that GitHub signs pays the author of the pull request.",
-   "stage": "deployed",
+   "stage": "exercised",
    "evidence": {
     "implemented": {
      "path": "programs-v2/knos_pay/src/pay.rs",
@@ -347,6 +355,14 @@
      "program": "knos_pay",
      "id": "5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k",
      "version": "2.0"
+    },
+    "exercised": {
+     "signature": "4pe3fFbF6Fg7HVvCUE7RG8vqG7zxvuY4f421zRMdR4Ft9xWqPpqWCTTX1vWcHAf4AHeKJZxgTYb6gvdSdM9D69W",
+     "ids": "public",
+     "round": "tip",
+     "asserted": [
+      "the merge GitHub signed paid 0.95 to the author (142920951) at 9a6RmArU8cfKGqWRfXU2i8xGXsvVFiNs97ZMVuYyozcW, fee 0.05"
+     ]
     }
    },
    "note": "Not exercised at the public id: a job is paid only on a tip now. The round `tip` reads the payment of a tip to a pull request whose author has a wallet bound (the maintainer's own); one owner can do it."
@@ -405,7 +421,7 @@
   {
    "id": "pause",
    "what": "The guardian pauses new funding for a limited time and money in escrow still leaves.",
-   "stage": "deployed",
+   "stage": "exercised",
    "evidence": {
     "implemented": {
      "path": "programs-v2/knos_pay/src/fund.rs",
@@ -419,6 +435,22 @@
      "program": "knos_pay",
      "id": "5y7iWJ1VAMJjnnWbbdo2a2PsWJEwTExSNpzrvQSEnS8k",
      "version": "2.0"
+    },
+    "exercised": {
+     "signature": "61ym68vUNFdAYeDZiMHvUpHErWHLMLwfAMHyRyxF1oAQkx2usqVCsfjvWJD7Q9Eyn9v5vC6kGKnhkXVjpUqQEUsr",
+     "ids": "public",
+     "round": "pause",
+     "asserted": [
+      "the pause account read a time 120 s ahead after the guardian's proposal executed, and 0 after the lift",
+      "a funding sent meanwhile landed and failed with error 96 (new funding is paused)"
+     ],
+     "refusals": [
+      {
+       "signature": "qJZKT9pgvsnTQiKxk1TxzAEzahqF5cQwgM8VviwcRrBHMxwYmMGGvjMDkxXpUp1krrwgJ4cfcHNzYkKjWCXTjYA",
+       "error": 96,
+       "means": "new funding is paused"
+      }
+     ]
     }
    },
    "note": "Not exercised at the public id. The round `pause` has the guardian multisig (2 of 3 keys, all the founder's) pause new funding for 120 s, holds one funding of its own to error 96, and lifts the pause at once."
@@ -902,7 +934,7 @@
   {
    "id": "meter_single",
    "what": "One attested evaluation is counted once on chain, with no escrow.",
-   "stage": "deployed",
+   "stage": "exercised",
    "evidence": {
     "implemented": {
      "path": "programs-v2/knos_meter/src/meter.rs",
@@ -916,6 +948,15 @@
      "program": "knos_meter",
      "id": "FUMKkcE95x2kZUj1zZTCbgcYBmJ3WXPHL8pyA8J6anX",
      "version": "1.0"
+    },
+    "exercised": {
+     "signature": "4Ak4At4DPuBem2sAUbi6nRGcT9qME8p3RoNQRPmEPb6yYApa91thktndj3t3N5GJtTt7U3iq8TNRiUwN8XThogoo",
+     "ids": "public",
+     "round": "meter-single",
+     "asserted": [
+      "the evaluation's mark 2kkPozqdQuR3GMumvgJtQ8tGrnzXSJ1d5e46HwQ56HbF holds its verdict (accepted) and its fee",
+      "the same token again was answered `already`: counted once, and the retry sent nothing"
+     ]
     }
    },
    "note": "Not exercised at the public id. The round `meter-single` relays one evaluation token from attest.yml in the maintainer's own repository, reads its mark, and sends the token again to show the retry is free."
@@ -981,7 +1022,7 @@
   {
    "id": "passkey_payee_wallet",
    "what": "A payee is paid to a wallet that only a passkey can spend from.",
-   "stage": "deployed",
+   "stage": "exercised",
    "evidence": {
     "implemented": {
      "path": "programs-v2/knos_passkey/src/lib.rs",
@@ -995,6 +1036,16 @@
      "program": "knos_passkey",
      "id": "FQPX9i5kQxLYKZyyPgM2fVK9am3w1LSk1Cuoer1sSY85",
      "version": "1.0"
+    },
+    "exercised": {
+     "signature": "321WqsCLh89n4Cbydc3RwKB2Ps2zQKWJDmMjhwtQMpvCuGw9KmvNVVsVT5kxXsTqeMc2z6coPBwgXbp2iJYjpetq",
+     "ids": "public",
+     "round": "passkey-payee",
+     "asserted": [
+      "0.10 test USDC reached the wallet's address 5JVVuW4wYB8EjNvNKR9SiAdpDswH6vPDM1CxUN9DTsEm before any account existed there",
+      "one transaction opened the wallet and withdrew 0.10, verified by the secp256r1 precompile (withdrawal number 1)",
+      "the passkey was a P-256 key the round held in software, not a platform authenticator"
+     ]
     }
    },
    "note": "Not exercised at the public id. The round `passkey-payee` pays 0.10 test USDC to a passkey wallet that has no account yet, then opens it and withdraws in one transaction. The passkey is a P-256 key the round holds in software, not a platform authenticator, and the record says so."
@@ -1372,7 +1423,7 @@
   {
    "id": "upgrade_gate",
    "what": "A program records that GitHub's runner built exactly the bytes of a proposed upgrade.",
-   "stage": "deployed",
+   "stage": "exercised",
    "evidence": {
     "implemented": {
      "path": "examples/upgrade_gate/src/lib.rs",
@@ -1386,6 +1437,17 @@
      "program": "upgrade_gate",
      "id": "2DfVEuBMWvvh3kXZaQwk2SoszJsoV1PTiK1VGCkB55HW",
      "version": "1.0"
+    },
+    "exercised": {
+     "signature": "1Wq1hLtuNyXCR5coKhxt9duMpBSmt4sai1pad1sJi7hVrUrmDan5kFQ4SffkNEgPMv5qo38TZKptnNkaSjrgpw3",
+     "ids": "public",
+     "round": "gate",
+     "asserted": [
+      "knos_meter runs build 10f2b6cbb4983527... at its public id, and upgrade_gate's record Fk2yuykL5yXBPDpX6gZJJpAeCGBrioeARSB716K2XdVc ties it to commit 6eb81dd152bd6cf752ee6c151b692f4a08815ae5 and run 37237561915 of program.yml",
+      "knos_oidc runs build a2df952d262c48ed... at its public id, and upgrade_gate's record 7ftWndYyjyVZMRRp9pLq2UzbRdnHSZXA715AzYz7NpNQ ties it to commit f03ec515d8666c46e3fdc6bb0123bc0786d5dd75 and run 37523515307 of program.yml",
+      "knos_passkey runs build a9ce7a06fb99196c... at its public id, and upgrade_gate's record EdwcNsEm41STXCePxWxBy5qPquBZozNmfTzCjS99FeSk ties it to commit 6eb81dd152bd6cf752ee6c151b692f4a08815ae5 and run 37237561915 of program.yml",
+      "knos_pay runs build 8b3c044024eac6e0... at its public id, and upgrade_gate's record 8cncbo2WGpjEQhP4xSUMfbLraScruBvLgbqh2EJo5qEi ties it to commit f8bcd9d51eda5e093cc92b0bcf0c8cc3676fa556 and run 37589002080 of program.yml"
+     ]
     }
    },
    "note": "No exercising transaction is recorded yet, though docs/provenance.json names the commit and run upgrade_gate recorded for the live builds of proposals 7 and 8. The round `gate` reads those records at the public id with the transaction that wrote each one, and sends nothing."
@@ -4535,7 +4597,7 @@
   }
  ],
  "public_round": {
-  "date": "9 October 2026",
+  "date": "10 October 2026",
   "fund": {
    "comment": "/knos fund 5",
    "tx": "177CEpZ8N4r5CGNjSEWBEouTTqMDwAao9LFzwSNYiFjJZUfJdtLDeusHbmmawWxzKLp1SozNAyNCEeGxSvvBm5s",

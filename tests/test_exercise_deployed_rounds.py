@@ -131,11 +131,13 @@ def test_the_pause_round_runs_only_when_named(ex):
 
 def test_the_nine_deployed_capabilities_each_have_a_round_or_a_reason(ex):
     caps = {c["id"]: c for c in json.loads((ROOT / "docs" / "capabilities.json").read_text(encoding="utf-8"))["capabilities"]}
-    assert sorted(i for i, c in caps.items() if c["stage"] == "deployed") == sorted(NINE)
-    plan = ex.exercisable()
-    assert {c: plan[c] for c in NINE} == {"verify_gitlab": "gitlab", "key_guardian": "guardian", "fund_by_comment": "tip", "pay_on_merge": "tip",
-                                          "hold_and_bind": plan["hold_and_bind"], "pause": "pause", "meter_single": "meter-single",
-                                          "passkey_payee_wallet": "passkey-payee", "upgrade_gate": "gate"}
+    # 0.3.25's rounds at the public ids exercised five of them; the others stay deployed, and nothing else is deployed alone
+    assert {i for i, c in caps.items() if c["stage"] == "deployed"} <= set(NINE) and all(caps[c]["stage"] in ("deployed", "exercised") for c in NINE)
+    plan = ex.exercisable()         # what is still below `exercised`, and the round that would run it
+    rounds = {"verify_gitlab": "gitlab", "key_guardian": "guardian", "fund_by_comment": "tip", "pay_on_merge": "tip", "pause": "pause",
+              "meter_single": "meter-single", "passkey_payee_wallet": "passkey-payee", "upgrade_gate": "gate"}
+    for c, name in rounds.items():  # each has its round, whether or not that round has exercised it yet
+        assert c in ex.EXT[name].caps and plan.get(c, name) == name and (c in plan) == (caps[c]["stage"] != "exercised"), c
     assert plan["hold_and_bind"].startswith("none: cannot: a job is held only for a payee whose GitHub account has no wallet bound")
     for c in NINE:          # each one's note says what its round does, or why there is none
         assert caps[c].get("note"), c
