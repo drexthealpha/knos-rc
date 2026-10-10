@@ -19,7 +19,9 @@ Render it with no one at the keyboard (Piper or edge-tts, Chromium and ffmpeg: s
 python scripts/video/render.py --script docs/submission/pitch_script_120.md
 ```
 
-The lines `<!-- ... -->` below tell the render what to show; a reader of this page never sees them. The render
+The lines `<!-- ... -->` below tell the render what to show; a reader of this page never sees them. A page is
+photographed once it has drawn (`wait:`, seconds after it loads): the Agent PR Index draws its table from its data,
+and the price view asks the program for its fee, then is scrolled down to the row that answer fills. The render
 stops before anything is recorded if the voice runs over the limit.
 
 <!-- `title: Knos in two minutes` -->
@@ -31,6 +33,7 @@ stops before anything is recorded if the voice runs over the limit.
 *On screen: the Agent PR Index, one row per agent.*
 
 <!-- `show: url https://drexthealpha.github.io/Knos/#index` -->
+<!-- `wait: 12` -->
 
 > Of 241 merged agent pull requests claiming passing tests, 9 failed a test, build, lint or type check. That is
 > GitHub's own record at the head commit, and each was merged anyway. Somebody approved an invoice for that work.
@@ -63,6 +66,8 @@ stops before anything is recorded if the voice runs over the limit.
 *On screen: the price book, and the rate the public program ids charge today, read from the chain.*
 
 <!-- `show: url https://drexthealpha.github.io/Knos/#pricing` -->
+<!-- `wait: 20` -->
+<!-- `scroll: 540` -->
 
 > The check is free. Knos earns one fee, paid by the funder on top, when value is released against a signed
 > acceptance. The supplier never pays.
@@ -72,6 +77,7 @@ stops before anything is recorded if the voice runs over the limit.
 *On screen: the Numbers view, Knos's own accounts kept apart.*
 
 <!-- `show: url https://drexthealpha.github.io/Knos/#network` -->
+<!-- `wait: 3` -->
 
 > Where it stands, in one sentence: Solana devnet, test money, one person holds every key, no outside review,
 > nobody has paid, and one other GitHub account was paid 3 times, on tasks I funded.

@@ -124,6 +124,22 @@ def test_every_scene_shows_the_site_or_the_leaderboard():
     assert board().scenes[2].target == "https://hack.sibyllabs.org/leaderboard"
 
 
+def test_each_page_has_drawn_before_it_is_photographed_and_the_business_part_shows_the_fee_the_program_answers():
+    """The render photographs a page `wait:` seconds after it loads (1 by default). The Agent PR Index draws its table
+    from its data seconds after the load (a render of 9 Oct opened on its empty frame for 6.8 s), the Numbers view its
+    counts, and the price view asks knos_pay for the fee it charges: each of them waits, and the business part scrolls the
+    price view down to the row that the program's answer fills (web/pricing.js drawLive, #bill-live), which the first
+    screen of the view does not reach."""
+    scenes = {s.id: s for s in board().scenes}
+    assert scenes["the-finding"].target.endswith("#index") and scenes["the-finding"].wait >= 10
+    assert scenes["where-it-stands"].target.endswith("#network") and scenes["where-it-stands"].wait >= 3
+    business = scenes["the-business"]
+    assert business.target.endswith("#pricing") and business.wait >= 15 and 400 <= business.scroll <= 700
+    pricing = read("web/pricing.js")
+    assert 'id="bill-live"' in pricing and "Fee on devnet today" in pricing and 'dl.dataset.source' in pricing
+    assert all(s.scroll == 0 for s in board().scenes if s.id not in ("one-transaction-seven-steps", "the-business"))
+
+
 # ---- the render takes the script ----------------------------------------------------------------------------------------
 
 def test_the_render_estimates_the_script_under_its_own_limit(capsys):
