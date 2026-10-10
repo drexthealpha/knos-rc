@@ -13,7 +13,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url)), root = join(here, "../../web");
 const load = (f) => import(pathToFileURL(join(root, f)).href);
-const { LINE_STATES, LINE_WORDS, COLUMNS, FEEDBACK, REPO_LINES, stateOf, answers, reading, repoInvoice, invoiceLineId, prOf, checkHref } = await load("front_door.js");
+const { LINE_STATES, LINE_WORDS, COLUMNS, FEEDBACK, REPO_LINES, stateOf, answers, reading, repoOf, repoInvoice, invoiceLineId, prOf, checkHref } = await load("front_door.js");
 const { SAMPLE_INVOICE, SAMPLE_BOOK, SAMPLE_META } = await load("front_door_sample.js");
 const { parse, gather, statement, recorded } = await load("shadow.js");
 const { book } = JSON.parse(readFileSync(join(here, "../data/shadow_cases.json"), "utf8"));
@@ -59,8 +59,16 @@ same("owed to the supplier only past the window, and only while nobody authorise
 same("  and its answer says so, in a few words", [answers(st.lines[0], null, true).owed.text, answers(st.lines[0], null, false, { by: "you", on: "2026-10-06" }).owed.text], ["400.00, to the supplier", "400.00, authorised"]);
 const row = steps.stepRowHtml(steps.shadowSteps(st.lines[1]));
 ok("the step row names each step in words for a screen reader", /policy satisfied: no/.test(row) && /parties accepted: not yet/.test(row) && (row.match(/class="k-step"/g) || []).length === 4, row);
-same("what the box holds: a repository's name, or an invoice", [(await reading(" acme/app ")).repo, (await reading("https://github.com/acme/app")).repo.repo, (await reading("acme/app#1")).invoice.lines.length, (await reading("acme/app#1\nacme/app#2")).invoice.lines.length],
+same("what the box holds: a repository's name, or an invoice", [reading(" acme/app ").repo, reading("https://github.com/acme/app").repo.repo, reading("acme/app#1").invoice.lines.length, reading("acme/app#1\nacme/app#2").invoice.lines.length],
   [{ owner: "acme", repo: "app", branch: "main" }, "app", 1, 2]);
+// the box reads a repository's name on the first screen, without web/install.js (tests/web/perf.mjs): as that file does
+{
+  const names = [" acme/app ", "https://github.com/acme/app", "acme/app@release/1.x", "acme/app.git", "acme/app/", "ACME-co/My.Repo_1@feature/x",
+    "acme/..", "acme/.", "-acme/app", "acme-/app", `${"a".repeat(39)}/x`, `${"a".repeat(40)}/x`, "acme/wid gets", "widgets", "", null,
+    "https://github.com/acme/app/pull/1", "acme/app#1", "http://github.com/acme/app", "acme/app@", "acme/app@a b"];
+  const { parseRepo } = await load("install.js");
+  same("a repository's name is read as web/install.js reads it", names.map(repoOf), names.map(parseRepo));
+}
 const listing = [1, 2, 3, 5, 9, 12, 13, 14].map((n) => book[`repos/acme/app/pulls/${n}`]);
 const listed = await repoInvoice({ owner: "acme", repo: "app" }, async () => listing);
 same(`a repository is read as its merged pull requests, ${REPO_LINES} at most, none asked for twice`, [listed.invoice.lines.map((l) => l.pr), listed.known.size], [[1, 2, 5, 9, 12, 13, 14].map((n) => `acme/app#${n}`), 7]);
