@@ -42,7 +42,8 @@ printed without its denominator and its failures, and p50, p95 and p99 are given
              chain refuses because the first landed is a duplicate refused, not a failure; in the simulator every token
              is verified and open before the first PayOrder). On a cluster each signed transaction of a burst goes
              through knos.settle.v2.fanout.FanLedger: sent to the configured endpoint and to every --second-rpc
-             (KNOS_RPC_SECOND), the same bytes again every 2 s, confirmed by its signature's status; a dropped
+             (KNOS_RPC_SECOND), the same bytes again every 2 s until an endpoint takes them, confirmed by its
+             signature's status, read in one request for every transaction the run waits on; a dropped
              connection, a timeout or HTTP 408 is no answer, and the payment is sent again (0.3.24: 22 of 40 paid, the
              other 18 lost to exactly these, each after ONE send). Sources for the fee: Solana's fee
              structure, https://solana.com/docs/core/fees/fee-structure (prioritization fee = ceil(price x limit /
@@ -306,7 +307,11 @@ def on_cluster(rpc, wallet: Keypair, relays: int, tokens: list[dict], clock=time
     if scenario == "hot-funder":
         fee_accounts = 1
     fan = None
-    if scenario == "burst" and type(ledger) is chain.Ledger:        # a cluster's own ledger; a test's stand-in is left as it is
+    # a cluster's own ledger: `chain.ledger()`, which `main` hands over, is a FanLedger itself since 0.3.25, so it is made
+    # again here with the run's second endpoints and its pause, and counted (before, only a plain chain.Ledger was: the
+    # run went out through chain.ledger()'s fan-out with --second-rpc ignored and no `fanout` in its record). A test's
+    # stand-in, a subclass of either, is left as it is
+    if scenario == "burst" and type(ledger) in (chain.Ledger, fanout.FanLedger):
         fan = ledger = fanout.FanLedger(ledger.url, ledger.commitment, seconds=tuple(seconds) if seconds is not None else fanout.seconds_from_env(),
                                            sleep=pause)
     shaped = Shaped(ledger, scenario, cu_price, seed) if scenario in ("rpc-faults", "priority-fee") else None

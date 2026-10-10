@@ -3879,7 +3879,7 @@
      "names": "test_the_simulator_pays_every_order_once_each_by_the_relay_of_its_part_with_that_relays_key_alone"
     }
    },
-   "note": "Measured on devnet, public ids, own wallets, 9 Oct (n=40 each): priority-fee 40/40, every PayOrder priced; burst 22/40 (RPC drops, timeouts, HTTP 408), p50 262.5 s. The burst rerun with the fan-out (rpc_fanout) is pending."
+   "note": "Measured on devnet, public ids, own wallets (n=40 each): priority-fee 40/40, every PayOrder priced (9 Oct); burst 22/40 on 9 Oct (RPC drops, timeouts, HTTP 408), p50 262.5 s; the burst rerun with the fan-out (rpc_fanout) on 10 Oct: 40/40, 0 failures, 73 retries, p50 580.75 s (docs/LOAD.md)."
   },
   {
    "id": "approval_record",
@@ -4116,7 +4116,7 @@
      "names": "test_each_contention_scenario_runs_in_the_simulator_with_its_own_checks_and_no_rate"
     }
    },
-   "note": "Simulated here with injected faults; run on devnet, public ids, 9 Oct (n=40 each): hot-funder 40/40, rpc-faults 40/40, priority-fee 40/40 with version-1 transactions unpriced, burst 13/40 (docs/LOAD.md)."
+   "note": "Simulated here with injected faults; run on devnet, public ids, 9 Oct (n=40 each): hot-funder 40/40, rpc-faults 40/40, priority-fee 40/40 with version-1 transactions unpriced, burst 13/40; burst 22/40 on 9 Oct after the back-off, 40/40 on 10 Oct with the fan-out (docs/LOAD.md)."
   },
   {
    "id": "audit_export_fast",
@@ -4455,7 +4455,7 @@
   },
   {
    "id": "rpc_fanout",
-   "what": "Each signed transaction is sent to the configured endpoint and any second one, sent again every 2 s, and confirmed by its signature status; a lost answer is never taken as a refusal.",
+   "what": "Each signed transaction is sent to the configured endpoint and any second one, again every 2 s until one takes it, and confirmed by its signature status in one request for all the process waits on; a lost answer is never taken as a refusal.",
    "stage": "tested",
    "evidence": {
     "implemented": {
@@ -4467,7 +4467,7 @@
      "names": "test_fanned_out_resent_and_confirmed_by_signature_the_burst_pays_40_of_40_once_each"
     }
    },
-   "note": "40 of 40 on a stand-in devnet that drops answers as devnet did. Devnet, public ids, 9 Oct: burst 22/40 before the fan-out; the rerun with it is pending."
+   "note": "40 of 40 on a stand-in devnet that drops answers as devnet did; forty transactions waiting ask one status request a poll, not forty. Devnet, public ids, own wallets: burst 22/40 on 9 Oct before the fan-out; 40/40 on 10 Oct with it (0 failures, 73 retries, p50 580.75 s, n=40). A first run on 10 Oct with the fan-out as it was before this fix (each transaction's status asked every 0.5 s) had every status request answered HTTP 429 and was stopped at 11/40 (docs/LOAD.md)."
   },
   {
    "id": "grace_refund_by_another",

@@ -13,7 +13,9 @@ import importlib.util
 import re
 import sys
 import threading
+import time
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -179,3 +181,84 @@ def test_second_endpoints_come_from_the_environment_https_only_once_each(monkeyp
     assert fanout.seconds_from_env() == (SECOND, "https://third.invalid")
     monkeypatch.delenv("KNOS_RPC_SECOND")
     assert fanout.seconds_from_env() == () and fanout.FanLedger(URL).endpoints() == [URL]
+
+
+def test_the_ledger_a_cluster_run_is_handed_is_a_fan_ledger_and_the_run_records_its_fan_out(monkeypatch):
+    """`load.py measure --pay` hands on_cluster `chain.ledger()`, which is a FanLedger since 0.3.25, not a plain
+    chain.Ledger: the burst on devnet then went out through chain.ledger()'s own fan-out with --second-rpc ignored and
+    nothing of the fan-out in its record. It is made again with the run's second endpoints and its pause, and counted."""
+    for name in ("KNOS_RPC", "KNOS_RPC_SECOND", "KNOS_CLUSTER"):
+        monkeypatch.delenv(name, raising=False)
+    handed = chain.ledger()
+    assert type(handed) is fanout.FanLedger and handed.url == URL and handed.seconds == ()
+    got, net = burst(monkeypatch, handed, (SECOND,))
+    assert (got["attempted"], got["paid"], got["failures"], got["ok"]) == (40, 40, 0, True), got.get("first_refusals")
+    fan = got["fanout"]
+    assert (fan["endpoints"], fan["second_endpoints"], fan["resend_every_s"], fan["confirm_by"]) == (2, 1, 2.0, "getSignatureStatuses")
+    assert fan["sends"] > 0 and fan["no_answer"] > 0 and fan["status_polls"] > 0
+    assert any(k[0] == SECOND and k[1] == "sendTransaction" for k in net.asked)     # --second-rpc reached the endpoint
+
+
+class Throttled:
+    """An endpoint that takes every transaction at once and confirms a signature from the third time it is asked
+    about, counting each request by method. `together`: the sends wait for each other, so every waiter polls at once."""
+
+    def __init__(self, together: int = 1):
+        self.lock, self.gate = threading.Lock(), threading.Barrier(together)
+        self.calls: dict[str, int] = {}
+        self.asked: dict[str, int] = {}
+        self.largest = 0
+
+    def call(self, url: str, method: str, params: list, timeout: float = 10.0):
+        with self.lock:
+            self.calls[method] = self.calls.get(method, 0) + 1
+        if method == "getLatestBlockhash":
+            return {"value": {"blockhash": BLOCKHASH, "lastValidBlockHeight": 1}}
+        if method == "sendTransaction":
+            sig = str(Transaction.from_bytes(base64.b64decode(params[0])).signatures[0])
+            self.gate.wait(timeout=30)
+            return sig
+        if method == "getSignatureStatuses":
+            with self.lock:
+                self.largest = max(self.largest, len(params[0]))
+                for s in params[0]:
+                    self.asked[s] = self.asked.get(s, 0) + 1
+                return {"value": [{"confirmationStatus": "confirmed", "err": None} if self.asked[s] >= 3 else None for s in params[0]]}
+        raise AssertionError(method)
+
+
+def test_forty_waiters_share_one_status_request_a_poll_and_bytes_an_endpoint_took_are_not_sent_again(monkeypatch):
+    """The first 0.3.25 burst on devnet (10 Oct 2026): each of 40 waiters asked its own status every 0.5 s and sent its
+    bytes again every 2 s, about 80 requests a second of an endpoint that takes 40 of one method per 10 s; every one was
+    answered 429. Now the process's waiters share one getSignatureStatuses a poll round, every signature in it, and
+    bytes an endpoint took are left to that endpoint, which forwards them itself."""
+    net = Throttled(together=40)
+    monkeypatch.setattr(chain, "call", net.call)
+    led = fanout.FanLedger(URL, sleep=lambda s: time.sleep(0.01))
+    keys = [Keypair.from_seed(bytes([i + 1]) * 32) for i in range(40)]
+    with ThreadPoolExecutor(max_workers=40) as pool:
+        sigs = list(pool.map(lambda k: led.send([Instruction(MEMO, bytes(k.pubkey()), [])], k), keys))
+    assert len(set(sigs)) == 40 and net.calls["sendTransaction"] == 40 and led.asked["resends"] == 0
+    assert net.calls["getSignatureStatuses"] <= 12 and net.largest > 20, (net.calls, net.largest)      # 40 waiting each poll: 120 at least
+    assert fanout.board([URL]).waiting == {} and led.taken == set()                                     # nothing kept once confirmed
+
+
+def test_bytes_no_endpoint_took_are_sent_again_and_a_wait_slowed_down_ends_on_the_clock(monkeypatch):
+    """A send whose answer was lost is sent again every 2 s; a status request the endpoint holds up (a 429 back-off
+    inside chain.call) no longer stretches the 60 s wait: the clock ends it."""
+    sent, clock = [], [0.0]
+
+    def call(url, method, params, timeout=10.0):
+        if method == "getLatestBlockhash":
+            return {"value": {"blockhash": BLOCKHASH}}
+        if method == "sendTransaction":
+            sent.append(url)
+            raise urllib.error.URLError("Remote end closed connection without response")
+        clock[0] += 15.0            # chain.call waited out 1 + 2 + 4 + 8 s of 429 before it gave up
+        raise urllib.error.HTTPError(url, 429, "Too Many Requests", None, None)  # type: ignore[arg-type]
+    monkeypatch.setattr(chain, "call", call)
+    led = fanout.FanLedger(URL, sleep=lambda s: None, clock=lambda: clock[0])
+    with pytest.raises(TimeoutError, match="not confirmed"):
+        led.send([Instruction(MEMO, b"lost", [])], Keypair.from_seed(bytes([9]) * 32))
+    assert clock[0] <= fanout.POLLS * fanout.POLL_S + fanout.WAIT_SLACK_S + 15.0 and led.asked["status_polls"] < 10
+    assert len(sent) >= 2 and led.asked["resends"] == 0 and led.asked["no_answer"] >= len(sent)        # sent again, never taken

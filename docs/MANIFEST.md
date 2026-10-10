@@ -342,6 +342,7 @@ fee the order stored when the record states it, else the build live at its slot 
 | 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
 | 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
 | 40 orders paid by a load run, 4 relays; order ids not kept in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
+| 40 orders paid by a load run, 4 relays; its 40 order ids are in docs/load.json | none kept | not decided | no stored fee, slot or date in the record; `--read-slots` reads the slot | docs/load.json `measured` |
 
 ## Outstanding limits
 
