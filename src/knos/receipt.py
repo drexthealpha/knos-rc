@@ -1486,6 +1486,86 @@ def mirror_find(where: str, target: str, get=None) -> list[dict]:
     return out
 
 
+# ---- `knos receipt verify`: the receipt rebuilt from the chain, with an answer in a time the reader is told -----------------
+# It reads the escrow's newest transactions one by one. devnet's public endpoint takes 40 requests of one method per 10 s
+# (https://solana.com/docs/references/clusters), so 1,000 of them take over four minutes, and said nothing all that time.
+VERIFY_SECONDS = 120.0
+TX_VERSION = {"encoding": "json", "commitment": "confirmed", "maxSupportedTransactionVersion": 1}  # what the relay sends: version 1
+
+
+class NoAnswer(OSError):
+    """The cluster did not answer in time. Its text is one line: where, after how long, how far, and what to try."""
+
+
+def from_chain(target: str, url: str, limit: int = 1000, seconds: float = VERIFY_SECONDS, call=None, clock=None) -> dict:
+    """The receipt of `target` (an order's address, or its paying transaction) rebuilt from the cluster at `url`:
+    knos.bundle.gather over the escrow's newest `limit` transactions. Every request together gets `seconds`: each one
+    waits at most what is left, and past that NoAnswer says so in one line. OSError when a transaction of that history
+    could not be read; otherwise what gather raises. `call(method, params, timeout)` and `clock()` stand in for the
+    cluster and the clock in tests."""
+    import threading
+    import time
+
+    from . import bundle, chain, records
+    from .settle.v2 import pay
+    clock = clock or time.monotonic
+    ask = call or (lambda method, params, timeout: chain.call(url, method, params, timeout=timeout))
+    end, seen = clock() + seconds, {"read": 0, "of": -1}      # transactions read, of how many (-1: the list has not come)
+
+    def late() -> NoAnswer:
+        of = f"{seen['read']:,} of {seen['of']:,} transactions read" if seen["of"] >= 0 else "the list of transactions did not come"
+        return NoAnswer(f"no answer from {url} within {seconds:g} s ({of}): give your own endpoint (--rpc URL) or fewer transactions (--limit N)")
+
+    def timed(method: str, params: list):
+        left = end - clock()
+        if left <= 0:
+            raise late()
+        try:
+            return ask(method, params, min(30.0, left))
+        except Exception:
+            if clock() >= end:      # the request ran out of the time that was left: say that, not the socket's words
+                raise late() from None
+            raise
+
+    def work() -> dict:
+        got = timed("getSignaturesForAddress", [str(pay.PAY_ID), {"limit": limit}]) or []
+        sigs = [s["signature"] for s in got if s.get("err") is None]
+        seen["of"] = len(sigs)
+        events, unread = [], 0
+        for sig in reversed(sigs):          # oldest first, as records.history gives them
+            try:
+                tx = timed("getTransaction", [sig, TX_VERSION])
+            except NoAnswer:
+                raise
+            except Exception:  # noqa: BLE001 - still throttled after the backoff: counted, never guessed
+                unread += 1
+                continue
+            seen["read"] += 1
+            events += [{**ev, "tx": sig} for ev in records.events_of(tx)]
+        if unread:
+            raise OSError(f"{unread} transactions could not be read (the public RPC throttled); try again, or give --rpc")
+        return bundle.gather(timed, events, target, None)[0]
+
+    # A request may run past its share (an endpoint that asks to wait and retry), so the whole read runs beside a clock
+    # that answers at the time given, whatever is still waiting.
+    box: dict = {}
+
+    def run() -> None:
+        try:
+            box["receipt"] = work()
+        except BaseException as e:  # noqa: BLE001 - handed to the caller as it was raised
+            box["error"] = e
+
+    worker = threading.Thread(target=run, name="knos-receipt-verify", daemon=True)
+    worker.start()
+    worker.join(seconds + min(5.0, seconds))
+    if worker.is_alive():
+        raise late()
+    if "error" in box:
+        raise box["error"]
+    return box["receipt"]
+
+
 # ---- the Solana Attestation Service attestation, at settlement ---------------------------------------------------------------
 def attest(r: dict, keypair: str | None = None, rpc: str | None = None, timeout: float = 60.0, run=None, call=None, sleep=None) -> dict:
     """Write `r` as an attestation (scripts/sas_receipt.mjs --send). On by default wherever a receipt is issued; the

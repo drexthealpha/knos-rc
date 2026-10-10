@@ -23,13 +23,13 @@ workflow through npm's trusted publishing, with a provenance statement that name
 If the registry cannot be reached, the same file is attached to the GitHub release:
 
 ```bash
-npm install https://github.com/drexthealpha/Knos/releases/download/v0.3.25/knos-settle-0.3.25.tgz
+npm install https://github.com/drexthealpha/Knos/releases/download/v0.3.26/knos-settle-0.3.26.tgz
 ```
 
 Or import it in a browser:
 
 ```js
-import * as knos from "https://cdn.jsdelivr.net/gh/drexthealpha/Knos@v0.3.25/sdk/settle/index.js";
+import * as knos from "https://cdn.jsdelivr.net/gh/drexthealpha/Knos@v0.3.26/sdk/settle/index.js";
 ```
 
 ## Fund an order from a wallet in the browser

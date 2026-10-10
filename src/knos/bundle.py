@@ -900,9 +900,9 @@ def register(app, help_lines: list | None = None) -> None:
                     typer.echo(f"{rc.FROM_MIRROR}: no cluster was asked. The receipt keeps the rules of docs/RECEIPT.md and is the one the mirror's index lists; "
                                "its bundle (knos bundle verify --no-chain) is what proves the issuer's signature.")
                 return
-            url, call = _caller(rpc)
+            url = _caller(rpc)[0]
             try:
-                r = gather(call, _history(url, limit), target, None)[0]
+                r = rc.from_chain(target, url, limit)          # every request together within its time; NoAnswer is an OSError
                 held = rc.mirror_find(mirror, target) if mirror else []
                 if held and rc.digest(r) not in {rc.digest(h) for h in held}:
                     stop("the mirror's receipt is not the one the chain gives: trust the chain's, printed by `knos receipt verify` without --mirror.")

@@ -37,7 +37,7 @@ def _sub(path: Path, old: str, new: str) -> None:
 
 def test_this_tree_says_the_one_sentence_everywhere_it_describes_itself():
     pf = _tool()
-    assert pf.sentence() == SENTENCE and pf.title(SENTENCE) == "Knos. " + SENTENCE
+    assert pf.sentence() == SENTENCE and pf.title(SENTENCE) == "Knos. Pay AI agents only when your checks pass." and len(pf.title(SENTENCE)) <= 60
     assert pf.problems() == []
     said: list[str] = []
     assert pf.main(["--check"], say=said.append) == 0 and said == [f"every description says: {SENTENCE}"]
@@ -56,7 +56,7 @@ def test_any_other_description_of_the_product_fails_the_check_place_by_place(tmp
     _sub(root / "server.json", SENTENCE, "Bounties that pay when the pull request is merged.")
     _sub(root / "plugin" / ".claude-plugin" / "plugin.json", SENTENCE, "A plugin.")
     _sub(root / "action.yml", "description: ", "description: One shared memory for every coding agent. ")
-    _sub(root / "web" / "index.html", f"<title>Knos. {SENTENCE}</title>", "<title>Knos: bounties</title>")
+    _sub(root / "web" / "index.html", f"<title>{pf.title(SENTENCE)}</title>", "<title>Knos: bounties</title>")
     _sub(root / "web" / "index.html", f'<meta property="og:description" content="{SENTENCE}', '<meta property="og:description" content="Escrow for agents.')
     _sub(root / "README.md", f"**{SENTENCE}**", "**Pay agents on merge.**")
     found = pf.problems(root)

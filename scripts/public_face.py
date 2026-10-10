@@ -117,9 +117,15 @@ def sentence(root: Path = ROOT) -> str:
     return got.strip()
 
 
+# The line under the sentence on the site's first screen and the README's (tests/test_bench_docs.py): what a person
+# searching reads first, so it is the title (60 characters at most: tests/test_seo.py).
+OUTCOME = "Pay AI agents only when your checks pass."
+
+
 def title(said: str) -> str:
-    """The site's title: the name, then the one sentence whole (tests/web/site.mjs holds the page to the same words)."""
-    return "Knos. " + said
+    """The site's title: the name, then the line under the sentence on the first screen (tests/web/site.mjs holds the
+    page to the same words). The descriptions begin with the sentence `said` itself."""
+    return "Knos. " + OUTCOME
 
 
 def _judge(where: str, got: str | None, rule: str, said: str) -> list[str]:
