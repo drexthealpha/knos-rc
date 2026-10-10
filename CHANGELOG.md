@@ -101,17 +101,24 @@ outside this repository. **No program changes in this release:** nothing under `
 ### Operations
 
 - **Fan-out.** Every signed transaction a relay sends now goes to the configured endpoint and any second one
-  (`KNOS_RPC_SECOND`), is sent again every 2 s and is confirmed by its signature status; a lost answer is never taken as
-  a refusal. On a stand-in devnet that drops answers as devnet did, the burst pays 40 of 40, each once. On devnet on
-  9 Oct the burst paid 22 of 40 (RPC drops, timeouts, HTTP 408) and priority-fee 40 of 40, every PayOrder priced; both
-  are now in [`docs/LOAD.md`](docs/LOAD.md), and the burst rerun with the fan-out is pending.
+  (`KNOS_RPC_SECOND`), is sent again every 2 s until an endpoint takes it and is confirmed by its signature status, one
+  status request a poll for every transaction the process waits on; a lost answer is never taken as a refusal. On a
+  stand-in devnet that drops answers as devnet did, the burst pays 40 of 40, each once. On devnet on 9 Oct the burst
+  paid 22 of 40 (RPC drops, timeouts, HTTP 408) and priority-fee 40 of 40, every PayOrder priced. On 10 Oct, at the
+  public program ids with own wallets, the burst with the fan-out paid 40 of 40, with no failure; a first run that day,
+  with each transaction's status asked apart every 0.5 s, had its status requests answered HTTP 429 and was stopped at
+  11 of 40, which is why one request now serves them all. The runs are in [`docs/LOAD.md`](docs/LOAD.md).
 - **The worker's event job** retries its install with `--refresh`, as the claims job does.
-- **The grace round** reads a refund someone else sent first and passes with it noted. Not yet run on devnet.
+- **The grace round** reads a refund someone else sent first and passes with it noted. Run at the public ids on
+  10 Oct: its order had been refunded by the public relay 41 s after the grace ended, and the round passed.
 - **The task board** funds a task stranded by a new workflow pin again in place and closes none. Not yet run on the
   eight open in the playground.
-- **Rounds for the capabilities deployed and not exercised** are ready for the release to run at the public ids: tip,
-  meter-single, passkey-payee, gate, guardian, pause, and gitlab once a project of the maintainer's own is noted.
-  hold_and_bind cannot be exercised by one owner, and its note says why.
+- **Rounds for the capabilities deployed and not exercised:** tip, meter-single, passkey-payee, gate, guardian, pause
+  and gitlab. Run at the public ids on 10 Oct with own wallets, before this release's commit: tip, meter-single,
+  passkey-payee, gate and pause passed, and `record` moved funding by one comment, pay on merge, one counted
+  evaluation, a payee's passkey wallet, the upgrade gate and the pause to exercised (26 of 260). The guardian round
+  did not run (no signing key waits for the guardian at the public knos_oidc), nor the gitlab round (no GitLab project
+  of the maintainer's own is noted). hold_and_bind cannot be exercised by one owner, and its note says why.
 
 ### The site
 
