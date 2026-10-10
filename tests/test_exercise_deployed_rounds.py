@@ -120,6 +120,15 @@ def one(ex, w, name: str) -> tuple[dict, list[str], int]:
     return ev, said, codes[name]
 
 
+def test_the_pause_round_runs_only_when_named(ex):
+    """The pause stops new funding at the public knos_pay for everyone while it runs, so it is the one round that runs
+    only by name: `run`, `run --resume` and `run --phase after` pass it by (scripts/exercise_rounds/pause.py)."""
+    assert [n for n, x in ex.EXT.items() if x.alone] == ["pause"]
+    said: list[str] = []
+    assert ex.main(["list"], said.append) == 0
+    assert any(line.startswith("round pause (phase any; needs knos_pay, public; simulated: no; runs only by name: run --only pause): ") for line in said)
+
+
 def test_the_nine_deployed_capabilities_each_have_a_round_or_a_reason(ex):
     caps = {c["id"]: c for c in json.loads((ROOT / "docs" / "capabilities.json").read_text(encoding="utf-8"))["capabilities"]}
     assert sorted(i for i, c in caps.items() if c["stage"] == "deployed") == sorted(NINE)

@@ -775,6 +775,13 @@ def test_the_phases_run_at_the_public_ids_only_on_the_builds_they_are_for_and_a_
     kept = json.loads(where.read_text(encoding="utf-8"))
     assert kept["mode"] == "public" and kept["programs"]["knos_pay"]["build"] == "2.2" and kept["rounds"]["stored_fee"]["result"].startswith("cannot: no order of this run's own was funded before the upgrade")
     assert "cannot: no client" not in json.dumps(kept) and kept["rounds"]["es256"]["result"] != "ok" and any(line.startswith("FAILED: ") for line in said)
+    # `--only <step>`: that step of the phase and nothing else, and no registered round (the pause among them) is started
+    alone, said[:] = keys / "alone.json", []
+    assert ex.after_main("after", alone, "rpc", keys, False, None, None, said.append, live, Broken, only="grace") == 1
+    one = json.loads(alone.read_text(encoding="utf-8"))
+    assert set(one["rounds"]) == {"grace"} and one["rounds"]["grace"]["result"].startswith("failed: ")
+    assert [line for line in said if line.startswith("[")] == [line for line in said if line.startswith("[grace] ")] != []
+    assert not any(line.startswith("registered rounds:") for line in said)
     # a second owner: said as what cannot be done, unless --neutral names a repository, which is only ever read
     src = (ROOT / "scripts" / "exercise_public.py").read_text(encoding="utf-8")
     assert "`--neutral OWNER/REPO` names a repository of another" in src and "nothing is ever sent to that repository" in src
