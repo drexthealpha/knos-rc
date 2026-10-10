@@ -114,3 +114,10 @@ def test_the_judges_page_counts_what_a_reader_reads(tmp_path):
     counted = j.WORD.findall(j.prose(page))
     assert counted == ["Title", "In", "plain", "words.", "One.", "Two.", "Three.", "A", "caption."]
     assert j.head(page)[0] == "# Title"                                              # the mark and the summary are not the title
+
+
+def test_the_release_entry_counts_the_words_that_docs_words_explains():
+    # one word a "### " heading: the CHANGELOG's line on docs/WORDS.md gives that number, not an older draft's
+    explained = len(re.findall(r"(?m)^### ", read("docs/WORDS.md")))
+    said = re.findall(r"\(docs/WORDS\.md\)\*\* explains (\d+) words", read("CHANGELOG.md"))
+    assert said and all(int(k) == explained for k in said), (said, explained)

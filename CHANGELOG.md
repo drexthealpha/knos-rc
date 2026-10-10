@@ -21,7 +21,7 @@ this repository. **No program changes in this release:** nothing under `programs
   count, and whether it is real. Two of them have a diagram.
 - **Seven documents** now open with the mark and three sentences in plain words: the map of the documents, the story,
   the judges' page, governance, the meter, finance and the one transaction. Six of them have a diagram.
-- **[`docs/WORDS.md`](docs/WORDS.md)** explains 32 words, from "AI agent" to "Warranty", each in under 20 words. The
+- **[`docs/WORDS.md`](docs/WORDS.md)** explains 33 words, from "AI agent" to "Warranty", each in under 20 words. The
   README and the new documents link to it.
 - **Tests keep it plain.** `tests/test_readme_plain.py` measures the README with the Flesch-Kincaid grade: it reads
   at grade 4.4, with 10.6 words a sentence (the limits are 8 and 16). `tests/test_docs_plain.py` holds each of the
