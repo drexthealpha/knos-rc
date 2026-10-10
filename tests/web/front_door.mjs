@@ -59,7 +59,7 @@ same("owed to the supplier only past the window, and only while nobody authorise
 same("  and its answer says so, in a few words", [answers(st.lines[0], null, true).owed.text, answers(st.lines[0], null, false, { by: "you", on: "2026-10-06" }).owed.text], ["400.00, to the supplier", "400.00, authorised"]);
 const row = steps.stepRowHtml(steps.shadowSteps(st.lines[1]));
 ok("the step row names each step in words for a screen reader", /policy satisfied: no/.test(row) && /parties accepted: not yet/.test(row) && (row.match(/class="k-step"/g) || []).length === 4, row);
-same("what the box holds: a repository's name, or an invoice", [reading(" acme/app ").repo, reading("https://github.com/acme/app").repo.repo, reading("acme/app#1").invoice.lines.length, reading("acme/app#1\nacme/app#2").invoice.lines.length],
+same("what the box holds: a repository's name, or an invoice", [(await reading(" acme/app ")).repo, (await reading("https://github.com/acme/app")).repo.repo, (await reading("acme/app#1")).invoice.lines.length, (await reading("acme/app#1\nacme/app#2")).invoice.lines.length],
   [{ owner: "acme", repo: "app", branch: "main" }, "app", 1, 2]);
 const listing = [1, 2, 3, 5, 9, 12, 13, 14].map((n) => book[`repos/acme/app/pulls/${n}`]);
 const listed = await repoInvoice({ owner: "acme", repo: "app" }, async () => listing);

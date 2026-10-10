@@ -83,7 +83,7 @@ weight.files.sort((a, b) => b[1] - a[1]);
 check(`weight: the first screen asks for ${weight.js} bytes of JavaScript (under ${BUDGET.js})`, weight.js > 0 && weight.js < BUDGET.js, weight.files.slice(0, 6));
 check(`weight: and ${weight.css} bytes of CSS (under ${BUDGET.css})`, weight.css > 0 && weight.css < BUDGET.css);
 check("weight: the palette is not asked for until it is opened", !weight.files.some(([f]) => f === "palette.js"), weight.files.map(([f]) => f));
-check("weight: nor the files that read Solana, nor the round below the first screen, nor any other page's code", !weight.files.some(([f]) => ["app.js", "settle.js", "demo.js", "buyer.js", "console.js", "mounts.js", "pricing.js", "records.js", "statements.js", "finance_data.js"].includes(f)), weight.files.map(([f]) => f));
+check("weight: nor the files that read Solana, nor the round below the first screen, nor any other page's code", !weight.files.some(([f]) => ["app.js", "settle.js", "demo.js", "buyer.js", "console.js", "mounts.js", "pricing.js", "records.js", "statements.js", "finance_data.js", "install.js"].includes(f)), weight.files.map(([f]) => f));
 
 // ---- answer ------------------------------------------------------------------------------------------------------------------
 const table = {};

@@ -19,9 +19,12 @@
 // What reads GitHub and what judges a line is web/shadow.js, unchanged: this file only groups and draws. The sample is
 // web/front_door_sample.js (a made-up invoice with its recorded answers), so it works with no network.
 import { parse, pullOf, gather, statement, recorded, githubReader, Unread, ANONYMOUS_AN_HOUR, LINE_COSTS } from "./shadow.js";
-import { parseRepo, installLink, pinnedFile, INSTALL_WORKFLOW } from "./install.js";
 import { SAMPLE_INVOICE, SAMPLE_BOOK, SAMPLE_META } from "./front_door_sample.js";
 import { stepRowHtml, shadowSteps, markSteps, stepStyle } from "./line_steps.js";
+// web/install.js is the Install page's code (its workflow file and the terms templates, 15 KB). The box needs it only
+// to read a repository's name and to make a checked invoice's Install link, so it is asked for then, never with the
+// first screen (tests/web/perf.mjs: the first screen's weight, and the files it must not ask for).
+const install = () => import("./install.js");
 
 export const LINE_STATES = ["agreed", "disputed", "duplicate", "insufficient_evidence"];
 export const LINE_WORDS = { agreed: "policy met", disputed: "disputed", duplicate: "duplicate", insufficient_evidence: "insufficient evidence" };
@@ -53,10 +56,11 @@ export async function invoiceLineId(supplier, invoice, line) {
   return `inv_${(await sha256(all)).slice(0, 24)}`;
 }
 
-/** What the box holds: { repo: { owner, repo, branch } } for one repository's name, else { invoice } (throws as parse does). */
-export function reading(text) {
+/** What the box holds: { repo: { owner, repo, branch } } for one repository's name, else { invoice } (rejects as parse
+ *  throws). Async: one line that is not a pull request is read by web/install.js's parseRepo, asked for here. */
+export async function reading(text) {
   const t = String(text || "").trim();
-  if (!/[\n,;\t]/.test(t) && !pullOf(t)) { const at = parseRepo(t); if (at) return { repo: at }; }
+  if (!/[\n,;\t]/.test(t) && !pullOf(t)) { const at = (await install()).parseRepo(t); if (at) return { repo: at }; }
   return { invoice: parse(text) };
 }
 
@@ -178,11 +182,13 @@ export function renderFrontDoor(el, env = {}) {
     if (!sample && !counting && !busy && env.elsewhere && one && !/[\n,;\t]/.test(one) && await env.elsewhere(one, out)) return;
     if (busy) { again = !sample && box.value !== checking; return; }     // asked while a check runs: what the box holds now is checked next, when it is not what is being checked
     checking = sample ? null : box.value; again = false;
+    busy = true;                       // from here: reading a repository's name may wait for web/install.js
     let what;
-    try { what = sample ? { invoice: parse(SAMPLE_INVOICE) } : reading(box.value); } catch (e) {
+    try { what = sample ? { invoice: parse(SAMPLE_INVOICE) } : await reading(box.value); } catch (e) {
+      busy = false;
       frame(/^line \d+/.test(e.message) ? `Not read: ${e.message}.` : "Not read: paste pull request links, or type owner/repo.", ""); return;
     }
-    busy = true; last = null; meter = null; budget.spent = false;
+    last = null; meter = null; budget.spent = false;
     const repo = what.repo ? `${what.repo.owner}/${what.repo.repo}` : "";
     frame(repo ? `Reading ${repo}.` : `Checking ${what.invoice.lines.length} ${what.invoice.lines.length === 1 ? "line" : "lines"}.`, repo ? "Merged there" : "Supplier's count");      // the pending state, before anything is asked
     $("mark").hidden = !sample;
@@ -258,14 +264,15 @@ export function renderFrontDoor(el, env = {}) {
       li.dataset.owed = "1"; li.querySelector('[data-col="owed"]').textContent = answers(r, null, true).owed.text;
       li.insertAdjacentHTML("beforeend", owedHtml());
     }
-    const at = repo ? what.repo : sample ? null : (() => {      // an invoice: the repository most of its lines name, on the branch GitHub says is its default
+    const inst = sample ? null : await install().catch(() => null);      // the Install link's file and its maker; the sample has none
+    const at = repo ? what.repo : !inst ? null : (() => {      // an invoice: the repository most of its lines name, on the branch GitHub says is its default
       const seen = {}; for (const ln of invoice.lines) if (ln.repo) seen[ln.repo.toLowerCase()] = [(seen[ln.repo.toLowerCase()] || [0])[0] + 1, ln];
       const top = Object.values(seen).sort((a, b) => b[0] - a[0])[0];
       if (!top) return null;
       const branch = ((((facts.get(top[1].pr.toLowerCase()) || {}).pull || {}).base || {}).repo || {}).default_branch;
-      return { ...parseRepo(top[1].repo), ...(typeof branch === "string" && /^[\w./-]{1,200}$/.test(branch) ? { branch } : {}) };
+      return { ...inst.parseRepo(top[1].repo), ...(typeof branch === "string" && /^[\w./-]{1,200}$/.test(branch) ? { branch } : {}) };
     })();
-    const href = at && at.owner && pinnedFile(INSTALL_WORKFLOW) ? installLink(at) : null;
+    const href = at && at.owner && inst && inst.pinnedFile(inst.INSTALL_WORKFLOW) ? inst.installLink(at) : null;
     if (href) Object.assign($("install"), { href, target: "_blank", rel: "noopener" });
     meter = at && at.owner ? { repo: `${at.owner}/${at.repo}`, branch: at.branch, href } : null;
     $("approve").disabled = agreed.length === 0;
