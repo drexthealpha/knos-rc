@@ -52,6 +52,7 @@ try {
     await page.waitForSelector("#aps-erp-go");
     const label = (await page.textContent("#aps-erp-go")).trim();
     ok(`${width}px: one control, named for the approver`, label === "Download for your accounting system" && (await page.$$("#aps-erp button")).length === 1, label);
+    const names = [];
     for (const to of Object.keys(HEAD)) {
       await page.selectOption("#aps-erp-to", to);
       const files = [];
@@ -62,7 +63,9 @@ try {
       page.removeAllListeners("download");
       const got = {};
       for (const d of files) got[d.suggestedFilename()] = readFileSync(await d.path(), "utf8");
-      const payable = got[`statement-INV-2026-09-${to}.csv`], held = got[`statement-INV-2026-09-${to}.held.csv`];
+      // named as `knos statement export --to` names them (<statement>.<to>.csv, the held sheet beside it)
+      const payable = got[`statement-INV-2026-09.${to}.csv`], held = got[`statement-INV-2026-09.${to}.held.csv`];
+      names.push(...Object.keys(got));
       ok(`${width}px ${to}: the payable file has the system's header`, payable && payable.split("\n")[0] === HEAD[to], Object.keys(got));
       ok(`${width}px ${to}: one bill, line 1; the refused line is never in it`, payable && payable.split("\n").length === 3 && payable.includes(to === "csv" || to === "xero" ? first : "KNOS-") && !payable.includes(refusedLine));
       ok(`${width}px ${to}: the held sheet has the four other lines`, held && held.trim().split("\n").length === 5 && held.includes(refusedLine) && held.includes("owed to the supplier"));
@@ -70,6 +73,10 @@ try {
       ok(`${width}px ${to}: it says both counts in twelve words or fewer`, said === "1 bill; 4 held lines on a separate sheet." && said.split(/\s+/).length <= 12, said);
       await page.evaluate(() => { document.getElementById("aps-erp-said").textContent = ""; });
     }
+    // the buttons above it (QuickBooks file, NetSuite file: exports.write_statement) save other bytes: never under the same name
+    const above = [];
+    for (const b of await page.$$("[data-aps-export]")) { const [d] = await Promise.all([page.waitForEvent("download"), b.click()]); above.push(d.suggestedFilename()); }
+    ok(`${width}px: no two downloads of the page share a name`, new Set([...above, ...names]).size === above.length + names.length && above.length === 3 && names.length === 8, [above, names]);
     ok(`${width}px: nothing runs off the side`, await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]));
     ok(`${width}px: nobody is asked but the page's own server`, asked.length === 0, asked);
     await page.close();

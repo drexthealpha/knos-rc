@@ -3,6 +3,7 @@
 // result" puts the verdict, the claim, the counts and the link on the clipboard; "Post on X" is a link to X's compose box
 // with the words and the link, within 280 characters, and posts nothing; "Download the card" saves a 1200 x 630 PNG;
 // the badge is offered only to a repository that merged in the last 30 days, and its file is checkedBadgeSvg's bytes.
+// Pressed by keyboard, each control keeps the focus, the clipboard refused too.
 // Every statement is 12 words or fewer; nothing runs off the side at 320, 360 and 1280 px; nobody is asked but the
 // page's own server and GitHub's API (mocked here). No `playwright` or no browser: the browser half is SKIPPED.
 import { createServer } from "node:http";
@@ -95,6 +96,24 @@ try {
     const png = readFileSync(await download.path());
     ok(`${width}px: the card is a 1200 x 630 PNG named for the pull request`, download.suggestedFilename() === "knos-check-octo-widgets-12.png"
       && png.subarray(1, 4).toString() === "PNG" && png.readUInt32BE(16) === 1200 && png.readUInt32BE(20) === 630, [download.suggestedFilename(), png.length]);
+    // BY KEYBOARD the focus stays on the control pressed, so the next Tab goes on from it: with the clipboard refused (the
+    // hidden box that copies instead takes the focus to select its text) and on the card (a button disabled while it is
+    // drawn drops the focus to <body>; the next Tab was then the page's first link)
+    const where = () => page.evaluate(() => document.activeElement?.dataset?.act || document.activeElement?.tagName);
+    const refuse = () => page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new DOMException("refused", "NotAllowedError")); document.querySelector("[data-share-said]").textContent = ""; });
+    const allow = () => page.evaluate(() => { delete navigator.clipboard.writeText; });
+    await refuse();
+    await page.focus('[data-act="copy"]');
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => document.querySelector("[data-share-said]").textContent.length > 0);
+    const afterCopy = await where();
+    await allow();
+    ok(`${width}px: by keyboard, the clipboard refused: the focus stays on Copy the result`, afterCopy === "copy", afterCopy);
+    await page.focus('[data-act="card"]');
+    const [byKey] = await Promise.all([page.waitForEvent("download"), page.keyboard.press("Enter")]);
+    await page.waitForFunction(() => !document.querySelector('[data-act="card"]').hasAttribute("aria-busy"));
+    const afterCard = await where();
+    ok(`${width}px: by keyboard, the card saved: the focus stays on Download the card`, byKey.suggestedFilename() === "knos-check-octo-widgets-12.png" && afterCard === "card", afterCard);
     const inks = await page.evaluate(async (v) => { const { drawCard } = await import("/share.js"); const c = drawCard(document.createElement("canvas"), v);
       const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data, seen = new Set(); for (let i = 0; i < d.length; i += 4 * 97) seen.add(`${d[i]},${d[i + 1]},${d[i + 2]}`); return seen.size; }, V);
     ok(`${width}px: the card has words on it (${inks} colours)`, inks > 20, inks);
@@ -108,6 +127,13 @@ try {
         ok(`${width}px: the badge for a repository that merged 9 days ago`, said.includes(share.badgeSnippet({ owner: "octo", repo })) && (await page.$('[data-badge] img[src="brand/checked.svg"]')) !== null, said);
         await page.click('[data-act="copy-badge"]');
         ok(`${width}px: Copy the badge`, (await page.evaluate(() => navigator.clipboard.readText())) === share.badgeSnippet({ owner: "octo", repo }));
+        await refuse();
+        await page.focus('[data-act="copy-badge"]');
+        await page.keyboard.press("Enter");
+        await page.waitForFunction(() => document.querySelector("[data-share-said]").textContent.length > 0);
+        const afterBadge = await where();
+        await allow();
+        ok(`${width}px: by keyboard, the clipboard refused: the focus stays on Copy the badge`, afterBadge === "copy-badge", afterBadge);
       } else ok(`${width}px: octo/${repo}: ${want}`, said === want, said);
     }
     const lines = await page.evaluate(() => [...document.querySelectorAll("#share button, #share a, #share summary, #share p")].map((e) => e.textContent.trim()).filter((t) => t && !t.startsWith("[!")));

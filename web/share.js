@@ -176,12 +176,14 @@ export const cardName = (pr) => `knos-check-${pr.owner}-${pr.repo}-${pr.number}.
 // ---- the panel ------------------------------------------------------------------------------------------------------------
 async function copy(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch { /* a page without the permission: select instead */ }
+  const back = document.activeElement;     // the control pressed: the hidden box takes the focus to select, then gives it back
   const t = Object.assign(document.createElement("textarea"), { value: text });
   t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
   document.body.append(t); t.select();
   let ok = false;
   try { ok = document.execCommand("copy"); } catch { ok = false; }
   t.remove();
+  back?.focus?.({ preventScroll: true });
   return ok;
 }
 const say = async (text, kind = "ok") => { try { (await import("./motion.js")).toast(text, kind); } catch { /* no motion: the status line says it */ } };
@@ -205,8 +207,10 @@ export function renderShare(el, ctx = {}) {
     tell((await copy(resultText(v, base))) ? "Copied the result and its link." : "Select the text: this browser refused to copy.", "ok");
   });
   const cardBtn = el.querySelector('[data-act="card"]');
+  let drawing = false;           // one card at a time; never `disabled`, which drops a keyboard's focus to <body>
   cardBtn.addEventListener("click", async () => {
-    cardBtn.setAttribute("aria-busy", "true"); cardBtn.disabled = true;
+    if (drawing) return;
+    drawing = true; cardBtn.setAttribute("aria-busy", "true"); cardBtn.setAttribute("aria-disabled", "true");
     try {
       const blob = await cardBlob(v), url = URL.createObjectURL(blob);
       const a = Object.assign(document.createElement("a"), { href: url, download: cardName(pr) });
@@ -214,7 +218,7 @@ export function renderShare(el, ctx = {}) {
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
       tell("Saved the card: 1200 by 630 pixels.");
     } catch { tell("Drew nothing: this browser has no canvas.", "bad"); }
-    cardBtn.removeAttribute("aria-busy"); cardBtn.disabled = false;
+    cardBtn.removeAttribute("aria-busy"); cardBtn.removeAttribute("aria-disabled"); drawing = false;
   });
   const box = el.querySelector("[data-badge]");
   el.querySelector('[data-act="badge"]').addEventListener("toggle", async (e) => {

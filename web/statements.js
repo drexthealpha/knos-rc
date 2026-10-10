@@ -365,8 +365,9 @@ export function renderStatements(el, ctx = {}) {
     };
     $("aps-erp-go").onclick = async () => {                       // the payable file, then every other line on its own sheet: never in the payable
       const to = $("aps-erp-to").value, got = await erpWrite(to, st, status, null, today);
-      save(got.payable, `${name}-${to}.csv`);
-      if (got.heldLines) save(got.held, `${name}-${to}.held.csv`);
+      // named as `knos statement export --to` names them: never the name of the QuickBooks or NetSuite file above
+      save(got.payable, `${name}.${to}.csv`);
+      if (got.heldLines) save(got.held, `${name}.${to}.held.csv`);
       $("aps-erp-said").textContent = `${got.bills} ${got.bills === 1 ? "bill" : "bills"}; ${got.heldLines} held ${got.heldLines === 1 ? "line" : "lines"} on a separate sheet.`;
     };
     for (const b of out.querySelectorAll("[data-aps-export]")) b.onclick = async () => save(await statementExport(b.dataset.apsExport, st, status), `${name}-${b.dataset.apsExport}.csv`);
