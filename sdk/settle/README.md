@@ -46,7 +46,7 @@ if (!wallet) throw new Error("This page found no Solana wallet. Install one and 
 const funder = await wallet.connect("solana:devnet");    // the wallet asks the person, then gives an address
 const { id: repoId } = await (await fetch("https://api.github.com/repos/drexthealpha/Knos")).json();
 const ix = await k.fundOrderWalletIx({ funder, funderToken: await knos.ata(funder, mint), mint, repoId, issue: 7, amount, terms,
-  wfRepo: "drexthealpha/knos-workflows", wfSha: "1997fe1d229c6296700d62136d0c2b62667087c0" });   // the workflows that may pay it
+  wfRepo: "drexthealpha/knos-workflows", wfSha: "59c61e1c97be687d41ab191f9ec706e05875754c" });   // the workflows that may pay it
 const { value } = await knos.rpc(RPC, "getLatestBlockhash", [{ commitment: "finalized" }]);
 const signature = await wallet.signAndSend(knos.serializeTx([ix], funder, value.blockhash), "solana:devnet");   // the wallet shows it first
 console.log(await knos.confirmed(RPC, signature), "- paid", amount / 1e6, "test USDC and a fee of", knos.v2.orderFee(amount) / 1e6, "on top from knos_pay 2.2");

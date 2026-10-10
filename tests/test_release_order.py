@@ -48,12 +48,41 @@ def _pypi(tmp_path: Path, wheel: str, data: bytes, at: str = "2026-10-11T09:14:0
     return path
 
 
+def _before_its_cutoff(root: Path, pub) -> None:
+    """The copy as the release's tree is before `cutoff` runs: its cutoff's note names the release before this one. On
+    the release's own commit, after `cutoff`, the note names this release; these tests replay the order from the start."""
+    this = pub.release(pub.sources())
+    major, minor, patch = (int(x) for x in this.split("."))
+    before = f"{major}.{minor}.{patch - 1}" if patch else f"{major}.{minor - 1}.99" if minor else "0.0.1"
+    for name in pub.WORKFLOWS:
+        path = root / ".github" / "workflows" / name
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text.replace(f"# knos {this} reached PyPI at ", f"# knos {before} reached PyPI at "), encoding="utf-8", newline="\n")
+    assert pub.cutoff_pending(pub.sources()), "the copy is not before its cutoff"
+
+
 @pytest.fixture()
 def tree(tmp_path, monkeypatch):
     root = _copy(tmp_path)
     pub, rel = _load("pinned_workflows"), _load("release")
     monkeypatch.setattr(pub, "ROOT", root)
+    _before_its_cutoff(root, pub)
     return root, pub, rel
+
+
+def test_the_copy_is_put_back_before_its_cutoff_when_the_tree_has_its_own(tmp_path, monkeypatch):
+    # the release's commit carries the cutoff `cutoff` wrote for it; the order above is replayed from before that step
+    root = _copy(tmp_path)
+    pub = _load("pinned_workflows")
+    monkeypatch.setattr(pub, "ROOT", root)
+    this = pub.release(pub.sources())
+    for name in pub.WORKFLOWS:
+        path = root / ".github" / "workflows" / name
+        path.write_text(pub.CUTOFF.sub(lambda m: f'{m.group("lead")}"2026-10-10T09:46:00Z"   # knos {this} reached PyPI at 2026-10-10T09:35:20Z',
+                                       path.read_text(encoding="utf-8")), encoding="utf-8", newline="\n")
+    assert pub.cutoff_pending(pub.sources()) is None
+    _before_its_cutoff(root, pub)
+    assert "Upload the wheel first" in pub.cutoff_pending(pub.sources())
 
 
 @pytest.mark.skipif(not shutil.which("uv"), reason="builds the wheel with uv, as a release does")
