@@ -40,9 +40,10 @@ def test_a_slow_cluster_gets_one_line_in_the_time_given_and_no_request_after_it(
         receipt.from_chain("SomeOrder", "https://api.devnet.solana.com", seconds=120, call=c.call, clock=c.clock)
     said = str(got.value)
     assert "\n" not in said
-    assert said.startswith("no answer from https://api.devnet.solana.com within 120 s (479 of 1,000 transactions read)")
+    # this stand-in lists all 1,000 for the order too, so every one is read
+    assert said.startswith("no answer from https://api.devnet.solana.com within 120 s (478 of 1,000 transactions read)")
     assert "--rpc URL" in said and "--limit N" in said
-    assert len(c.asked) == 480 and c.now == 120.0       # the list, then 479 reads: none past the time
+    assert len(c.asked) == 480 and c.now == 120.0       # the escrow's list and the order's, then 478 reads: none past the time
     assert max(c.waits) == 30.0 and min(c.waits) == 0.25        # no request may wait longer than what is left
 
 
@@ -129,6 +130,93 @@ def test_it_rebuilds_the_receipt_gather_builds(tmp_path):
     got = receipt.from_chain(str(order), "harness", call=cluster)
     assert receipt.digest(got) == receipt.digest(bundle.gather(c.call, c.events(), str(order), None)[0])
     assert receipt.check(got) is None and asked[0] == "getSignaturesForAddress"
+
+
+def test_it_reads_only_the_transactions_a_receipt_is_built_from():
+    """On devnet's public endpoint (40 requests of one method per 10 s) the 0.3.26 tree read 72 of the escrow's newest
+    996 transactions in its 120 s, and the witnessed order's own were 2 of them. Of the escrow's list it now reads the
+    order's own, its Balance's opening and side account, and its owner's plan: the receipt is the one gather builds
+    over every transaction, for the order and for its paying transaction, in a few seconds of that endpoint."""
+    pytest.importorskip("solders.litesvm")
+    from _order import AUTHOR, MAINT, REPO, USDC, issue
+    from test_receipt_offline import PR, TERMS, Recorded
+
+    from knos import bundle
+
+    c = Recorded()
+    assert c.send([pay.set_balance_x_ix(c.owner.pubkey(), c.bal, 500 * USDC, 5_000 * USDC, [REPO])], c.owner), c.err
+    order = c.fund_balance(issue(), terms=TERMS)
+    wallet = c.fund().pubkey()
+    c.warp(60)
+    assert c.pay(order, [(AUTHOR, 10_000, wallet)], pr=PR, actor_id=MAINT), c.err
+    mine = list(c.named[str(pay.PAY_ID)])                 # every escrow transaction of the harness, oldest first
+    other = [f"other{n:03}" for n in range(1000 - len(mine))]       # the rest of the escrow's newest 1,000: other orders'
+    escrow = other[:500] + mine[:2] + other[500:700] + mine[2:] + other[700:]
+    empty = {"slot": 1, "blockTime": 0, "meta": {"err": None, "logMessages": []}, "transaction": {"message": {"accountKeys": ["x"], "instructions": []}}}
+    now, asked = [0.0], []
+
+    def devnet(method, params, timeout):
+        now[0] += 0.25
+        asked.append((method, params[0] if params else None))
+        if method == "getSignaturesForAddress" and params[0] == str(pay.PAY_ID):
+            return [{"signature": s, "err": None} for s in reversed(escrow)]
+        if method == "getTransaction" and params[0] in other:
+            return empty
+        return c.call(method, params)
+
+    full = bundle.gather(c.call, c.events(), str(order), None)[0]
+    paying = next(e["tx"] for e in c.events() if e["event"] == "order_paid")
+    assert full["commercial_authorisation"]["limit"]["daily"] == str(500 * USDC)       # the Balance's side account is in it
+    for target in (str(order), paying):
+        now[0], asked[:] = 0.0, []
+        got = receipt.from_chain(target, "https://api.devnet.solana.com", call=devnet, clock=lambda: now[0])
+        assert receipt.digest(got) == receipt.digest(full) and receipt.check(got) is None
+        read = [p for m, p in asked if m == "getTransaction" and p in escrow]
+        assert read and set(read) <= set(mine) and not set(read) & set(other)
+        assert now[0] < 15.0, now[0]          # under 60 requests in all, the receipt's own included
+
+
+def test_an_auto_orders_payment_is_named_for_what_it_is():
+    """The witnessed order of 0.3.24 was funded `auto` and paid by its own black-box checks before any merge: the
+    program's judge e (Judge::Auto), which no receipt version names. It is said in those words, not as a payment no
+    judge's token made."""
+    def tx(*lines: str) -> dict:
+        logs = [f"Program {pay.PAY_ID} invoke [1]", *(f"Program log: {line}" for line in lines), f"Program {pay.PAY_ID} success"]
+        return {"slot": 1, "blockTime": 1, "meta": {"err": None, "logMessages": logs}, "transaction": {"message": {"accountKeys": ["Relayer"], "instructions": []}}}
+
+    order = "AutoOrder"
+    txs = {"funding": tx(f"knos3:funded order={order} repo=1 issue=11 seq=0 amount=5000000 fee=50000 mode=1 by=7 source=AutoBalance flags=36 deadline=9",
+                         'knos3:terms {"v":1}'),
+           "paying": tx(f"knos3:paid order={order} pr=12 payee=7 amount=5000000 to=Payee",
+                        f"knos3:settled order={order} paid=5000000 of=5000000 fee=0 tip=50000 judge=4")}
+
+    def cluster(method, params, timeout):
+        if method == "getSignaturesForAddress":
+            return [{"signature": s, "err": None} for s in ("paying", "funding")]
+        return txs.get(params[0])
+
+    with pytest.raises(ValueError, match=r"transaction paying paid an AUTO order's open pull request \(the program's judge e") as got:
+        receipt.from_chain(order, "u", call=cluster, clock=lambda: 0.0)
+    assert "no token" not in str(got.value)
+
+
+def test_the_answer_comes_at_the_time_given_not_after_it():
+    """The 0.3.26 tree's first run on devnet answered 129 s after the command began, of its 120 s: the wait for the
+    read allowed five seconds more than the time given."""
+    import time
+    hold = threading.Event()
+
+    def stuck(method, params, timeout):
+        hold.wait()
+        return []
+
+    try:
+        began = time.monotonic()
+        with pytest.raises(receipt.NoAnswer, match="within 1 s"):
+            receipt.from_chain("SomeOrder", "u", seconds=1.0, call=stuck)
+        assert time.monotonic() - began < 1.5
+    finally:
+        hold.set()
 
 
 def test_the_command_reads_through_it_and_says_the_one_line(monkeypatch):

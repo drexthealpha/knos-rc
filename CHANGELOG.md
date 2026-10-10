@@ -91,7 +91,10 @@ this repository. **No program changes in this release:** nothing under `programs
   accepts both ids one deliverable can have, and says which one it met
   ([`docs/COMPOSE.md`](docs/COMPOSE.md)): changing either id would change ids already written, so neither moved.
 - **`knos receipt verify` seemed never to answer.** It read up to 1,000 transactions one by one, with no limit on the
-  time. Now all of its requests together get 120 seconds; past that, it says so in one line.
+  time. Now it reads, of those, only the ones a receipt is built from: the order's own, its Balance's opening and side
+  account, and its owner's plan, each found in that account's own list. All of its requests together get 120 seconds;
+  at that time, it says so in one line. An AUTO order's payment of an open pull request is named as what it is: no
+  receipt version has its judge, so none is built for it.
 - **The index scan ran out of GitHub's hourly limit.** Its workflow had been red since 5 October. The scan now reads
   only what is new, asks about 20 pull requests in one request, and stops before the limit. The next run goes on from
   there, and a stop is a note, not a failure. It fits GitHub's own token; a read-only `KNOS_INDEX_TOKEN` stays
