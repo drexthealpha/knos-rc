@@ -10,7 +10,7 @@ Each entry starts with what changed for you, in one or two plain lines ("In shor
 
 **The 8-day time lock is in force.** A program change now waits 8 days in public (Squads time lock 691,200 s, in force
 since 11 Oct 2026). Proposal 9 of the upgrade multisig set it: approved on 9 Oct 2026, carried out by transaction
-`<TIMELOCK_SIG>`. The multisig now reads 691,200 s. Before that the wait was 48 hours.
+`2gYPofAZDfwXi6pK2tAWkRdEDfqVcceAmf3PsmW6x4jkHafNCresgEQDS3zJg2dXZRKi1NnNMWcW6ct3eFPFV1m9`. The multisig now reads 691,200 s. Before that the wait was 48 hours.
 
 Everything is on Solana devnet, which is test mode: the money is test USDC. **No program changes in this release:**
 nothing under `programs-v2/knos_*`, `programs/`, `idl/` or `tests/fixtures/*.so` moved by a byte. The interface

@@ -132,7 +132,7 @@ accounts. On devnet the Squads program itself has an upgrade authority, which is
   [`MSTGH4Q9...`](https://explorer.solana.com/tx/MSTGH4Q99fy6xNWVJ8hTCjs7mJzuVD7rGNF1Ymy6JeuB3cDMThTGnsxKBBKPvv5Q741DEfKLJrecrtBibv45uyQ?cluster=devnet). The Squads program executes a configuration transaction only once the
   time lock then in force (48 hours) has run from its approval. On 11 Oct 2026 a member executed it with
   `node scripts/governance.mjs execute upgrade 9`, in
-  [`<TIMELOCK_SIG>`](https://explorer.solana.com/tx/<TIMELOCK_SIG>?cluster=devnet), and the multisig reads back
+  [`2gYPofAZDfwXi6pK2tAWkRdEDfqVcceAmf3PsmW6x4jkHafNCresgEQDS3zJg2dXZRKi1NnNMWcW6ct3eFPFV1m9`](https://explorer.solana.com/tx/2gYPofAZDfwXi6pK2tAWkRdEDfqVcceAmf3PsmW6x4jkHafNCresgEQDS3zJg2dXZRKi1NnNMWcW6ct3eFPFV1m9?cluster=devnet), and the multisig reads back
   691200 s. Every proposal made before it is stale; an upgrade approved from now on waits 8 days.
 - **They are not oversight.** The same person proposes, approves and executes.
 - **Nothing is sent to anyone.** No comment is posted on repositories with open orders, and no email exists. The
