@@ -71,6 +71,19 @@ def test_the_transaction_page_and_the_changelog_say_which_build_runs_now_and_tha
             assert "691,200 s, in force since 11 Oct 2026" in page or "in force since 11 Oct 2026" in page, rel
 
 
+def test_no_public_page_calls_48_hours_the_wait_of_today():
+    # the 8-day time lock is in force since 11 Oct 2026: the security policy, the contributing guide, the consumer
+    # example and the knos-oidc-interface README say 8 days, and 48 hours only as what came before (receipts, IDLs and
+    # the programs' own comments keep their words: CHANGELOG 0.3.28 and docs/reference/RECEIPT.md say why)
+    if "**State: in force since 11 Oct 2026.**" not in (ROOT / "docs" / "reference" / "GOVERNANCE.md").read_text(encoding="utf-8"):
+        return
+    for rel in ("SECURITY.md", "CONTRIBUTING.md", "examples/consumer/README.md", "crates/knos-oidc-interface/README.md"):
+        page = " ".join((ROOT / rel).read_text(encoding="utf-8").split())
+        for stale in ("48 hours today", "not yet applied", "public 48-hour", "public 48 hours before", "two days after it is approved"):
+            assert stale not in page, (rel, stale)
+        assert re.search(r"8[- ]day", page) and "11 Oct 2026" in page, rel
+
+
 def test_the_release_entry_says_what_ran_on_devnet_before_the_commit_and_calls_none_of_it_pending():
     # once docs/load.json holds a devnet burst with the fan-out, and the manifest has the rounds' capabilities
     # exercised, the release's entry says so and no longer calls them pending or not yet run
