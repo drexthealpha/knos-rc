@@ -101,3 +101,25 @@ def test_the_release_entry_says_what_ran_on_devnet_before_the_commit_and_calls_n
         exercised = sum(c["stage"] == "exercised" for c in caps)
         assert f"to exercised ({exercised} of {len(caps)})" in entry
 
+
+
+def test_no_page_or_site_says_the_lock_in_force_is_two_days_once_it_is_8_days():
+    # since 11 Oct 2026 a program change waits 8 days; only the receipt's trust line (checked word for word, with its
+    # vectors and web/buyer_templates.json) keeps "public 48-hour delay", and dated history says "48 hours then"
+    if "**State: in force since 11 Oct 2026.**" not in " ".join((ROOT / "docs" / "reference" / "GOVERNANCE.md").read_text(encoding="utf-8").split()):
+        return
+    kept = {"docs/reference/RECEIPT.md", "docs/reference/TEAM.md"}   # TEAM.md: the dated 0.3.12 row (3 Oct 2026)
+    files = [ROOT / "README.md", ROOT / "README.pypi.md", *sorted((ROOT / "docs").rglob("*.md")),
+             *sorted(p for p in (ROOT / "web").rglob("*") if p.suffix in (".html", ".js", ".md", ".txt") and "node_modules" not in p.parts)]
+    said = []
+    for path in files:
+        rel = path.relative_to(ROOT).as_posix()
+        text = " ".join(path.read_text(encoding="utf-8").split())
+        for phrase in ("two days before it can run", "public two days", "waits 48 hours", "wait is 48 hours", "public 48-hour delay"):
+            if phrase in text and not (phrase == "public 48-hour delay" and rel in kept):
+                said.append((rel, phrase))
+    assert not said, said
+    # the check view spells its days out (it holds almost no digits): the word is the lock the site reads, in days
+    lock = json.loads((ROOT / "web" / "upgrades.json").read_text(encoding="utf-8"))["time_lock"]
+    assert lock == 691_200
+    assert "shown in public eight days before it can run" in " ".join((ROOT / "web" / "index.html").read_text(encoding="utf-8").split())

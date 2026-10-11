@@ -374,7 +374,7 @@ Where each price is fixed:
   and 100,000 test USDC; a build for real money decides its own cap. The current programs (Knos's
   second deployment) can be upgraded only through a multisig with a public 8-day delay, at least until an outside
   review, so any change to these constants is
-  public two days before it can run.
+  public 8 days before it can run.
 - **Record.** Through `knos record serve`, a server anyone runs and Knos hosts none of: a supplier's delivery
   record is also a static file, and the public record page and its file stay free. Revenue from lookups is
   budgeted at zero until someone buys one. The price is for a lookup by a machine: an agent, a marketplace or an
