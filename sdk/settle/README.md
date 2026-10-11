@@ -24,13 +24,13 @@ workflow run that built it (`npm audit signatures` checks it after an install).
 If the registry cannot be reached, the same file is attached to the GitHub release:
 
 ```bash
-npm install https://github.com/drexthealpha/Knos/releases/download/v0.3.27/knos-settle-0.3.27.tgz
+npm install https://github.com/drexthealpha/Knos/releases/download/v0.3.28/knos-settle-0.3.28.tgz
 ```
 
 Or import it in a browser:
 
 ```js
-import * as knos from "https://cdn.jsdelivr.net/gh/drexthealpha/Knos@v0.3.27/sdk/settle/index.js";
+import * as knos from "https://cdn.jsdelivr.net/gh/drexthealpha/Knos@v0.3.28/sdk/settle/index.js";
 ```
 
 ## Fund an order from a wallet in the browser

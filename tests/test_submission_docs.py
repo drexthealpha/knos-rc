@@ -61,6 +61,14 @@ def test_the_transaction_page_and_the_changelog_say_which_build_runs_now_and_tha
     entry = flat("CHANGELOG.md").split("## 0.3.23")[0]
     if "approved, not yet applied" in flat("docs/reference/GOVERNANCE.md"):
         assert "The 8-day upgrade time lock is approved, not applied." in entry and "time lock is applied" not in entry
+    # once it says the time lock is in force, the newest entry says so in its first line, and no page says it is not yet
+    if "**State: in force since 11 Oct 2026.**" in flat("docs/reference/GOVERNANCE.md"):
+        top = flat("CHANGELOG.md").split("## 0.3.28 ")[1].split("## 0.3.27 ")[0]
+        assert "**In short:** the 8-day time lock is in force: every program change now waits 8 days in public." in top
+        for rel in ("docs/TRUST.md", "docs/reference/GOVERNANCE.md", "docs/reference/CHARTER.md", "docs/reference/KEYS.md", "docs/reference/ROLLBACK.md"):
+            page = flat(rel)
+            assert "not yet applied" not in page and "not yet in force" not in page and "approved, not applied" not in page, rel
+            assert "691,200 s, in force since 11 Oct 2026" in page or "in force since 11 Oct 2026" in page, rel
 
 
 def test_the_release_entry_says_what_ran_on_devnet_before_the_commit_and_calls_none_of_it_pending():
