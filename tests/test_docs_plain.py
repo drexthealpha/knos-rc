@@ -123,3 +123,12 @@ def test_the_release_entry_counts_the_words_that_docs_words_explains():
     explained = len(re.findall(r"(?m)^### ", read("docs/WORDS.md")))
     said = re.findall(r"\(docs/WORDS\.md\)\*\* explains (\d+) words", read("CHANGELOG.md"))
     assert said and all(int(k) == explained for k in said), (said, explained)
+
+
+def test_the_release_entry_says_rewritten_only_of_what_was_rewritten():
+    # 0.3.27 rewrote the README, the first documents and the site's front page; documents in docs/reference/ moved,
+    # some byte for byte. So the entry never says that every page or every document was rewritten.
+    entry = read("CHANGELOG.md").split("\n## 0.3.27 ", 1)[1].split("\n## ", 1)[0]
+    sentences = re.split(r"(?<=[.!?:])\s+", " ".join(entry.split()))
+    said = [x for x in sentences if re.search(r"(?i)\bevery (page|document)\b", x) and "rewritten" in x]
+    assert not said, said

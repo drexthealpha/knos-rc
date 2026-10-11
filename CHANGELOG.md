@@ -6,11 +6,11 @@ Each entry starts with what changed for you, in one or two plain lines ("In shor
 
 ## 0.3.27 (October 2026)
 
-**In short:** Every page is rewritten in plain words, and the lines that were no longer true are fixed. The site's
-first screen now says what Knos does and for whom.
+**In short:** The README, the documents a newcomer reads first and the site's front page are rewritten in plain
+words, and the lines that were no longer true are fixed. The site's first screen now says what Knos does and for whom.
 
-**Plain words, and only true lines. Every page a person reads is rewritten in short, plain sentences. Lines that had
-gone out of date are corrected. The repository now holds only the product and the means to check it.**
+**Plain words, and only true lines. The pages a newcomer reads first are rewritten in short, plain sentences. Lines
+that had gone out of date are corrected. The repository now holds only the product and the means to check it.**
 
 The sentence is unchanged: the neutral meter for AI agent work, where neither side keeps the count. Everything is on
 Solana devnet, which is test mode: the money is test USDC. Knos has no customers yet, and one person holds every key.
@@ -33,8 +33,10 @@ moved by a byte. The interface crates stay at 0.3.14. Nothing new went to exerci
 
 ### Plain words
 
-- **Every document, the README and the site** are rewritten for a reader who is new to all of it: short sentences, no
-  internal shorthand, and each technical word explained once or linked to [`docs/WORDS.md`](docs/WORDS.md).
+- **The README, the documents a newcomer reads first and the site's front page** are rewritten for a reader who is
+  new to all of it: short sentences, no internal shorthand, and each technical word explained once or linked to
+  [`docs/WORDS.md`](docs/WORDS.md). The documents in `docs/reference/` moved with their links fixed; some are
+  unchanged.
 - **[`docs/WORDS.md`](docs/WORDS.md)** explains 45 words.
 - **The site's first screen** says what Knos does and for whom. The page that lists the evidence is now called "Check
   every claim yourself": a buyer wants that as much as a judge does.
