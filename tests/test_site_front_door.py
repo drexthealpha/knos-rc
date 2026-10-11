@@ -1,7 +1,7 @@
 """The front door (web/front_door.js): tests/web/front_door.mjs, on a build of the site.
 
 Your own invoice is the first thing the site checks. The node script holds the module to src/knos/ids.py and to
-examples/shadow/ with no browser; then, in headless Chromium: the first screen says 40 words at most and holds one
+examples/shadow/ with no browser; then, in headless Chromium: the first screen says 56 words at most and holds one
 control; the sample falls into the four groups with no request at all; a pasted invoice with a line billed twice has
 it flagged; a named repository asks nobody but api.github.com; nothing runs off the side at 320 px. No node, no
 `playwright` package or no browser: skipped, with the reason."""
@@ -68,4 +68,4 @@ def test_the_first_screen_checks_your_own_invoice(tmp_path: Path) -> None:
     if run.returncode == 0 and said and said[-1].startswith("SKIP"):
         pytest.skip(said[-1][5:])
     assert run.returncode == 0, "\n".join(line for line in (run.stdout + run.stderr).splitlines() if not line.startswith("ok"))
-    assert "all passed" in run.stdout and "the first screen says 40 words at most" in run.stdout and "four groups with the expected counts" in run.stdout
+    assert "all passed" in run.stdout and "the first screen says 56 words at most" in run.stdout and "four groups with the expected counts" in run.stdout

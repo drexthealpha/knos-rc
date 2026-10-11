@@ -1,5 +1,6 @@
 # .github/workflows/knos-canary.yml: measures how long Knos takes to pay, as a user sees it, every 30 minutes. It goes in
-# a repository of its own that has knos.yml and knos-check.yml installed (Knos runs one in drexthealpha/knos-e2e), never
+# a repository of its own that has knos.yml and knos-check.yml installed (Knos runs one in drexthealpha/knos-e2e; the published
+# merge-to-paid times come from it), never
 # in a repository whose code or money you care about: it opens and merges pull requests there, all day.
 #
 # What starts it:
