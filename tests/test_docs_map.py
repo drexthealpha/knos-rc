@@ -124,6 +124,20 @@ def test_the_story_is_seven_beats_each_with_evidence_that_exists_and_asks_for_th
     assert "outside key holder" in needs[0] and "shadow count" in needs[1] and "outside review" in needs[2]
 
 
+def test_the_front_pages_point_where_a_stranger_can_go_and_name_no_removed_folder():
+    """The story's demo is the site's #demo view, not its first screen (the first screen is the check box); and
+    docs/submission/ is gone, so no front page calls itself "the submission" or links there."""
+    story = read("docs/STORY.md")
+    assert "Its [demo](https://drexthealpha.github.io/Knos/#demo) lets you drive them" in story
+    assert "first screen lets you drive" not in " ".join(story.split())
+    index = read("web/index.html")
+    assert re.search(r'<section id="demo"[^>]*\bhidden\b', index) and index.index('id="demo"') > index.index('id="front-door"')
+    for name in FRONT + ["README.md"]:
+        text = " ".join(read(f"docs/{name}").split())
+        assert "the submission" not in text.lower() and "submission/" not in text, name
+
+
+
 def test_the_page_tells_the_same_seven_beats_and_stands_still_under_reduced_motion():
     source = read("web/story.js")
     assert "export function renderStory(el, ctx" in source and "prefersReduced" in source

@@ -21,7 +21,7 @@ flowchart LR
 A **pull request** is a piece of work sent to a code project on GitHub.
 
 1. Open [the check](https://drexthealpha.github.io/Knos/#check).
-2. Paste the link to a public pull request that an AI agent opened. Or press **Try a sample**.
+2. Paste the link to a public pull request that an AI agent opened. Or press **Try a sample invoice**.
 3. Wait about three seconds.
 
 **What to look for.** Does the description say the tests pass? The page quotes that sentence. Then it lists

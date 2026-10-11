@@ -33,7 +33,7 @@ Of 241 merged agent pull requests claiming passing tests, 9 failed a test, build
 
 Open [the check](https://drexthealpha.github.io/Knos/check/) in your browser. Paste the link to an AI agent's pull request. It tells you whether the agent's checks really passed.
 
-No pull request at hand? Press **Try a sample**. It checks a made-up bill from an AI agent.
+No pull request at hand? On [the front page](https://drexthealpha.github.io/Knos/), press **Try a sample invoice**. It checks a made-up bill from an AI agent.
 
 There is nothing to install, no sign-up, and nothing is sent to Knos.
 

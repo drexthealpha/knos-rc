@@ -53,7 +53,7 @@ requests that were paid on devnet, in test USDC, for bounties Knos funded on its
 What the chain cannot tell apart: an account that is not on the list of Knos's own (`scripts/own_github_ids.json`)
 is counted as outside. That shows it is another account.
 
-It does not show the account is independent of Knos, and the submission does not say so.
+It does not show the account is independent of Knos, and Knos does not say so.
 
 ## The other numbers
 

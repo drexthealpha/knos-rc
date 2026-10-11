@@ -40,7 +40,7 @@ Check every claim yourself: [JUDGES.md](JUDGES.md).
 
 One task, start to finish. Each step has one piece of evidence: a file, a test or a transaction.
 
-The site plays the same seven ([`web/story.js`](../web/story.js)). The round on its first screen lets you drive them
+The site plays the same seven ([`web/story.js`](../web/story.js)). Its [demo](https://drexthealpha.github.io/Knos/#demo) lets you drive them
 ([`web/demo.js`](../web/demo.js): Agree, Fails, Passes, Statement, Replay, Pay, Verify).
 
 ```mermaid
